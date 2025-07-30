@@ -1,0 +1,42 @@
+<header class="navbar navbar-dark sticky-top bg-primary flex-md-nowrap p-0 shadow">
+  <a class="navbar-brand col-md-3 col-lg-2 px-3" href="#">
+    <img src="/assets/logo.png" alt="Your Logo" class="logo" style="max-height: 50px;">
+  </a>
+  <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="navbar-nav d-none d-md-block">
+    <div class="px-4">
+      <a class="btn btn-sm btn-outline-light" href="#"><i class="bi bi-lock"></i> Logout</a>
+    </div>
+  </div>
+</header>
+
+<main class="container-fluid">
+  <div class="row">
+    <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse shadow-sm rounded">
+      <div class="position-sticky pt-4">
+        <ul class="nav flex-column">
+          <li class="nav-item mb-2">
+            <a class="nav-link d-flex align-items-center gap-2 fs-5" routerLink="/home" routerLinkActive="active">
+              <i class="bi bi-file-earmark-text"></i>
+              <span class="icon material-icons">Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item mb-2">
+            <a class="nav-link d-flex align-items-center gap-2 fs-5" routerLink="/" routerLinkActive="active">
+              <i class="bi bi-lock"></i>
+              <span class="icon material-icons">Logout</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+    <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4">
+      <h1>Welcome to the Research Output Portal</h1>
+      <app-research-output></app-research-output>
+    </div>
+  </div>
+</main>
+
+

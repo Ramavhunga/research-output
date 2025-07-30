@@ -1,0 +1,15 @@
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h4>{{ output.title }}</h4>
+    </div>
+    <div class="card-body">
+      <p><strong>Abstract:</strong> {{ output.abstractText }}</p>
+      <p><strong>Year:</strong> {{ output.year }}</p>
+      <p><strong>DOI:</strong> <a [href]="'https://doi.org/' + output.doi" target="_blank">{{ output.doi }}</a></p>
+      <p><strong>Publisher:</strong> {{ output.publisher.name }} ({{ output.publisher.country }})</p>
+      <p><strong>Status:</strong> <span class="badge bg-success">{{ output.status }}</span></p>
+      <p><strong>Author:</strong> {{ output.authors[0].fullName }} ({{ output.authors[0].designation }}, NRF Rating: {{ output.authors[0].nrfRating }})</p>
+    </div>
+  </div>
+</div>
