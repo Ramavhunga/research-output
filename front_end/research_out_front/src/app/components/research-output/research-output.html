@@ -1,15 +1,163 @@
-<div class="container mt-4">
-  <div class="card shadow-sm">
-    <div class="card-header bg-primary text-white">
-      <h4>{{ output.title }}</h4>
+<div class="nk-body bo-base npc-default has-sidebar ui-rounder has-shadow bo-page-default bo-theme">
+  <div class="nk-app-root">
+    <!-- main @s -->
+    <div class="nk-main ">
+
+      <div class="nk-sidebar bg-dark" data-content="sidebarMenu">
+        <div class="nk-sidebar-element nk-sidebar-body">
+          <div class="nk-sidebar-content" data-simplebar>
+            <div class="nk-sidebar-inner">
+              <div class="nk-menu-trigger d-xl-none ms-n1">
+                <a href="#" class="nk-nav-toggle nk-quick-nav-icon" data-target="sidebarMenu"><em class="icon ni ni-cross"></em></a>
+              </div>
+              <div class="nk-header-app-name d-none d-xl-flex">
+                <!-- start SVG Logo -->
+                <div class="nk-header-app-info">
+                  <a href="#">
+                    <img src="/assets/logo.png" alt="" id="epglum-app-logo">
+                  </a>
+                </div>
+              </div>
+              <!-- end SVG Logo -->
+              <ul class="nk-menu">
+                <li class="nk-menu-item active">
+                  <a href="/research" class="nk-menu-link">
+                    <span class="nk-menu-icon"><em class="icon ni ni-dashboard"></em></span>
+                    <span class="nk-menu-text">Dashboard</span>
+                  </a>
+                </li><!-- .nk-menu-item -->
+                <li class="nk-menu-item has-sub">
+                  <a href="#" class="nk-menu-link">
+                    <span class="nk-menu-icon"><em class="icon ni ni-map-pin"></em></span>
+                    <span class="nk-menu-text">Land Use Development</span>
+                  </a>
+
+                </li><!-- .nk-menu-item -->
+                <li class="nk-menu-item">
+                  <a href="#" class="nk-menu-link">
+                    <span class="nk-menu-icon"><em class="icon ni ni-building"></em></span>
+                    <span class="nk-menu-text">Building Plan</span>
+                  </a>
+                </li>
+
+                <li class="nk-menu-item">
+                  <a href="#" class="nk-menu-link">
+                    <span class="nk-menu-icon"><em class="icon ni ni-newspaper"></em></span>
+                    <span class="nk-menu-text">Outdoor Advertising</span>
+                  </a>
+                </li>
+                <li class="nk-menu-item">
+                  <a href="#" class="nk-menu-link">
+                    <span class="nk-menu-icon"><em class="icon ni ni-clipboad-check"></em></span>
+                    <span class="nk-menu-text">Compliance</span>
+                  </a>
+                </li><!-- .nk-menu-item -->
+                <li class="nk-menu-item">
+                  <a href="#" class="nk-menu-link">
+                    <span class="nk-menu-icon"><em class="icon ni ni-users"></em></span>
+                    <span class="nk-menu-text">User Management</span>
+                  </a>
+                </li><!-- .nk-menu-item -->
+                <li class="nk-menu-item">
+                  <a href="#" class="nk-menu-link">
+                    <span class="nk-menu-icon"><em class="icon ni ni-chat-msg"></em></span>
+                    <span class="nk-menu-text">Knowledge Hub</span>
+                  </a>
+                </li><!-- .nk-menu-item -->
+              </ul><!-- .nk-menu -->
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- side menu @e -->
+      <div class="nk-toggle-btn" id="toggleBtn">
+        <div class="nk-menu-trigger">
+          <a href="#" class="nk-nav-toggle nk-quick-nav-icon d-xl-none" data-target="sidebarMenu"><em class="icon ni ni-chevron-left"></em></a>
+          <a href="#" class="nk-msg-profile-toggle profile-toggle nk-nav-compact" data-target="sidebarMenu"><em class="icon ni ni-chevron-left"></em></a>
+        </div>
+      </div>
+
+
+      <!-- wrap @s -->
+      <div class="nk-wrap ">
+
+        <!-- main header @s -->
+        <div class="nk-header nk-header-fixed is-light">
+          <div class="container-fluid">
+            <div class="nk-header-wrap">
+              <div class="nk-menu-trigger d-xl-none ms-n1">
+                <a href="#" class="nk-nav-toggle nk-quick-nav-icon" data-target="sidebarMenu"><em class="icon ni ni-menu"></em></a>
+              </div>
+              <div class="nk-header-app-name d-xl-none">
+                <!-- start SVG Logo -->
+                <div class="nk-header-app-info">
+                  <img id="epglum-app-logo" src="/assets/logo.png">
+                </div>
+              </div>
+              <div class="nk-header-tools">
+                <ul class="nk-quick-nav">
+                  <li class="dropdown user-dropdown">
+                    <a href="#" class="dropdown-toggle me-n1" data-bs-toggle="dropdown">
+                      <div class="user-toggle">
+                        <div class="user-avatar sm">
+                          <em class="icon ni ni-user-alt"></em>
+                        </div>
+                        <div class="user-info d-none d-md-block">
+                          <div class="user-status">Administrator</div>
+                          <div class="user-name dropdown-indicator">Tharage Godfrey</div>
+                        </div>
+                      </div>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-md dropdown-menu-end">
+                      <div class="dropdown-inner user-card-wrap bg-lighter d-none d-md-block">
+                        <div class="user-card">
+                          <div class="user-avatar">
+                            <span>TG</span>
+                          </div>
+                          <div class="user-info">
+                            <span class="lead-text">Tharage Godfrey</span>
+                            <span class="sub-text">godfrey.tharage@univen.ac.za</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="dropdown-inner user-account-info">
+                        <h6 class="overline-title-alt">ICT</h6>
+                        <div class="user-balance-sub"><span>Business Systems</span></div>
+                      </div>
+                      <div class="dropdown-inner">
+                        <ul class="link-list">
+                          <li><a href="#"><em class="icon ni ni-signout"></em><span>Sign out</span></a></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+<!--        &lt;!&ndash; content @s &ndash;&gt;-->
+<!--        {% block content %}-->
+<!--        {% endblock %}-->
+<!--        &lt;!&ndash; content @e &ndash;&gt;-->
+
+        <!-- footer @s -->
+        <div class="nk-footer">
+          <div class="container-fluid">
+            <div class="nk-footer-wrap g-2">
+              <div class="nk-footer-copyright">
+                &copy; 2025 Research Output | University Of Venda
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- footer @e -->
+
+      </div>
+      <!-- wrap @e -->
     </div>
-    <div class="card-body">
-      <p><strong>Abstract:</strong> {{ output.abstractText }}</p>
-      <p><strong>Year:</strong> {{ output.year }}</p>
-      <p><strong>DOI:</strong> <a [href]="'https://doi.org/' + output.doi" target="_blank">{{ output.doi }}</a></p>
-      <p><strong>Publisher:</strong> {{ output.publisher.name }} ({{ output.publisher.country }})</p>
-      <p><strong>Status:</strong> <span class="badge bg-success">{{ output.status }}</span></p>
-      <p><strong>Author:</strong> {{ output.authors[0].fullName }} ({{ output.authors[0].designation }}, NRF Rating: {{ output.authors[0].nrfRating }})</p>
-    </div>
+    <!-- main @e -->
   </div>
+  <!-- app-root @e -->
 </div>
