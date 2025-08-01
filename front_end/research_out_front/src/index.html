@@ -1,30 +1,96 @@
 <!doctype html>
 <html lang="en-za">
 <head>
-  <meta charset="utf-8">
-  <meta name="author" content="Softnio">
-  <title>Research Output</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/assets/assets/css/dashlite.css">
-  <link rel="stylesheet" id="skin-default" href="/assets/assets/css/theme.css">
-  <link rel="stylesheet" id="bo-skin-default" href="/assets/assets/css/theme-bo.css">
-  <style>
-    .nav-tabs.nav-switch-s2 .nav-item {
-      padding: 0!important;
-    }
-    .bo-base .nav-tabs .nav-link {
-      display: inline-flex;
-    }
-  </style>
+  <title>Home | Dashboardkit Dashboard Template</title>
+  <!-- [Meta] -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta
+    name="description"
+    content="Dashboardkit is trending dashboard template made using Bootstrap 5 design framework. Dashboardkit is available in Bootstrap, React, CodeIgniter, Angular,  and .net Technologies."
+  />
+  <meta
+    name="keywords"
+    content="Bootstrap admin template, Dashboard UI Kit, Dashboard Template, Backend Panel, react dashboard, angular dashboard"
+  />
+  <meta name="author" content="Phoenixcoded" />
+
+  <!-- [Favicon] icon -->
+  <link rel="icon" href="/assets/images/favicon.svg" type="image/x-icon" />
+  <!-- [Google Font : Public Sans] icon -->
+  <link href="/assets/fonts/inter/inter.css" rel="stylesheet">
+  <!-- [phosphor Icons] https://phosphoricons.com/ -->
+  <link rel="stylesheet" href="/assets/fonts/phosphor/duotone/style.css" />
+  <!-- [Tabler Icons] https://tablericons.com -->
+  <link rel="stylesheet" href="/assets/fonts/tabler-icons.min.css" />
+  <!-- [Feather Icons] https://feathericons.com -->
+  <link rel="stylesheet" href="/assets/fonts/feather.css" />
+  <!-- [Font Awesome Icons] https://fontawesome.com/icons -->
+  <link rel="stylesheet" href="/assets/fonts/fontawesome.css" />
+  <!-- [Material Icons] https://fonts.google.com/icons -->
+  <link rel="stylesheet" href="/assets/fonts/material.css" />
+  <!-- [Template CSS Files] -->
+  <link rel="stylesheet" href="/assets/css/style.css" id="main-style-link" />
+  <link rel="stylesheet" href="/assets/css/style-preset.css" />
+
 </head>
 <body>
   <app-root></app-root>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
-  <script src="/assets/js/bundle.js"></script>
-  <script src="/assets/js/scripts.js"></script>
-  <script src="/assets/js/libs/datatable-btns.js"></script>
-  <script src="/assets/assets/js/charts/chart-ecommerce.js"></script>
-  <script src="https://unpkg.com/htmx.org@2.0.0/dist/htmx.min.js"></script>
+  <!-- [Page Specific JS] start -->
+  <script src="/assets/js/plugins/apexcharts.min.js"></script>
+  <script src="/assets/js/widgets/support-chart.js"></script>
+  <script src="/assets/js/widgets/support-chart1.js"></script>
+  <script src="/assets/js/widgets/account-chart-1.js"></script>
+  <script src="/assets/js/widgets/satisfaction-chart.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      new SimpleBar(document.querySelector('.feed-scroll'));
+      new SimpleBar(document.querySelector('.pro-scroll'));
+    });
+  </script>
+  <!-- [Page Specific JS] end -->
+  <!-- Required Js -->
+  <script src="/assets/js/plugins/popper.min.js"></script>
+  <script src="/assets/js/plugins/simplebar.min.js"></script>
+  <script src="/assets/js/plugins/bootstrap.min.js"></script>
+  <script src="/assets/js/plugins/i18next.min.js"></script>
+  <script src="/assets/js/plugins/i18nextHttpBackend.min.js"></script>
+  <script src="/assets/js/fonts/custom-font.js"></script>
+  <script src="/assets/js/pcoded.js"></script>
+  <script src="/assets/js/theme.js"></script>
+  <script src="/assets/js/multi-lang.js"></script>
+  <script src="/assets/js/plugins/feather.min.js"></script>
+
+
+  <script>
+    layout_change('light');
+  </script>
+
+  <script>
+    layout_sidebar_change('dark');
+  </script>
+
+
+  <script>
+    layout_sidebar_change('dark');
+  </script>
+
+
+  <script>
+    change_box_container('true');
+  </script>
+
+  <script>
+    layout_caption_change('true');
+  </script>
+
+  <script>
+    layout_rtl_change('false');
+  </script>
+
+  <script>
+    preset_change('preset-1');
+  </script>
 </body>
 </html>
