@@ -15,7 +15,7 @@ File: style.css
 7.  Compact layout css
 8.  Horizontal layout css
 9.  Tab layout css
-10. Widget css 
+10. Widget css
 11. Avtar css
 12. Badge css
 13. Button css
@@ -26286,7 +26286,7 @@ body .tox-tinymce-aux {
   }
 }
 .auth-main.v3 .bg-overlay {
-  background: linear-gradient(to right, var(--bs-primary) 50%, var(--bs-body-bg) 0);
+  background: linear-gradient(to right, #082E67 50%, var(--bs-body-bg) 0);
 }
 .auth-main.v3 .auth-form .card {
   max-width: 800px;
