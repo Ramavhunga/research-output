@@ -447,3 +447,16 @@
   <!-- customer-section end -->
 </div>
 <!-- [ Main Content ] end -->
+<!-- [Page Specific JS] start -->
+<script src="../assets/js/plugins/apexcharts.min.js"></script>
+<script src="../assets/js/widgets/support-chart.js"></script>
+<script src="../assets/js/widgets/support-chart1.js"></script>
+<script src="../assets/js/widgets/account-chart-1.js"></script>
+<script src="../assets/js/widgets/satisfaction-chart.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    new SimpleBar(document.querySelector('.feed-scroll'));
+    new SimpleBar(document.querySelector('.pro-scroll'));
+  });
+</script>
+<!-- [Page Specific JS] end -->
