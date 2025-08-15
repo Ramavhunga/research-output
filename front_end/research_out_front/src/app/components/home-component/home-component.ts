@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
-import {ResearchOutputComponent} from '../research-output/research-output';
+import {RouterOutlet} from '@angular/router';
 
 @Component({
   selector: 'app-home-component',
   imports: [
-    ResearchOutputComponent
+    RouterOutlet
   ],
   templateUrl: './home-component.html',
   styleUrl: './home-component.css'

@@ -1,8 +1,22 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import {HomeComponent} from '../components/home-component/home-component';
+import {ResearchOutputComponent} from '../components/research-output/research-output';
+import {DashboardComponent} from '../dashboard-component/dashboard-component';
 
-const routes: Routes = [{path: '', component: HomeComponent},];
+const routes: Routes = [
+    {
+      path: '',
+      component: HomeComponent,
+      children: [
+        { path: '', component: ResearchOutputComponent },
+        {path: 'research-output', children: [
+            {path: '', component: ResearchOutputComponent},
+            {path: 'create', component: ResearchOutputComponent}
+          ]}
+      ]
+    }
+  ];
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],
