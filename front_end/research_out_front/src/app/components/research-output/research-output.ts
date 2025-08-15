@@ -1,9 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import {ResearchOutput} from '../../models/research-output.model';
 import {ResearchOutputService} from '../../services/research-output.service';
+import {RouterLink} from '@angular/router';
 
 @Component({
   selector: 'app-research-output',
+  imports: [
+    RouterLink
+  ],
   templateUrl: './research-output.html'
 })
 export class ResearchOutputComponent implements OnInit {

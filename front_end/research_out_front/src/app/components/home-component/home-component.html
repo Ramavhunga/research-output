@@ -10,29 +10,31 @@
   <nav class="pc-sidebar">
     <div class="navbar-wrapper">
       <div class="m-header">
-        <a href="#" class="b-brand text-primary">
+        <a href="/clients" class="b-brand text-primary col-9">
           <!-- ========   Change your logo from here   ============ -->
           <img src="/assets/logo-admin.png" alt="logo image" class="logo-lg" style="width:100%;height:auto;object-fit:contain;" />
         </a>
       </div>
       <div class="navbar-content">
         <ul class="pc-navbar">
-          <li class="pc-item">
-            <a routerLink="/clients" routerLinkActive="active" class="pc-link">
+          <li class="pc-item" routerLink="/clients/dashboard" routerLinkActive="active">
+            <a routerLink="/clients/dashboard" routerLinkActive="active" class="pc-link">
             <span class="pc-micon">
-              <i class="ph-duotone ph-projector-screen-chart"></i>
+              <i class="ph-duotone ph-gauge"></i>
             </span>
               <span class="pc-mtext" data-i18n="Dashboard">Dashboard</span>
             </a>
           </li>
-          <li class="pc-item">
+
+          <li class="pc-item" routerLink="/clients/research-output" routerLinkActive="active" >
             <a routerLink="/clients/research-output" routerLinkActive="active" class="pc-link">
             <span class="pc-micon">
               <i class="ph-duotone ph-identification-card"></i>
             </span>
-              <span class="pc-mtext" data-i18n="User">Research Output</span>
+              <span class="pc-mtext" data-i18n="Research Output">Research Output</span>
             </a>
           </li>
+
         </ul>
       </div>
     </div>
