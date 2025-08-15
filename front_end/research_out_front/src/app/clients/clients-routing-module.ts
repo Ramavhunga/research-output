@@ -5,18 +5,16 @@ import {ResearchOutputComponent} from '../components/research-output/research-ou
 import {DashboardComponent} from '../dashboard-component/dashboard-component';
 
 const routes: Routes = [
-    {
-      path: '',
-      component: HomeComponent,
-      children: [
-        { path: '', component: ResearchOutputComponent },
-        {path: 'research-output', children: [
-            {path: '', component: ResearchOutputComponent},
-            {path: 'create', component: ResearchOutputComponent}
-          ]}
-      ]
-    }
-  ];
+        {
+          path: '',
+          component: HomeComponent,
+          children: [
+            { path: '', component: DashboardComponent },
+            { path: 'research-output', component: ResearchOutputComponent },
+            { path: 'research-output/create', component: ResearchOutputComponent }
+          ]
+        }
+      ];
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],
