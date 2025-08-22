@@ -25,9 +25,35 @@
               }
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              "src/css/plugins/animate.min.css",
+              "src/fonts/inter/inter.css",
+              "src/fonts/phosphor/duotone/style.css",
+              "src/fonts/tabler-icons.min.css",
+              "src/fonts/feather.css",
+              "src/fonts/fontawesome.css",
+              "src/fonts/material.css",
+              "src/css/style.css",
+              "src/css/style-preset.css"
             ],
             "scripts": [
+              "src/js/plugins/apexcharts.min.js",
+              "src/js/widgets/support-chart.js",
+              "src/js/widgets/support-chart1.js",
+              "src/js/widgets/account-chart-1.js",
+              "src/js/widgets/satisfaction-chart.js",
+              "src/js/plugins/popper.min.js",
+              "src/js/plugins/simplebar.min.js",
+              "src/js/plugins/bootstrap.min.js",
+              "src/js/plugins/i18next.min.js",
+              "src/js/plugins/i18nextHttpBackend.min.js",
+              "src/js/fonts/custom-font.js",
+              "src/js/pcoded.js",
+              "src/js/theme.js",
+              "src/js/plugins/feather.min.js",
+              "src/js/multi-lang.js",
+              "src/js/plugins/feather.min.js",
+              "src/js/custom.js"
             ],
             "server": "src/main.server.ts",
             "prerender": false,
@@ -38,13 +64,13 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "2500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "3MB",
+                  "maximumError": "5MB"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "200kB",
+                  "maximumError": "400kB"
                 }
               ],
               "outputHashing": "all"
@@ -87,7 +113,10 @@
               }
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              "src/css/styles.css",
+              "src/css/landing.css",
+              "src/css/style-preset.css"
             ]
           }
         }

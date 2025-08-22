@@ -1,487 +1,656 @@
-<!-- [ breadcrumb ] start -->
-<div class="page-header">
-  <div class="page-block">
-    <div class="row align-items-center g-0">
-      <div class="col-sm-auto">
-        <div class="page-header-title">
-          <h5 class="mb-0">Student List</h5>
+<!-- [ Sidebar Menu ] start -->
+<nav class="pc-sidebar">
+  <div class="navbar-wrapper">
+    <div class="m-header">
+      <a routerLink="/home" class="b-brand text-primary">
+        <!-- ========   Change your logo from here   ============ -->
+        <img src="/assets/logo-admin.png" alt="logo image" class="logo-lg" />
+      </a>
+    </div>
+    <div class="navbar-content">
+      <ul class="pc-navbar">
+
+        <li class="pc-item pc-caption">
+          <label data-i18n="Widget">Navivigation</label>
+          <i class="ph-duotone ph-chart-pie"></i>
+        </li>
+        <li class="pc-item" routerLink="/home" routerLinkActive="home">
+          <a  routerLink="/home" routerLinkActive="home" class="pc-link">
+            <span class="pc-micon">
+              <i class="ph-duotone ph-projector-screen-chart"></i>
+            </span>
+            <span class="pc-mtext" data-i18n="Dashboard">Dashboard</span>
+          </a>
+        </li>
+        <li class="pc-item" routerLink="/research-outputs" routerLinkActive="active">
+          <a routerLink="/research-outputs" routerLinkActive="active" class="pc-link">
+            <span class="pc-micon">
+              <i class="ph-duotone ph-identification-card"></i>
+            </span>
+            <span class="pc-mtext" data-i18n="Items">Items</span>
+          </a>
+        </li>
+
+
+      </ul>
+
+    </div>
+  </div>
+</nav>
+<!-- [ Sidebar Menu ] end -->
+<!-- [ Header Topbar ] start -->
+<header class="pc-header">
+  <div class="header-wrapper"> <!-- [Mobile Media Block] start -->
+    <div class="me-auto pc-mob-drp">
+      <ul class="list-unstyled">
+        <!-- ======= Menu collapse Icon ===== -->
+        <li class="pc-h-item pc-sidebar-collapse">
+          <a href="#" class="pc-head-link ms-0" id="sidebar-hide">
+            <i class="ti ti-menu-2"></i>
+          </a>
+        </li>
+        <li class="pc-h-item pc-sidebar-popup">
+          <a href="#" class="pc-head-link ms-0" id="mobile-collapse">
+            <i class="ti ti-menu-2"></i>
+          </a>
+        </li>
+      </ul>
+    </div>
+    <!-- [Mobile Media Block end] -->
+    <div class="ms-auto">
+      <ul class="list-unstyled">
+
+        <li class="dropdown pc-h-item">
+          <a
+            class="pc-head-link dropdown-toggle arrow-none me-0"
+            data-bs-toggle="dropdown"
+            href="#"
+            role="button"
+            aria-haspopup="false"
+            aria-expanded="false"
+          >
+            <i class="ph-duotone ph-sun-dim"></i>
+          </a>
+          <div class="dropdown-menu dropdown-menu-end pc-h-dropdown">
+            <a href="#!" class="dropdown-item" onclick="layout_change('dark')">
+              <i class="ph-duotone ph-moon"></i>
+              <span>Dark</span>
+            </a>
+            <a href="#!" class="dropdown-item" onclick="layout_change('light')">
+              <i class="ph-duotone ph-sun-dim"></i>
+              <span>Light</span>
+            </a>
+            <a href="#!" class="dropdown-item" onclick="layout_change_default()">
+              <i class="ph-duotone ph-cpu"></i>
+              <span>Default</span>
+            </a>
+          </div>
+        </li>
+
+        <li class="dropdown pc-h-item header-user-profile">
+          <a
+            class="pc-head-link dropdown-toggle arrow-none me-0"
+            data-bs-toggle="dropdown"
+            href="#"
+            role="button"
+            aria-haspopup="false"
+            data-bs-auto-close="outside"
+            aria-expanded="false"
+          >
+            <img src="../assets/images/user/avatar-2.jpg" alt="user-image" class="user-avtar" />
+            <span class="ms-2">
+          <span class="user-name">Joseph William</span>
+          <span class="user-desc">Administrator</span>
+        </span>
+          </a>
+          <div class="dropdown-menu dropdown-user-profile dropdown-menu-end pc-h-dropdown">
+            <div class="dropdown-header d-flex align-items-center justify-content-between">
+              <h5 class="m-0">Profile</h5>
+            </div>
+            <div class="dropdown-body">
+              <div class="profile-notification-scroll position-relative" style="max-height: calc(100vh - 225px)">
+                <ul class="list-group list-group-flush w-100">
+                  <li class="list-group-item item-actions">
+                    <a href="#" class="dropdown-item">
+                  <span class="d-flex align-items-center">
+                    <i class="ph-duotone ph-key"></i>
+                    <span>Change password</span>
+                  </span>
+                    </a>
+
+                  </li>
+                  <li class="list-group-item item-actions">
+                    <a routerLink="/login" class="dropdown-item">
+                      <span class="d-flex align-items-center">
+                        <i class="ph-duotone ph-power"></i>
+                        <span>Logout</span>
+                      </span>
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</header>
+<!-- [ Header ] end -->
+
+
+
+<!-- [ Main Content ] start -->
+<div class="pc-container">
+  <div class="pc-content">
+    <!-- [ breadcrumb ] start -->
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center g-0">
+          <div class="col-sm-auto">
+            <div class="page-header-title">
+              <h5 class="mb-0">Student List</h5>
+            </div>
+          </div>
+          <div class="col-sm-auto">
+            <ul class="breadcrumb">
+              <li class="breadcrumb-item"><a href="javascript: void(0)">Home</a></li>
+              <li class="breadcrumb-item"><a href="javascript: void(0)">Online Courses</a></li>
+              <li class="breadcrumb-item" aria-current="page">Student List</li>
+            </ul>
+          </div>
         </div>
       </div>
-      <div class="col-sm-auto">
-        <ul class="breadcrumb">
-          <li class="breadcrumb-item"><a href="javascript: void(0)">Home</a></li>
-          <li class="breadcrumb-item" aria-current="page">Student List</li>
+    </div>
+    <!-- [ breadcrumb ] end -->
+
+
+    <!-- [ Main Content ] start -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card table-card">
+          <div class="card-header">
+            <div class="d-sm-flex align-items-center justify-content-between">
+              <h5 class="mb-3 mb-sm-0">Student list</h5>
+              <div>
+                <a routerLink="/research-outputs/create" class="btn btn-primary">Add Student</a>
+              </div>
+            </div>
+          </div>
+          <div class="card-body pt-3">
+            <div class="table-responsive">
+              <table class="table table-hover" id="pc-dt-simple">
+                <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Mobile</th>
+                  <th>Qualification</th>
+                  <th>Email</th>
+                  <th>Admission Date</th>
+                  <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-1.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Airi Satou</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.COM., M.COM.</td>
+                  <td>Info@123.com</td>
+                  <td>2023/09/12</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-2.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Ashton Cox</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.COM., M.COM.</td>
+                  <td>Info@123.com</td>
+                  <td>2023/12/24</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-3.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Bradley Greer</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.A, B.C.A</td>
+                  <td>Info@123.com</td>
+                  <td>2022/09/19</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-4.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Brielle Williamson</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.A, B.C.A</td>
+                  <td>Info@123.com</td>
+                  <td>2022/08/22</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-5.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Airi Satou</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.COM., M.COM.</td>
+                  <td>Info@123.com</td>
+                  <td>2023/09/12</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-6.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Ashton Cox</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.COM., M.COM.</td>
+                  <td>Info@123.com</td>
+                  <td>2023/12/24</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-7.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Bradley Greer</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.A, B.C.A</td>
+                  <td>Info@123.com</td>
+                  <td>2022/09/19</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-8.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Brielle Williamson</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.A, B.C.A</td>
+                  <td>Info@123.com</td>
+                  <td>2022/08/22</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-9.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Brielle Williamson</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.A, B.C.A</td>
+                  <td>Info@123.com</td>
+                  <td>2022/08/22</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-10.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Airi Satou</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.COM., M.COM.</td>
+                  <td>Info@123.com</td>
+                  <td>2023/09/12</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-2.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Ashton Cox</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.COM., M.COM.</td>
+                  <td>Info@123.com</td>
+                  <td>2023/12/24</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-3.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Bradley Greer</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.A, B.C.A</td>
+                  <td>Info@123.com</td>
+                  <td>2022/09/19</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-4.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Brielle Williamson</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.A, B.C.A</td>
+                  <td>Info@123.com</td>
+                  <td>2022/08/22</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-5.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Airi Satou</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.COM., M.COM.</td>
+                  <td>Info@123.com</td>
+                  <td>2023/09/12</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-6.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Ashton Cox</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.COM., M.COM.</td>
+                  <td>Info@123.com</td>
+                  <td>2023/12/24</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="flex-shrink-0">
+                        <img src="../assets/images/user/avatar-7.jpg" alt="user image" class="img-radius wid-40" />
+                      </div>
+                      <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-0">Bradley Greer</h6>
+                      </div>
+                    </div>
+                  </td>
+                  <td>(123) 4567 890</td>
+                  <td>B.A, B.C.A</td>
+                  <td>Info@123.com</td>
+                  <td>2022/09/19</td>
+                  <td>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- [ Main Content ] end -->
+  </div>
+</div>
+<!-- [ Main Content ] end -->
+<footer class="pc-footer">
+  <div class="footer-wrapper container-fluid">
+    <div class="row">
+      <div class="col my-1">
+        <p class="m-0"
+        >Dashboardkit &#9829; crafted by Team <a href="https://themeforest.net/user/phoenixcoded" target="_blank">Phoenixcoded</a></p
+        >
+      </div>
+      <div class="col-auto my-1">
+        <ul class="list-inline footer-link mb-0">
+          <li class="list-inline-item"><a href="../index.html">Home</a></li>
+          <li class="list-inline-item"
+          ><a href="https://codedthemes.gitbook.io/dashboardkit-bootstrap" target="_blank">Documentation</a></li
+          >
+          <li class="list-inline-item"><a href="https://phoenixcoded.authordesk.app/" target="_blank">Support</a></li>
         </ul>
       </div>
     </div>
   </div>
-</div>
-<!-- [ breadcrumb ] end -->
-
-
-<!-- [ Main Content ] start -->
-<div class="row">
-  <div class="col-12">
-    <div class="card table-card">
-      <div class="card-header">
-        <div class="d-sm-flex align-items-center justify-content-between">
-          <h5 class="mb-3 mb-sm-0">Student list</h5>
-          <div>
-            <a routerLink="/clients/research-output/create" class="btn btn-primary">Add Student</a>
-          </div>
-        </div>
-      </div>
-      <div class="card-body pt-3">
-        <div class="table-responsive">
-          <table class="table table-hover" id="pc-dt-simple">
-            <thead>
-            <tr>
-              <th>Name</th>
-              <th>Mobile</th>
-              <th>Qualification</th>
-              <th>Email</th>
-              <th>Admission Date</th>
-              <th>Action</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-1.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Airi Satou</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.COM., M.COM.</td>
-              <td>Info@123.com</td>
-              <td>2023/09/12</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-2.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Ashton Cox</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.COM., M.COM.</td>
-              <td>Info@123.com</td>
-              <td>2023/12/24</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-3.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Bradley Greer</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.A, B.C.A</td>
-              <td>Info@123.com</td>
-              <td>2022/09/19</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-4.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Brielle Williamson</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.A, B.C.A</td>
-              <td>Info@123.com</td>
-              <td>2022/08/22</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-5.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Airi Satou</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.COM., M.COM.</td>
-              <td>Info@123.com</td>
-              <td>2023/09/12</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-6.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Ashton Cox</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.COM., M.COM.</td>
-              <td>Info@123.com</td>
-              <td>2023/12/24</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-7.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Bradley Greer</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.A, B.C.A</td>
-              <td>Info@123.com</td>
-              <td>2022/09/19</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-8.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Brielle Williamson</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.A, B.C.A</td>
-              <td>Info@123.com</td>
-              <td>2022/08/22</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-9.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Brielle Williamson</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.A, B.C.A</td>
-              <td>Info@123.com</td>
-              <td>2022/08/22</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-10.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Airi Satou</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.COM., M.COM.</td>
-              <td>Info@123.com</td>
-              <td>2023/09/12</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-2.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Ashton Cox</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.COM., M.COM.</td>
-              <td>Info@123.com</td>
-              <td>2023/12/24</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-3.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Bradley Greer</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.A, B.C.A</td>
-              <td>Info@123.com</td>
-              <td>2022/09/19</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-4.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Brielle Williamson</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.A, B.C.A</td>
-              <td>Info@123.com</td>
-              <td>2022/08/22</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-5.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Airi Satou</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.COM., M.COM.</td>
-              <td>Info@123.com</td>
-              <td>2023/09/12</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-6.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Ashton Cox</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.COM., M.COM.</td>
-              <td>Info@123.com</td>
-              <td>2023/12/24</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <img src="../assets/images/user/avatar-7.jpg" alt="user image" class="img-radius wid-40" />
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="mb-0">Bradley Greer</h6>
-                  </div>
-                </div>
-              </td>
-              <td>(123) 4567 890</td>
-              <td>B.A, B.C.A</td>
-              <td>Info@123.com</td>
-              <td>2022/09/19</td>
-              <td>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-eye f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-edit f-20"></i>
-                </a>
-                <a href="#" class="avtar avtar-xs btn-link-secondary mx-1">
-                  <i class="ti ti-trash f-20"></i>
-                </a>
-              </td>
-            </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-<!-- [ Main Content ] end -->
+</footer>
