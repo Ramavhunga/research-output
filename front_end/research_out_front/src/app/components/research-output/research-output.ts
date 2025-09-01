@@ -1,13 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import {ResearchOutput} from '../../models/research-output.model';
 import {ResearchOutputService} from '../../services/research-output.service';
-import {RouterLink, RouterLinkActive} from '@angular/router';
+import {RouterLink, RouterLinkActive, RouterOutlet} from '@angular/router';
 
 @Component({
   selector: 'app-research-output',
   imports: [
     RouterLink,
-    RouterLinkActive
+    RouterLinkActive,
+    RouterOutlet
 
   ],
   templateUrl: './research-output.html'
