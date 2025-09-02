@@ -10,15 +10,16 @@ import {AuthGuard} from './guards/auth.guard';
 
 
 export const routes: Routes = [
-  { path: 'login', component: LoginComponent },
-  {
-    path: '',
-    component: HomeComponent, canActivate: [AuthGuard],
-    children: [
-      { path: '', component: DashboardComponent , canActivate: [AuthGuard]},
-      { path: 'dashboard', component: DashboardComponent , canActivate: [AuthGuard]},
-      { path: 'research-output', component: ResearchOutputComponent , canActivate: [AuthGuard]},
-      { path: 'research-output/create', component: ResearchOutputDetailComponent , canActivate: [AuthGuard]}
-    ]
-  }
-];
+      { path: 'login', component: LoginComponent },
+      {
+        path: '',
+        component: HomeComponent,
+        canActivate: [AuthGuard],
+        children: [
+          { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+          { path: 'dashboard', component: DashboardComponent },
+          { path: 'research-output', component: ResearchOutputComponent },
+          { path: 'research-output/create', component: ResearchOutputDetailComponent }
+        ]
+      }
+    ];
