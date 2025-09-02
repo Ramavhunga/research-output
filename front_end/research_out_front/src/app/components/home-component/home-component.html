@@ -2,7 +2,7 @@
 <nav class="pc-sidebar">
   <div class="navbar-wrapper">
     <div class="m-header">
-      <a routerLink="/home" class="b-brand text-primary">
+      <a routerLink="dashboard" class="b-brand text-primary">
         <!-- ========   Change your logo from here   ============ -->
         <img src="/assets/logo-admin.png" alt="logo image" class="logo-lg" />
       </a>
@@ -42,11 +42,6 @@
     <div class="me-auto pc-mob-drp">
       <ul class="list-unstyled">
         <!-- ======= Menu collapse Icon ===== -->
-        <li class="pc-h-item pc-sidebar-collapse">
-          <a href="javascript:void(0)" class="pc-head-link ms-0" id="sidebar-hide">
-            <i class="ti ti-menu-2"></i>
-          </a>
-        </li>
         <li class="pc-h-item pc-sidebar-popup">
           <a href="javascript:void(0)" class="pc-head-link ms-0" id="mobile-collapse">
             <i class="ti ti-menu-2"></i>
@@ -70,15 +65,11 @@
             <i class="ph-duotone ph-sun-dim"></i>
           </a>
           <div class="dropdown-menu dropdown-menu-end pc-h-dropdown">
-            <a href="#!" class="dropdown-item" onclick="layout_change('dark')">
+            <a href="javascript:void(0);" class="dropdown-item" onclick="layout_change('dark')">
               <i class="ph-duotone ph-moon"></i>
               <span>Dark</span>
             </a>
-            <a href="#!" class="dropdown-item" onclick="layout_change('light')">
-              <i class="ph-duotone ph-sun-dim"></i>
-              <span>Light</span>
-            </a>
-            <a href="#!" class="dropdown-item" onclick="layout_change_default()">
+            <a href="javascript:void(0);" class="dropdown-item" onclick="layout_change_default()">
               <i class="ph-duotone ph-cpu"></i>
               <span>Default</span>
             </a>

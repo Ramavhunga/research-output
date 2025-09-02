@@ -18,10 +18,5 @@ export const routes: Routes = [
       { path: 'research-output', component: ResearchOutputComponent },
       { path: 'research-output/create', component: ResearchOutputDetailComponent }
     ]
-  },
-  {
-    path: 'clients',
-    loadChildren: () =>
-      import('./components/clients/clients.module').then(m => m.ClientsModule)
   }
 ];
