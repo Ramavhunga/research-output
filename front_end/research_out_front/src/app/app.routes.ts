@@ -9,13 +9,19 @@ import {DashboardComponent} from './components/dashboard-component/dashboard-com
 
 
 export const routes: Routes = [
-    { path: 'login', component: LoginComponent },
-    { path: '', component: HomeComponent,
-      children: [
-        { path: 'dashboard', component: DashboardComponent },
-        { path: 'research-output', component: ResearchOutputComponent },
-        { path: 'create', component: ResearchOutputDetailComponent }
-      ]
-    },
-    { path: 'clients', loadChildren: () => import('./components/clients/clients.module').then(m => m.ClientsModule) }
-  ];
+  { path: 'login', component: LoginComponent },
+  {
+    path: '',
+    component: HomeComponent,
+    children: [
+      { path: 'dashboard', component: DashboardComponent },
+      { path: 'research-output', component: ResearchOutputComponent },
+      { path: 'research-output/create', component: ResearchOutputDetailComponent }
+    ]
+  },
+  {
+    path: 'clients',
+    loadChildren: () =>
+      import('./components/clients/clients.module').then(m => m.ClientsModule)
+  }
+];
