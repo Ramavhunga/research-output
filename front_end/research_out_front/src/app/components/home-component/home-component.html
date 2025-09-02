@@ -88,8 +88,8 @@
           >
             <img src="../assets/images/user/avatar-2.jpg" alt="user-image" class="user-avtar" />
             <span class="ms-2">
-          <span class="user-name">Joseph William</span>
-          <span class="user-desc">Administrator</span>
+          <span class="user-name">{{login?.staff?.title}} {{login?.staff?.surname}} {{login?.staff?.initials}}</span>
+          <span *ngIf="login?.staff" class="user-desc">Staff</span><span *ngIf="login?.student" class="user-desc">Staff</span>
         </span>
           </a>
           <div class="dropdown-menu dropdown-user-profile dropdown-menu-end pc-h-dropdown">

@@ -6,17 +6,18 @@ import {
   ResearchOutputDetailComponent
 } from './components/research-output-detail-component/research-output-detail-component';
 import {DashboardComponent} from './components/dashboard-component/dashboard-component';
+import {AuthGuard} from './guards/auth.guard';
 
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   {
     path: '',
-    component: HomeComponent,
+    component: HomeComponent, canActivate: [AuthGuard],
     children: [
-      { path: 'dashboard', component: DashboardComponent },
-      { path: 'research-output', component: ResearchOutputComponent },
-      { path: 'research-output/create', component: ResearchOutputDetailComponent }
+      { path: 'dashboard', component: DashboardComponent , canActivate: [AuthGuard]},
+      { path: 'research-output', component: ResearchOutputComponent , canActivate: [AuthGuard]},
+      { path: 'research-output/create', component: ResearchOutputDetailComponent , canActivate: [AuthGuard]}
     ]
   }
 ];
