@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { RouterLink } from "@angular/router";
 import {FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
 import {NgIf} from '@angular/common';
 import { CommonModule } from '@angular/common';
@@ -9,7 +8,7 @@ const ISSN_REGEX = /^\d{4}-\d{3}[\dX]$/i;
 
 @Component({
   selector: 'app-research-output-detail-component',
-  imports: [RouterLink, ReactiveFormsModule, NgIf,CommonModule],
+  imports: [ReactiveFormsModule, NgIf,CommonModule],
   templateUrl: './research-output-detail-component.html',
   styleUrl: './research-output-detail-component.css'
 })
