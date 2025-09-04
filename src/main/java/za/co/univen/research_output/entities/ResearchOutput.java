@@ -9,70 +9,44 @@ import java.util.List;
 @Data
 public class ResearchOutput implements java.io.Serializable {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String title;
-    private String abstractText;
-    private int year;
+    private String outputType;
+    private String otherType;
+    private OutputStatus status;
+    private Integer year;
     private String doi;
-    private boolean dhETApproved;
+    private String url;
 
-    @Enumerated(EnumType.STRING)
-    private OutputStatus status; // DRAFT, SUBMITTED, APPROVED
+    @OneToMany(cascade = CascadeType.ALL)
+    private List<Author> authors;
 
-    @ManyToOne
-    private OutputType outputType;
+    @OneToOne(cascade = CascadeType.ALL)
+    private Outlet outlet;
 
-    @ManyToOne
-    private Publisher publisher;
+    @OneToOne(cascade = CascadeType.ALL)
+    private Access access;
 
-    @ManyToMany
-    @JoinTable(
-            name = "researcher_output",
-            joinColumns = @JoinColumn(name = "output_id"),
-            inverseJoinColumns = @JoinColumn(name = "researcher_id")
-    )
-    private List<Researcher> authors;
+    @OneToOne(cascade = CascadeType.ALL)
+    private Funding funding;
 
-    @OneToMany(mappedBy = "researchOutput", cascade = CascadeType.ALL)
-    private List<Attachment> attachments;
+    @ElementCollection
+    private List<String> keywords;
 
-    @OneToMany(mappedBy = "researchOutput", cascade = CascadeType.ALL)
-    private List<Citation> citations;
+    @Column(length = 2000)
+    private String abstractText;
 
-    @OneToMany(mappedBy = "researchOutput", cascade = CascadeType.ALL)
-    private List<SubmissionLog> submissionLogs;
-
-    @Override
-    public String toString() {
-        return "ResearchOutput{" +
-                "id=" + id +
-                ", title='" + title + '\'' +
-                ", abstractText='" + abstractText + '\'' +
-                ", year=" + year +
-                ", doi='" + doi + '\'' +
-                ", dhETApproved=" + dhETApproved +
-                ", status=" + status +
-                ", outputType=" + outputType +
-                ", publisher=" + publisher +
-                ", authors=" + authors +
-                ", attachments=" + attachments +
-                ", citations=" + citations +
-                ", submissionLogs=" + submissionLogs +
-                '}';
-    }
-
-    public ResearchOutput(String aiInPublicSector, String s, int i, String s1, boolean b, OutputStatus outputStatus, OutputType outputType, Publisher publisher, List<Researcher> researcher) {
+    public ResearchOutput(String aiInPublicSector, String s, int i, String s1, OutputStatus outputStatus, String outputType, Outlet outlet, List<Author> authors) {
         this.title = aiInPublicSector;
         this.abstractText = s;
         this.year = i;
         this.doi = s1;
-        this.dhETApproved = b;
         this.status = outputStatus;
         this.outputType = outputType;
-        this.publisher = publisher;
-        this.authors = researcher;
+        this.outlet = outlet;
+        this.authors = authors;
     }
     public ResearchOutput() {
         // Default constructor

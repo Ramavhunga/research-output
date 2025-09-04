@@ -4,58 +4,37 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import za.co.univen.research_output.repositories.*;
 import za.co.univen.research_output.entities.*;
-import za.co.univen.research_output.repositories.InstitutionRepository;
 
 import java.util.List;
 
 @Component
 public class SampleDataLoader implements CommandLineRunner {
 
-    private final InstitutionRepository institutionRepo;
-    private final DepartmentRepository departmentRepo;
-    private final UserRepository userRepo;
-    private final ResearcherRepository researcherRepo;
-    private final OutputTypeRepository outputTypeRepo;
-    private final PublisherRepository publisherRepo;
+
     private final ResearchOutputRepository researchOutputRepo;
 
-    public SampleDataLoader(InstitutionRepository institutionRepo, DepartmentRepository departmentRepo, UserRepository userRepo, ResearcherRepository researcherRepo, OutputTypeRepository outputTypeRepo, PublisherRepository publisherRepo, ResearchOutputRepository researchOutputRepo) {
-        this.institutionRepo = institutionRepo;
-        this.departmentRepo = departmentRepo;
-        this.userRepo = userRepo;
-        this.researcherRepo = researcherRepo;
-        this.outputTypeRepo = outputTypeRepo;
-        this.publisherRepo = publisherRepo;
+    public SampleDataLoader( ResearchOutputRepository researchOutputRepo) {
+
         this.researchOutputRepo = researchOutputRepo;
     }
 
     @Override
     public void run(String... args) {
-        System.out.println("Loading sample data............................................");
+       System.out.println("Loading sample data............................................");
        try {
-           Institution inst = institutionRepo.save(new Institution("Mpumalanga University", "Mbombela, South Africa"));
-           Department dept = departmentRepo.save(new Department("Computer Science", inst));
-           User user = userRepo.save(new User("jdoe", "password", "jdoe@example.com", "RESEARCHER"));
-           Researcher researcher = researcherRepo.save(new Researcher("John Doe", "0000-0001-2345-6789", "C1", "Senior Lecturer", dept, user));
-           OutputType outputType = outputTypeRepo.save(new OutputType("Journal Article"));
-           Publisher publisher = publisherRepo.save(new Publisher("Elsevier", "Netherlands"));
-           researchOutputRepo.save(new ResearchOutput("AI in Public Sector", "This paper explores AI adoption in government services.", 2024, "10.1234/ai.ps.2024", true, OutputStatus.APPROVED, outputType, publisher, List.of(researcher)));
 
-           Institution inst2 = institutionRepo.save(new Institution("University of Pretoria", "Pretoria, South Africa"));
-           Department dept2 = departmentRepo.save(new Department("Mathematics", inst2));
-           User user2 = userRepo.save(new User("asmith", "securepass", "asmith@example.com", "RESEARCHER"));
-           Researcher researcher2 = researcherRepo.save(new Researcher("Alice Smith", "0000-0002-3456-7890", "B2", "Associate Professor", dept2, user2));
-           OutputType outputType2 = outputTypeRepo.save(new OutputType("Conference Paper"));
-           Publisher publisher2 = publisherRepo.save(new Publisher("Springer", "Germany"));
-           researchOutputRepo.save(new ResearchOutput("Quantum Computing Advances", "This paper discusses breakthroughs in quantum computing.", 2023, "10.5678/qc.adv.2023", true, OutputStatus.APPROVED, outputType2, publisher2, List.of(researcher2)));
+           Author author1 = new Author("Alice Smith", "0000-0001-2345-6789", "University of Venda");
+           Outlet outlet1 = new Outlet("Journal of Science", "1234-5678", "978-3-16-148410-0", "12", "3", "45-67", "2024-06-01");
+           researchOutputRepo.save(new ResearchOutput("AI in Public Sector", "This paper explores AI adoption in government services.", 2024, "10.1234/ai.ps.2024", OutputStatus.APPROVED, "Journal Article", outlet1, List.of(author1)));
 
-           Institution inst3 = institutionRepo.save(new Institution("Stellenbosch University", "Stellenbosch, South Africa"));
-           Department dept3 = departmentRepo.save(new Department("Physics", inst3));
-           User user3 = userRepo.save(new User("mjones", "mypassword", "mjones@example.com", "RESEARCHER"));
-           Researcher researcher3 = researcherRepo.save(new Researcher("Michael Jones", "0000-0003-4567-8901", "A1", "Research Fellow", dept3, user3));
-           OutputType outputType3 = outputTypeRepo.save(new OutputType("Book Chapter"));
-           Publisher publisher3 = publisherRepo.save(new Publisher("Oxford University Press", "United Kingdom"));
-           researchOutputRepo.save(new ResearchOutput("Nanotechnology Applications", "This chapter explores nanotechnology in medicine.", 2022, "10.7890/nano.med.2022", true, OutputStatus.APPROVED, outputType3, publisher3, List.of(researcher3)));
+
+           Author author2 = new Author("Bob Johnson", "0000-0002-3456-7890", "Institute of Research");
+           Outlet outlet2 = new Outlet("Tech Review", "8765-4321", "978-1-23-456789-7", "5", "1", "10-20", "2023-12-15");
+           researchOutputRepo.save(new ResearchOutput("Quantum Computing Advances", "This paper discusses breakthroughs in quantum computing.", 2023, "10.5678/qc.adv.2023", OutputStatus.APPROVED, "Conference Paper", outlet2, List.of(author2)));
+
+           Author author3 = new Author("Carol Lee", "0000-0003-4567-8901", "Venda College");
+           Outlet outlet3 = new Outlet("Medical Advances", "1122-3344", "978-0-12-345678-9", "8", "2", "100-120", "2022-09-10");
+           researchOutputRepo.save(new ResearchOutput("Nanotechnology Applications", "This chapter explores nanotechnology in medicine.", 2022, "10.7890/nano.med.2022", OutputStatus.APPROVED, "Book Chapter", outlet3, List.of(author3)));
         } catch (Exception e) {
             System.err.println("Error occurred while loading sample data: " + e.getMessage());
         }
