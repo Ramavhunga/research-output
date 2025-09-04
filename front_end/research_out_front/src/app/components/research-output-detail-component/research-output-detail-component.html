@@ -26,100 +26,208 @@
     <!-- [ Main Content ] start -->
     <div class="row">
       <div class="col-12">
+
+
         <div class="card">
           <div class="card-header">
-            <h5 class="mb-0">Basic Information</h5>
+            <h5 class="mb-0">Research Information</h5>
           </div>
           <div class="card-body">
             <div class="row">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">First Name</label>
-                  <input type="text" class="form-control" placeholder="Enter first name" />
+
+              <form [formGroup]="form" (ngSubmit)="onSubmit()">
+                <div >
+                  <!-- Basic Details -->
+
+                    <div class="row g-3">
+                      <div class="col-12">
+                        <label class="form-label required">Title</label>
+                        <input class="form-control" formControlName="title" placeholder="e.g., Machine Learning for Student Success in HEIs" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label required">Output Type</label>
+                        <select class="form-select" formControlName="outputType" (change)="onOutputTypeChange()">
+                          <option value="" disabled>Choose...</option>
+                          <option>Journal Article</option>
+                          <option>Conference Paper</option>
+                          <option>Book Chapter</option>
+                          <option>Monograph</option>
+                          <option>Dataset</option>
+                          <option>Creative Work</option>
+                          <option>Patent</option>
+                          <option>Other</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6" *ngIf="form.get('outputType')?.value === 'Other'">
+                        <label class="form-label required">Specify Other Type</label>
+                        <input class="form-control" formControlName="otherType" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label required">Publication Year</label>
+                        <input type="number" class="form-control" formControlName="publicationYear" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">DOI</label>
+                        <input class="form-control" formControlName="doi" placeholder="10.1234/xyz-abc.123" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Public URL</label>
+                        <input type="url" class="form-control" formControlName="url" placeholder="https://…" />
+                      </div>
+                    </div>
+
+
+                  <!-- Authors -->
+                  <div class="mb-4 pt-3">
+                    <div class="section-title mb-2">Authors</div>
+                    <div formArrayName="authors" class="vstack gap-3">
+                      <div class="author-card" *ngFor="let a of authorsFA.controls; let i = index" [formGroupName]="i">
+                        <div class="row g-3 align-items-end">
+                          <div class="col-md-4">
+                            <label class="form-label required">Full Name</label>
+                            <input class="form-control" formControlName="name" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">ORCID</label>
+                            <input class="form-control" formControlName="orcid" placeholder="0000-0000-0000-0000" />
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label">Affiliation</label>
+                            <input class="form-control" formControlName="affiliation" placeholder="e.g., Univ. of Venda" />
+                          </div>
+                          <div class="col-md-1 d-grid">
+                            <button type="button" class="btn btn-outline-danger" (click)="removeAuthor(i)" title="Remove author">&times;</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary mt-2" (click)="addAuthor()">+ Add Author</button>
+                  </div>
+
+
+                  <!-- Outlet Details -->
+                  <div class="mb-4" [formGroup]="outletFG">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Journal / Proceedings / Publisher</label>
+                        <input class="form-control" formControlName="name" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">ISSN</label>
+                        <input class="form-control" formControlName="issn" placeholder="1234-567X" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">ISBN</label>
+                        <input class="form-control" formControlName="isbn" placeholder="978-..." />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Volume</label>
+                        <input class="form-control" formControlName="volume" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Issue</label>
+                        <input class="form-control" formControlName="issue" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Pages</label>
+                        <input class="form-control" formControlName="pages" placeholder="e.g., 101–120" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Publication Date</label>
+                        <input type="date" class="form-control" formControlName="publicationDate" />
+                      </div>
+                    </div>
+                  </div>
+
+                 <!-- Access & Indexing -->
+                  <div class="mb-4" [formGroup]="accessFG">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="mb-2">Open Access</label>
+                        <div class="d-flex gap-3">
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="radio" [value]="'Yes'" formControlName="openAccess" (change)="onOpenAccessChange()" /> Yes
+                          </label>
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="radio" [value]="'No'" formControlName="openAccess" (change)="onOpenAccessChange()" /> No
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-12" [formGroup]="indexingGroup">
+                        <label class="mb-2">Indexing</label>
+                        <div class="d-flex flex-wrap gap-3">
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="checkbox" formControlName="Scopus" (change)="onIdxDhetChange()" /> Scopus
+                          </label>
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="checkbox" formControlName="Web of Science" (change)="onIdxDhetChange()" /> Web of Science
+                          </label>
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="checkbox" formControlName="IBSS" (change)="onIdxDhetChange()" /> IBSS
+                          </label>
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="checkbox" formControlName="DHET Accredited" (change)="onIdxDhetChange()" /> DHET Accredited
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-12">
+                        <label class="mb-2">Peer‑reviewed</label>
+                        <div>
+                          <input class="form-check-input" type="checkbox" formControlName="peerReviewed" /> Peer‑reviewed
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mb-4" [formGroup]="fundingGroup">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Funder</label>
+                        <input class="form-control" formControlName="funder" placeholder="e.g., NRF, NIH" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Grant / Project Number</label>
+                        <input class="form-control" formControlName="grantNumber" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Keywords & Abstract -->
+                  <div class="mb-4">
+                    <div class="mb-3">
+                      <label class="form-label">Keywords (press Enter to add)</label>
+                      <input type="text" class="form-control" (keydown)="addKeywordFromInput($event)" placeholder="e.g., HEMIS, enrolment planning, LLM" />
+                      <div class="mt-2">
+                      <span class="chip" *ngFor="let k of keywordsFA.controls; let i=index">
+                        <span>{{ k.value }}</span>
+                        <button type="button" (click)="removeKeyword(i)" aria-label="Remove">×</button>
+                      </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="form-label">Abstract</label>
+                      <textarea class="form-control" rows="6" formControlName="abstract"></textarea>
+                      <div class="d-flex justify-content-between">
+                        <span class="form-hint">Useful for repository submissions and review.</span>
+                        <span class="form-hint"><span class="counter">{{ (form.get('abstract')?.value || '').length }}</span>/2000</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Attachments -->
+                  <div class="mb-4">
+                    <div class="section-title mb-2">Attachment</div>
+                    <label class="form-label">Upload PDF (max 20MB)</label>
+                    <input class="form-control" type="file" (change)="onFileSelected($event)" accept="application/pdf" />
+                  </div>
                 </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Last Name</label>
-                  <input type="text" class="form-control" placeholder="Enter last name" />
+                <div class="sticky-actions d-flex gap-2 justify-content-between flex-wrap p-3 border-top bg-white">
+                  <button type="submit" class="btn btn-primary">Submit</button>
                 </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Email</label>
-                  <input type="email" class="form-control" placeholder="Enter email" />
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Joining Date</label>
-                  <input type="date" class="form-control" />
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Password</label>
-                  <input type="password" class="form-control" placeholder="Enter Password" />
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Confirm Password</label>
-                  <input type="password" class="form-control" placeholder="Enter confirm password" />
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Mobile Number</label>
-                  <input type="number" class="form-control" placeholder="Enter Mobile number" />
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Gender</label>
-                  <select class="form-select">
-                    <option>Female</option>
-                    <option>Male</option>
-                  </select>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Designation</label>
-                  <input type="text" class="form-control" placeholder="Designation" />
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Department</label>
-                  <select class="form-select">
-                    <option>Department</option>
-                    <option>Department 1</option>
-                    <option>Department 2</option>
-                  </select>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Date of Birth</label>
-                  <input type="date" class="form-control" />
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label class="form-label">Education</label>
-                  <input type="text" class="form-control" placeholder="Education" />
-                </div>
-              </div>
-              <div class="col-md-12">
-                <div class="mb-3">
-                  <input class="form-control" type="file" />
-                </div>
-              </div>
-              <div class="col-md-12 text-end">
-                <button class="btn btn-primary">Submit</button>
-              </div>
+
+              </form>
+
             </div>
+
           </div>
         </div>
       </div>

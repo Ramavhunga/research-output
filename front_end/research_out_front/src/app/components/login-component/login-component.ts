@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import {Router, RouterLink, Routes} from '@angular/router';
+import {Router} from '@angular/router';
 import {FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
 import {LoginService} from '../../services/login.service';
 import {User} from '../../interface/user';
@@ -10,7 +10,6 @@ import {LoginDTO} from '../../interface/login-dto';
 @Component({
   selector: 'app-login-component',
   imports: [
-    RouterLink,
     ReactiveFormsModule
   ],
   templateUrl: './login-component.html',

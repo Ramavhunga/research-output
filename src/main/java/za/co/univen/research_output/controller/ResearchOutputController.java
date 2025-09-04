@@ -21,10 +21,10 @@ public class ResearchOutputController {
         this.service = service;
     }
 
-@GetMapping
-public List<ResearchOutput> getAll() {
-    return service.findAll();
-}
+    @GetMapping
+    public List<ResearchOutput> getAll() {
+        return service.findAll();
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<ResearchOutput> getById(@PathVariable Long id) {
