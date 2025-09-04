@@ -1,34 +1,52 @@
-export interface OutputType {
-  id: number;
+interface Author {
   name: string;
+  orcid: string;
+  affiliation: string;
 }
 
-export interface Publisher {
-  id: number;
+interface Outlet {
   name: string;
-  country: string;
+  issn: string;
+  isbn: string;
+  volume: string;
+  issue: string;
+  pages: string;
+  publicationDate: string;
 }
 
-export interface Author {
-  id: number;
-  fullName: string;
-  orcidId: string;
-  nrfRating: string;
-  designation: string;
+interface Indexing {
+  scopus: boolean;
+  webOfScience: boolean;
+  ibss: boolean;
+  dhetAccredited: boolean;
 }
 
-export interface ResearchOutput {
-  id: number;
+interface Access {
+  openAccess: boolean | null;
+  embargoEndDate: string;
+  peerReviewed: boolean;
+  indexing: Indexing;
+  dhetYear: string;
+}
+
+interface Funding {
+  funder: string;
+  grantNumber: string;
+}
+
+interface ResearchOutput {
   title: string;
-  abstractText: string;
-  year: number;
-  doi: string;
-  dhETApproved: boolean;
+  outputType: string;
+  otherType: string;
   status: string;
-  outputType: OutputType;
-  publisher: Publisher;
+  year: number | null;
+  doi: string;
+  url: string;
   authors: Author[];
-  attachments: any[];
-  citations: any[];
-  submissionLogs: any[];
+  outlet: Outlet;
+  access: Access;
+  funding: Funding;
+  keywords: string[];
+  abstractText: string;
+  attachment: File | null;
 }

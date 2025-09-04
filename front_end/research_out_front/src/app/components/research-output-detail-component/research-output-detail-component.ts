@@ -22,7 +22,7 @@ export class ResearchOutputDetailComponent {
       title: ['', [Validators.required, Validators.minLength(5)]],
       outputType: ['', Validators.required],
       otherType: [''],
-      publicationYear: [null, [Validators.required, Validators.min(1900), Validators.max(2100)]],
+      year: [null, [Validators.required, Validators.min(1900), Validators.max(2100)]],
       doi: ['', [this.patternOptional(DOI_REGEX)]],
       url: [''],
       authors: this.fb.array([this.newAuthor()]),
@@ -40,10 +40,10 @@ export class ResearchOutputDetailComponent {
         embargoEndDate: [''],
         peerReviewed: [false],
         indexing: this.fb.group({
-          Scopus: [false],
-          'Web of Science': [false],
-          IBSS: [false],
-          'DHET Accredited': [false],
+          scopus: [false],
+          webOfScience: [false],
+          ibss: [false],
+          dhetAccredited: [false],
         }),
         dhetYear: [''],
       }),
@@ -52,7 +52,7 @@ export class ResearchOutputDetailComponent {
         grantNumber: [''],
       }),
       keywords: this.fb.array<string>([]),
-      abstract: ['', [Validators.maxLength(2000)]],
+      abstractText: ['', [Validators.maxLength(2000)]],
       attachment: [null],
     });
   }

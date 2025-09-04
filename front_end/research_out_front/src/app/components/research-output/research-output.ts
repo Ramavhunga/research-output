@@ -1,5 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-import {ResearchOutput} from '../../models/research-output.model';
 import {RouterLink, RouterLinkActive} from '@angular/router';
 import {catchError, of} from 'rxjs';
 import Swal from 'sweetalert2';

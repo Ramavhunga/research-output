@@ -37,44 +37,42 @@
 
               <form [formGroup]="form" (ngSubmit)="onSubmit()">
                 <div >
-                  <!-- Basic Details -->
-
-                    <div class="row g-3">
-                      <div class="col-12">
-                        <label class="form-label required">Title</label>
-                        <input class="form-control" formControlName="title" placeholder="e.g., Machine Learning for Student Success in HEIs" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label required">Output Type</label>
-                        <select class="form-select" formControlName="outputType" (change)="onOutputTypeChange()">
-                          <option value="" disabled>Choose...</option>
-                          <option>Journal Article</option>
-                          <option>Conference Paper</option>
-                          <option>Book Chapter</option>
-                          <option>Monograph</option>
-                          <option>Dataset</option>
-                          <option>Creative Work</option>
-                          <option>Patent</option>
-                          <option>Other</option>
-                        </select>
-                      </div>
-                      <div class="col-md-6" *ngIf="form.get('outputType')?.value === 'Other'">
-                        <label class="form-label required">Specify Other Type</label>
-                        <input class="form-control" formControlName="otherType" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label required">Publication Year</label>
-                        <input type="number" class="form-control" formControlName="publicationYear" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label">DOI</label>
-                        <input class="form-control" formControlName="doi" placeholder="10.1234/xyz-abc.123" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label">Public URL</label>
-                        <input type="url" class="form-control" formControlName="url" placeholder="https://…" />
-                      </div>
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label class="form-label required">Title</label>
+                      <input class="form-control" formControlName="title" placeholder="e.g., Machine Learning for Student Success in HEIs" />
                     </div>
+                    <div class="col-md-6">
+                      <label class="form-label required">Output Type</label>
+                      <select class="form-select" formControlName="outputType" (change)="onOutputTypeChange()">
+                        <option value="" disabled>Choose...</option>
+                        <option>Journal Article</option>
+                        <option>Conference Paper</option>
+                        <option>Book Chapter</option>
+                        <option>Monograph</option>
+                        <option>Dataset</option>
+                        <option>Creative Work</option>
+                        <option>Patent</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6" *ngIf="form.get('outputType')?.value === 'Other'">
+                      <label class="form-label required">Specify Other Type</label>
+                      <input class="form-control" formControlName="otherType" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label required">Publication Year</label>
+                      <input type="number" class="form-control" formControlName="year" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">DOI</label>
+                      <input class="form-control" formControlName="doi" placeholder="10.1234/xyz-abc.123" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Public URL</label>
+                      <input type="url" class="form-control" formControlName="url" placeholder="https://…" />
+                    </div>
+                  </div>
 
 
                   <!-- Authors -->
@@ -157,16 +155,16 @@
                         <label class="mb-2">Indexing</label>
                         <div class="d-flex flex-wrap gap-3">
                           <label class="form-check-label">
-                            <input class="form-check-input" type="checkbox" formControlName="Scopus" (change)="onIdxDhetChange()" /> Scopus
+                            <input class="form-check-input" type="checkbox" formControlName="scopus" (change)="onIdxDhetChange()" /> Scopus
                           </label>
                           <label class="form-check-label">
-                            <input class="form-check-input" type="checkbox" formControlName="Web of Science" (change)="onIdxDhetChange()" /> Web of Science
+                            <input class="form-check-input" type="checkbox" formControlName="webOfScience" (change)="onIdxDhetChange()" /> Web of Science
                           </label>
                           <label class="form-check-label">
-                            <input class="form-check-input" type="checkbox" formControlName="IBSS" (change)="onIdxDhetChange()" /> IBSS
+                            <input class="form-check-input" type="checkbox" formControlName="ibss" (change)="onIdxDhetChange()" /> IBSS
                           </label>
                           <label class="form-check-label">
-                            <input class="form-check-input" type="checkbox" formControlName="DHET Accredited" (change)="onIdxDhetChange()" /> DHET Accredited
+                            <input class="form-check-input" type="checkbox" formControlName="dhetAccredited" (change)="onIdxDhetChange()" /> DHET Accredited
                           </label>
                         </div>
                       </div>
