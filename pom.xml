@@ -51,6 +51,11 @@
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
+			<groupId>com.microsoft.sqlserver</groupId>
+			<artifactId>mssql-jdbc</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<optional>true</optional>
@@ -86,6 +91,35 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.microsoft.azure</groupId>
+				<artifactId>azure-spring-apps-maven-plugin</artifactId>
+				<version>1.17.0</version>
+				<configuration>
+					<subscriptionId>1b8964d1-7501-496d-a0fd-4d7d3ee7ec13</subscriptionId>
+					<resourceGroup>AZP-SPRING-RG-01</resourceGroup>
+					<clusterName>univenproduction</clusterName>
+					<appName>researchoutput</appName>
+					<isPublic>true</isPublic>
+					<deployment>
+						<cpu>1</cpu>
+						<memoryInGB>1</memoryInGB>
+						<instanceCount>1</instanceCount>
+						<runtimeVersion>Java 17</runtimeVersion>
+						<resources>
+							<resource>
+								<filtering/>
+								<mergeId/>
+								<targetPath/>
+								<directory>${project.basedir}/target</directory>
+								<includes>
+									<include>*.jar</include>
+								</includes>
+							</resource>
+						</resources>
+					</deployment>
 				</configuration>
 			</plugin>
 		</plugins>

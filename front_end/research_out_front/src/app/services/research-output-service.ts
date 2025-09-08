@@ -10,8 +10,8 @@ export class ResearchOutputService {
 
   constructor(private http: HttpClient) { }
 
-  private urlLogin:string = "http://localhost:8080/api/research-outputs";
-  //private urlLogin:string = "https://univenproduction-onboarding.azuremicroservices.io/user/login";
+  //private urlLogin:string = "http://localhost:8080/api/research-outputs";
+  private urlLogin:string = "https://univenproduction-researchoutput.azuremicroservices.io/api/research-outputs";
 
 
   load_research_outputs():Observable<any> {
