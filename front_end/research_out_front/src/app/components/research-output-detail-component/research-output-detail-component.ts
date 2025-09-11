@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import {Component} from '@angular/core';
 import {FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
 import {NgIf} from '@angular/common';
 import { CommonModule } from '@angular/common';
-import {RouterLink} from '@angular/router';
+import {Router, RouterLink} from '@angular/router';
+
 
 const DOI_REGEX = /^10\.\d{4,9}\/[\-._;()/:A-Z0-9]+$/i;
 const ISSN_REGEX = /^\d{4}-\d{3}[\dX]$/i;
@@ -18,45 +19,60 @@ export class ResearchOutputDetailComponent {
   previewJson = '';
   form: FormGroup;
 
-  constructor(private fb: FormBuilder) {
+
+  constructor(private fb: FormBuilder, private router: Router) {
+    const output = this.router.getCurrentNavigation()?.extras.state?.['output'];
     this.form = this.fb.group({
-      title: ['', [Validators.required, Validators.minLength(5)]],
-      outputType: ['', Validators.required],
-      otherType: [''],
-      year: [null, [Validators.required, Validators.min(1900), Validators.max(2100)]],
-      doi: ['', [this.patternOptional(DOI_REGEX)]],
-      url: [''],
-      authors: this.fb.array([this.newAuthor()]),
+      title: [output?.title || '', [Validators.required, Validators.minLength(5)]],
+      outputType: [output?.outputType || '', Validators.required],
+      otherType: [output?.otherType || ''],
+      year: [output?.year ?? null, [Validators.required, Validators.min(1900), Validators.max(2100)]],
+      doi: [output?.doi || '', [this.patternOptional(DOI_REGEX)]],
+      url: [output?.url || ''],
+      authors: this.fb.array(
+        output?.authors?.length
+          ? output.authors.map((a: any) =>
+              this.fb.group({
+                name: [a.name || '', Validators.required],
+                orcid: [a.orcid || '', [this.patternOptional(/^\d{4}-\d{4}-\d{4}-[\dX]{4}$/i)]],
+                affiliation: [a.affiliation || ''],
+              })
+            )
+          : [this.newAuthor()]
+      ),
       outlet: this.fb.group({
-        name: [''],
-        issn: ['', [this.patternOptional(ISSN_REGEX)]],
-        isbn: [''],
-        volume: [''],
-        issue: [''],
-        pages: [''],
-        publicationDate: [''],
+        name: [output?.outlet?.name || ''],
+        issn: [output?.outlet?.issn || '', [this.patternOptional(ISSN_REGEX)]],
+        isbn: [output?.outlet?.isbn || ''],
+        volume: [output?.outlet?.volume || ''],
+        issue: [output?.outlet?.issue || ''],
+        pages: [output?.outlet?.pages || ''],
+        publicationDate: [output?.outlet?.publicationDate || ''],
       }),
       access: this.fb.group({
-        openAccess: [null, Validators.required],
-        embargoEndDate: [''],
-        peerReviewed: [false],
+        openAccess: [output?.access?.openAccess ?? null, Validators.required],
+        embargoEndDate: [output?.access?.embargoEndDate || ''],
+        peerReviewed: [output?.access?.peerReviewed ?? false],
         indexing: this.fb.group({
-          scopus: [false],
-          webOfScience: [false],
-          ibss: [false],
-          dhetAccredited: [false],
+          scopus: [output?.access?.indexing?.scopus ?? false],
+          webOfScience: [output?.access?.indexing?.webOfScience ?? false],
+          ibss: [output?.access?.indexing?.ibss ?? false],
+          dhetAccredited: [output?.access?.indexing?.dhetAccredited ?? false],
         }),
-        dhetYear: [''],
+        dhetYear: [output?.access?.dhetYear || ''],
       }),
       funding: this.fb.group({
-        funder: [''],
-        grantNumber: [''],
+        funder: [output?.funding?.funder || ''],
+        grantNumber: [output?.funding?.grantNumber || ''],
       }),
-      keywords: this.fb.array<string>([]),
-      abstractText: ['', [Validators.maxLength(2000)]],
+      keywords: this.fb.array<string>(output?.keywords || []),
+      abstractText: [output?.abstractText || '', [Validators.maxLength(2000)]],
       attachment: [null],
     });
   }
+
+
+
 
   get authorsFA() { return this.form.get('authors') as FormArray; }
   get keywordsFA() { return this.form.get('keywords') as FormArray; }

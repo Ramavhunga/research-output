@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
-import {RouterLink, RouterLinkActive} from '@angular/router';
-import {catchError, of} from 'rxjs';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
-import {ResearchOutputService} from '../../services/research-output-service';
-import {NgForOf} from '@angular/common';
+import { ResearchOutputService } from '../../services/research-output-service';
+import { NgForOf } from '@angular/common';
 
 @Component({
   selector: 'app-research-output',
@@ -17,17 +17,24 @@ import {NgForOf} from '@angular/common';
 export class ResearchOutputComponent implements OnInit {
   researchOutputs: ResearchOutput[] = [];
 
-  constructor(private service: ResearchOutputService) {}
+  constructor(private service: ResearchOutputService, private router: Router) {}
 
   ngOnInit(): void {
-      this.service.load_research_outputs().pipe(
-        catchError(() => {
-          Swal.fire("Failed to Login", "Invalid Credentials!", "error");
-          return of();
-        })
-      ).subscribe(data => {
-        this.researchOutputs = data;
-        console.log('load_research_outputs:', this.researchOutputs);
-      });
+    sessionStorage.removeItem('selectedOutput');
+    this.service.load_research_outputs().pipe(
+      catchError(() => {
+        Swal.fire("Failed to Login", "Invalid Credentials!", "error");
+        return of();
+      })
+    ).subscribe(data => {
+      this.researchOutputs = data;
+      console.log('load_research_outputs:', this.researchOutputs);
+    });
+  }
+
+  viewOutput(output: ResearchOutput)
+  {
+    console.log('viewOutput:', output);
+    this.router.navigate(['/research-output/create'], { state: { output } });
   }
 }

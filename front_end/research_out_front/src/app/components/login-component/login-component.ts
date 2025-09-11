@@ -30,32 +30,33 @@ export class LoginComponent {
   }
 
   login() {
-      const user: User = this.loginForm.getRawValue();
-
-      this.loginService.login(user).pipe(
-        catchError(error => {
-          Swal.fire({
-            title: "Failed to Login",
-            text: "Invalid Credentials!",
-            icon: "error"
-          });
-          return of();
-        })
-      ).subscribe(data => {
-        sessionStorage.setItem('login', JSON.stringify(data));
-        const login: LoginDTO = data;
-        console.log('Login:', login);
-        if (!login) {
-          Swal.fire({
-            title: "Failed to Login",
-            text: "Invalid Credentials!",
-            icon: "error"
-          });
-        } else {
-          this.route.navigate(['/dashboard']).then();
-        }
+    if (this.loginForm.invalid) {
+      Swal.fire({
+        title: "Invalid Input",
+        text: "Please fill in all required fields.",
+        icon: "warning"
       });
+      return;
+    }
 
+    const user: User = this.loginForm.getRawValue();
+
+    this.loginService.login(user).pipe(
+      catchError(error => {
+        Swal.fire({
+          title: "Failed to Login",
+          text: error?.error?.message || "Invalid Credentials!",
+          icon: "error"
+        });
+        return of(null);
+      })
+    ).subscribe(data => {
+      if (!data) {
+        return;
+      }
+      // Store only the token or necessary info
+      sessionStorage.setItem('token', data.token);
+      this.route.navigate(['/dashboard']);
+    });
   }
-
 }
