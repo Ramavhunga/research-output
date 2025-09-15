@@ -20,17 +20,23 @@ export class ResearchOutputComponent implements OnInit {
   constructor(private service: ResearchOutputService, private router: Router) {}
 
   ngOnInit(): void {
-    sessionStorage.removeItem('selectedOutput');
-    this.service.load_research_outputs().pipe(
-      catchError(() => {
-        Swal.fire("Failed to Login", "Invalid Credentials!", "error");
-        return of();
-      })
-    ).subscribe(data => {
-      this.researchOutputs = data;
-      console.log('load_research_outputs:', this.researchOutputs);
-    });
-  }
+      const login = sessionStorage.getItem("login");
+      if (!login) {
+        this.router.navigate(['/login']);
+        return;
+      }
+
+      const username = JSON.parse(login).user.username;
+      this.service.load_research_outputs(username).pipe(
+        catchError(() => {
+          Swal.fire("Failed to Login", "Invalid Credentials!", "error");
+          return of();
+        })
+      ).subscribe(data => {
+        this.researchOutputs = data;
+        console.log('load_research_outputs:', this.researchOutputs);
+      });
+    }
 
   viewOutput(output: ResearchOutput)
   {

@@ -19,6 +19,10 @@ public class ResearchOutputService {
         return repository.findAll();
     }
 
+    public List<ResearchOutput> findAllByCreatedBy(String username) {
+        return repository.findAllByCreatedBy(username);
+    }
+
     public Optional<ResearchOutput> findById(Long id) {
         return repository.findById(id);
     }

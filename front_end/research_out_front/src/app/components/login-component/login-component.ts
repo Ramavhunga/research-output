@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import {Router} from '@angular/router';
+import {Router, RouterLink, Routes} from '@angular/router';
 import {FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
 import {LoginService} from '../../services/login.service';
 import {User} from '../../interface/user';
@@ -10,6 +10,7 @@ import {LoginDTO} from '../../interface/login-dto';
 @Component({
   selector: 'app-login-component',
   imports: [
+
     ReactiveFormsModule
   ],
   templateUrl: './login-component.html',
@@ -30,33 +31,32 @@ export class LoginComponent {
   }
 
   login() {
-    if (this.loginForm.invalid) {
-      Swal.fire({
-        title: "Invalid Input",
-        text: "Please fill in all required fields.",
-        icon: "warning"
+      const user: User = this.loginForm.getRawValue();
+
+      this.loginService.login(user).pipe(
+        catchError(error => {
+          Swal.fire({
+            title: "Failed to Login",
+            text: "Invalid Credentials!",
+            icon: "error"
+          });
+          return of();
+        })
+      ).subscribe(data => {
+        sessionStorage.setItem('login', JSON.stringify(data));
+        const login: LoginDTO = data;
+        console.log('Login:', login);
+        if (!login) {
+          Swal.fire({
+            title: "Failed to Login",
+            text: "Invalid Credentials!",
+            icon: "error"
+          });
+        } else {
+          this.route.navigate(['/dashboard']).then();
+        }
       });
-      return;
-    }
 
-    const user: User = this.loginForm.getRawValue();
-
-    this.loginService.login(user).pipe(
-      catchError(error => {
-        Swal.fire({
-          title: "Failed to Login",
-          text: error?.error?.message || "Invalid Credentials!",
-          icon: "error"
-        });
-        return of(null);
-      })
-    ).subscribe(data => {
-      if (!data) {
-        return;
-      }
-      // Store only the token or necessary info
-      sessionStorage.setItem('token', data.token);
-      this.route.navigate(['/dashboard']);
-    });
   }
+
 }

@@ -33,6 +33,11 @@ public class ResearchOutputController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("load/{username}")
+    public List<ResearchOutput> findAllByUsername(@PathVariable String username) {
+        return service.findAllByCreatedBy(username);
+    }
+
     @PostMapping
     public ResearchOutput create(@RequestBody ResearchOutput output) {
         return service.save(output);

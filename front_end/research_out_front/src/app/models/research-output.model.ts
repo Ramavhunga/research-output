@@ -1,10 +1,12 @@
 interface Author {
+  id : number;
   name: string;
   orcid: string;
   affiliation: string;
 }
 
 interface Outlet {
+  id : number;
   name: string;
   issn: string;
   isbn: string;
@@ -15,6 +17,7 @@ interface Outlet {
 }
 
 interface Indexing {
+  id : number;
   scopus: boolean;
   webOfScience: boolean;
   ibss: boolean;
@@ -22,6 +25,7 @@ interface Indexing {
 }
 
 interface Access {
+  id : number;
   openAccess: string;
   embargoEndDate: string;
   peerReviewed: boolean;
@@ -30,11 +34,13 @@ interface Access {
 }
 
 interface Funding {
+  id : number;
   funder: string;
   grantNumber: string;
 }
 
 interface ResearchOutput {
+  id : number;
   title: string;
   outputType: string;
   otherType: string;
@@ -50,4 +56,6 @@ interface ResearchOutput {
   keywords: string[];
   abstractText: string;
   attachment: File | null;
+  createdBy : string;
+  createdDate : string;
 }

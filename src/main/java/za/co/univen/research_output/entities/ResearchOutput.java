@@ -3,6 +3,7 @@ package za.co.univen.research_output.entities;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.Date;
 import java.util.List;
 
 @Entity
@@ -21,6 +22,9 @@ public class ResearchOutput implements java.io.Serializable {
     @Column(unique = true)
     private String doi;
     private String url;
+    private String createdBy;
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date createdDate;
 
     @OneToMany(cascade = CascadeType.ALL)
     private List<Author> authors;

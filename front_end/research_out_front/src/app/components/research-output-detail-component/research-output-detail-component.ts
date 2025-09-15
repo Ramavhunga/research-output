@@ -22,7 +22,7 @@ export class ResearchOutputDetailComponent {
 
   constructor(private fb: FormBuilder, private router: Router) {
     const output = this.router.getCurrentNavigation()?.extras.state?.['output'];
-    console.log("Authors : "+output?.authors?.length);
+    console.log("Output : "+output);
 
     this.form = this.fb.group({
       title: [output?.title || '', [Validators.required, Validators.minLength(5)]],
