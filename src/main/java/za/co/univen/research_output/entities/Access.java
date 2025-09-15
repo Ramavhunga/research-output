@@ -10,7 +10,7 @@ public class Access {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Boolean openAccess;
+    private String openAccess;
     private String embargoEndDate;
     private Boolean peerReviewed;
 

@@ -22,7 +22,7 @@ interface Indexing {
 }
 
 interface Access {
-  openAccess: boolean | null;
+  openAccess: string;
   embargoEndDate: string;
   peerReviewed: boolean;
   indexing: Indexing;
@@ -44,6 +44,7 @@ interface ResearchOutput {
   url: string;
   authors: Author[];
   outlet: Outlet;
+  indexing: Indexing;
   access: Access;
   funding: Funding;
   keywords: string[];

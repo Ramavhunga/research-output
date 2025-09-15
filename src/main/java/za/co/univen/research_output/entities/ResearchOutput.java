@@ -12,11 +12,13 @@ public class ResearchOutput implements java.io.Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
     private String title;
     private String outputType;
     private String otherType;
     private OutputStatus status;
     private Integer year;
+    @Column(unique = true)
     private String doi;
     private String url;
 
@@ -37,6 +39,7 @@ public class ResearchOutput implements java.io.Serializable {
 
     @Column(length = 2000)
     private String abstractText;
+
 
     public ResearchOutput(String aiInPublicSector, String s, int i, String s1, OutputStatus outputStatus, String outputType, Outlet outlet, List<Author> authors) {
         this.title = aiInPublicSector;
