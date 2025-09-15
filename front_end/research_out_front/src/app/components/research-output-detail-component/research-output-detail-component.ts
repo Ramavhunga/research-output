@@ -22,6 +22,8 @@ export class ResearchOutputDetailComponent {
 
   constructor(private fb: FormBuilder, private router: Router) {
     const output = this.router.getCurrentNavigation()?.extras.state?.['output'];
+    console.log("Authors : "+output?.authors?.length);
+
     this.form = this.fb.group({
       title: [output?.title || '', [Validators.required, Validators.minLength(5)]],
       outputType: [output?.outputType || '', Validators.required],
@@ -30,16 +32,12 @@ export class ResearchOutputDetailComponent {
       doi: [output?.doi || '', [this.patternOptional(DOI_REGEX)]],
       url: [output?.url || ''],
       authors: this.fb.array(
-        output?.authors?.length
-          ? output.authors.map((a: any) =>
-              this.fb.group({
-                name: [a.name || '', Validators.required],
-                orcid: [a.orcid || '', [this.patternOptional(/^\d{4}-\d{4}-\d{4}-[\dX]{4}$/i)]],
-                affiliation: [a.affiliation || ''],
-              })
-            )
-          : [this.newAuthor()]
-      ),
+          output?.authors?.map((a: any) => this.fb.group({
+            name: [a.name || '', Validators.required],
+            orcid: [a.orcid || '', [this.patternOptional(/^\d{4}-\d{4}-\d{4}-[\dX]{4}$/i)]],
+            affiliation: [a.affiliation || ''],
+          })) || [this.newAuthor()]
+        ),
       outlet: this.fb.group({
         name: [output?.outlet?.name || ''],
         issn: [output?.outlet?.issn || '', [this.patternOptional(ISSN_REGEX)]],
@@ -69,6 +67,8 @@ export class ResearchOutputDetailComponent {
       abstractText: [output?.abstractText || '', [Validators.maxLength(2000)]],
       attachment: [null],
     });
+
+    console.log(this.form)
   }
 
 
