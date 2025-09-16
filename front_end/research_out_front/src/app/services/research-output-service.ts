@@ -16,14 +16,16 @@ export class ResearchOutputService {
 
 
 
-  load_research_outputs(username:string):Observable<any> {
-    const headers = {'Content-Type': 'application/json'};
-    return this.http.get( this.urlLoad+username, { headers })
+  load_research_outputs(username:string):Observable<any>
+  {
+      const headers = {'Content-Type': 'application/json'};
+      return this.http.get( this.urlLoad+username, { headers })
   }
 
-  load_submissions(status : string):Observable<any> {
-    const headers = {'Content-Type': 'application/json'};
-    return this.http.get( this.urlSubmission+status, { headers })
+  load_submissions(status : string):Observable<any>
+  {
+      const headers = {'Content-Type': 'application/json'};
+      return this.http.get( this.urlSubmission+status, { headers })
   }
 
 }

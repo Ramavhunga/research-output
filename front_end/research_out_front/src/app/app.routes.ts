@@ -11,6 +11,8 @@ import {ManageSubmissionsComponents} from './components/manage-submissions-compo
 import {
   ManageSubmissionDetailsComponents
 } from './components/manage-submission-details-components/manage-submission-details-components';
+import {JournalComponent} from './components/journal-component/journal-component';
+import {JournalDetailComponent} from './components/journal-detail-component/journal-detail-component';
 
 
 export const routes: Routes = [
@@ -18,14 +20,17 @@ export const routes: Routes = [
       {
         path: '',
         component: HomeComponent,
-        canActivate: [AuthGuard],
+        //canActivate: [AuthGuard],
         children: [
           { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
           { path: 'dashboard', component: DashboardComponent },
           { path: 'manage-submissions', component: ManageSubmissionsComponents },
           { path: 'manage-submissions/details', component: ManageSubmissionDetailsComponents },
           { path: 'research-output', component: ResearchOutputComponent },
-          { path: 'research-output/create', component: ResearchOutputDetailComponent }
+          { path: 'research-output/create', component: ResearchOutputDetailComponent },
+          { path: 'journal', component: JournalComponent },
+          { path: 'journal/details', component: JournalDetailComponent}
+
         ]
       }
     ];

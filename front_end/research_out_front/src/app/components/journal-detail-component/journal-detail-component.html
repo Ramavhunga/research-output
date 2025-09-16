@@ -1,0 +1,233 @@
+<div class="pc-container">
+  <div class="pc-content">
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center g-0">
+          <div class="col-sm-auto">
+            <div class="page-header-title">
+              <h5 class="mb-0">Journal Output Details</h5>
+            </div>
+          </div>
+          <div class="col-sm-auto">
+            <ul class="breadcrumb">
+              <li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li>
+              <li class="breadcrumb-item"><a routerLink="/research-output">Journals</a></li>
+              <li class="breadcrumb-item" aria-current="page">Details</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+    <div class="row">
+      <div class="col-12">
+
+
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">Journals Information</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+
+              <form [formGroup]="form" (ngSubmit)="onSubmit()">
+                <div >
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <label class="form-label required">Title</label>
+                      <input class="form-control" formControlName="title" placeholder="e.g., Machine Learning for Student Success in HEIs" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label required">Output Type</label>
+                      <select class="form-select" formControlName="outputType" (change)="onOutputTypeChange()">
+                        <option value="" disabled>Choose...</option>
+                        <option>Journal Article</option>
+                        <option>Conference Paper</option>
+                        <option>Book Chapter</option>
+                        <option>Monograph</option>
+                        <option>Dataset</option>
+                        <option>Creative Work</option>
+                        <option>Patent</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6" *ngIf="form.get('outputType')?.value === 'Other'">
+                      <label class="form-label required">Specify Other Type</label>
+                      <input class="form-control" formControlName="otherType" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label required">Publication Year</label>
+                      <input type="number" class="form-control" formControlName="year" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">DOI</label>
+                      <input class="form-control" formControlName="doi" placeholder="10.1234/xyz-abc.123" />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Public URL</label>
+                      <input type="url" class="form-control" formControlName="url" placeholder="https://…" />
+                    </div>
+                  </div>
+
+
+                  <!-- Authors -->
+                  <div class="mb-4 pt-3">
+                    <div class="section-title mb-2">Authors</div>
+                    <div formArrayName="authors" class="vstack gap-3">
+                      <div class="author-card" *ngFor="let a of authorsFA.controls; let i = index" [formGroupName]="i">
+                        <div class="row g-3 align-items-end">
+                          <div class="col-md-4">
+                            <label class="form-label required">Full Name</label>
+                            <input class="form-control" formControlName="name" />
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">ORCID</label>
+                            <input class="form-control" formControlName="orcid" placeholder="0000-0000-0000-0000" />
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label">Affiliation</label>
+                            <input class="form-control" formControlName="affiliation" placeholder="e.g., Univ. of Venda" />
+                          </div>
+                          <div class="col-md-1 d-grid">
+                            <button type="button" class="btn btn-outline-danger" (click)="removeAuthor(i)" title="Remove author">&times;</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary mt-2" (click)="addAuthor()">+ Add Author</button>
+                  </div>
+
+
+                  <!-- Outlet Details -->
+                  <div class="mb-4" [formGroup]="outletFG">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Journal / Proceedings / Publisher</label>
+                        <input class="form-control" formControlName="name" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">ISSN</label>
+                        <input class="form-control" formControlName="issn" placeholder="1234-567X" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">ISBN</label>
+                        <input class="form-control" formControlName="isbn" placeholder="978-..." />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Volume</label>
+                        <input class="form-control" formControlName="volume" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Issue</label>
+                        <input class="form-control" formControlName="issue" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Pages</label>
+                        <input class="form-control" formControlName="pages" placeholder="e.g., 101–120" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Publication Date</label>
+                        <input type="date" class="form-control" formControlName="publicationDate" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Access & Indexing -->
+                  <div class="mb-4" [formGroup]="accessFG">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="mb-2">Open Access</label>
+                        <div class="d-flex gap-3">
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="radio" [value]="'Yes'" formControlName="openAccess" (change)="onOpenAccessChange()" /> Yes
+                          </label>
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="radio" [value]="'No'" formControlName="openAccess" (change)="onOpenAccessChange()" /> No
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-12" [formGroup]="indexingGroup">
+                        <label class="mb-2">Indexing</label>
+                        <div class="d-flex flex-wrap gap-3">
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="checkbox" formControlName="scopus" (change)="onIdxDhetChange()" /> Scopus
+                          </label>
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="checkbox" formControlName="webOfScience" (change)="onIdxDhetChange()" /> Web of Science
+                          </label>
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="checkbox" formControlName="ibss" (change)="onIdxDhetChange()" /> IBSS
+                          </label>
+                          <label class="form-check-label">
+                            <input class="form-check-input" type="checkbox" formControlName="dhetAccredited" (change)="onIdxDhetChange()" /> DHET Accredited
+                          </label>
+                        </div>
+                      </div>
+                      <div class="col-12">
+                        <label class="mb-2">Peer‑reviewed</label>
+                        <div>
+                          <input class="form-check-input" type="checkbox" formControlName="peerReviewed" /> Peer‑reviewed
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mb-4" [formGroup]="fundingGroup">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Funder</label>
+                        <input class="form-control" formControlName="funder" placeholder="e.g., NRF, NIH" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Grant / Project Number</label>
+                        <input class="form-control" formControlName="grantNumber" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Keywords & Abstract -->
+                  <div class="mb-4">
+                    <div class="mb-3">
+                      <label class="form-label">Keywords (press Enter to add)</label>
+                      <input type="text" class="form-control" (keydown)="addKeywordFromInput($event)" placeholder="e.g., HEMIS, enrolment planning, LLM" />
+                      <div class="mt-2 d-flex flex-wrap gap-2">
+                        <span class="chip d-flex align-items-center px-2 py-1 bg-primary text-white rounded-pill" *ngFor="let k of keywordsFA.controls; let i=index" style="font-size: 0.95em;">
+                          <span class="me-2">{{ k.value }}</span>
+                          <button type="button" class="btn btn-sm btn-light btn-close p-0 ms-1" (click)="removeKeyword(i)" aria-label="Remove" style="font-size:1.1em; line-height:1;">×</button>
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="form-label">Abstract</label>
+                      <textarea class="form-control" rows="6" formControlName="abstractText"></textarea>
+                      <div class="d-flex justify-content-between">
+                        <span class="form-hint">Useful for repository submissions and review.</span>
+                        <span class="form-hint"><span class="counter">{{ (form.get('abstractText')?.value || '').length }}</span>/2000</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Attachments -->
+                  <div class="mb-4">
+                    <div class="section-title mb-2">Attachment</div>
+                    <label class="form-label">Upload PDF (max 20MB)</label>
+                    <input class="form-control" type="file" (change)="onFileSelected($event)" accept="application/pdf" />
+                  </div>
+                </div>
+                <div class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white">
+                  <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+
+              </form>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+</div>

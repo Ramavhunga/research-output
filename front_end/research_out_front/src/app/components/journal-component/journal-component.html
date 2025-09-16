@@ -1,0 +1,85 @@
+<!-- [ Main Content ] start -->
+<div class="pc-container">
+  <div class="pc-content">
+    <!-- [ breadcrumb ] start -->
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center g-0">
+          <div class="col-sm-auto">
+            <div class="page-header-title">
+              <h5 class="mb-0">Journals Details</h5>
+            </div>
+          </div>
+          <div class="col-sm-auto">
+            <ul class="breadcrumb">
+              <li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li>
+              <li class="breadcrumb-item" aria-current="page">Journals</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- [ breadcrumb ] end -->
+
+
+    <!-- [ Main Content ] start -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card table-card">
+          <div class="card-header">
+            <div class="d-sm-flex align-items-center justify-content-between">
+              <h5 class="mb-3 mb-sm-0">Research Output list</h5>
+              <div>
+                <a routerLink="create" routerLinkActive="active"
+                   [routerLinkActiveOptions]="{ exact: true }"
+                   class="btn btn-primary">Add Research Output</a>
+              </div>
+            </div>
+          </div>
+          <div class="card-body pt-3">
+            <div class="table-responsive">
+              <table class="table table-hover" id="pc-dt-simple">
+                <thead>
+                <tr>
+                  <th>title</th>
+                  <th>Abstract</th>
+                  <th>doi</th>
+                  <th>Year</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr *ngFor="let output of journals">
+                  <td class="col-4 text-wrap" style="white-space: normal;">
+                    <h6 class="mb-0">{{ output.title }}</h6>
+                  </td>
+                  <td class="col-4 text-wrap" style="white-space: normal;">{{ output.publisher }}</td>
+                  <td class="col-2">{{ output.doi }}</td>
+                  <td class="col-2">{{ output.year }}</td>
+                  <td class="col-2">{{ output.issn }}</td>
+                  <td class="col-4">
+                    <a href="javascript:void(0)" (click)="viewJournal(output);" class="btn-link-secondary mx-1">
+                      <i class="ti ti-eye f-20"></i>
+                    </a>
+                    <a href="javascript:void(0)" class="btn-link-secondary mx-1">
+                      <i class="ti ti-edit f-20"></i>
+                    </a>
+                    <a href="javascript:void(0)" class="btn-link-secondary mx-1">
+                      <i class="ti ti-trash f-20"></i>
+                    </a>
+                  </td>
+                </tr>
+
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- [ Main Content ] end -->
+
+  </div>
+</div>
+<!-- [ Main Content ] end -->
