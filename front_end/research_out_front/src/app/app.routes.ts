@@ -7,6 +7,10 @@ import {
 } from './components/research-output-detail-component/research-output-detail-component';
 import {DashboardComponent} from './components/dashboard-component/dashboard-component';
 import {AuthGuard} from './guards/auth.guard';
+import {ManageSubmissionsComponents} from './components/manage-submissions-components/manage-submissions-components';
+import {
+  ManageSubmissionDetailsComponents
+} from './components/manage-submission-details-components/manage-submission-details-components';
 
 
 export const routes: Routes = [
@@ -18,6 +22,8 @@ export const routes: Routes = [
         children: [
           { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
           { path: 'dashboard', component: DashboardComponent },
+          { path: 'manage-submissions', component: ManageSubmissionsComponents },
+          { path: 'manage-submissions/details', component: ManageSubmissionDetailsComponents },
           { path: 'research-output', component: ResearchOutputComponent },
           { path: 'research-output/create', component: ResearchOutputDetailComponent }
         ]

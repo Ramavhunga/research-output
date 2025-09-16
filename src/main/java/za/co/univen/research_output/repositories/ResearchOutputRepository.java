@@ -1,8 +1,10 @@
 package za.co.univen.research_output.repositories;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import za.co.univen.research_output.entities.OutputStatus;
 import za.co.univen.research_output.entities.ResearchOutput;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,4 +12,6 @@ import java.util.Optional;
 public interface ResearchOutputRepository extends JpaRepository<ResearchOutput, Long> {
 
     List<ResearchOutput> findAllByCreatedBy(String createdBy);
+
+    List<ResearchOutput> findAllByStatus(OutputStatus status);
 }

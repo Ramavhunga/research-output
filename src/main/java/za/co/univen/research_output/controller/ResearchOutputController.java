@@ -38,6 +38,11 @@ public class ResearchOutputController {
         return service.findAllByCreatedBy(username);
     }
 
+    @GetMapping("/submissions/{status}")
+    public List<ResearchOutput> findAllByStatus(@PathVariable String status) {
+        return service.findAllByStatus(Enum.valueOf(za.co.univen.research_output.entities.OutputStatus.class, status.toUpperCase()));
+    }
+
     @PostMapping
     public ResearchOutput create(@RequestBody ResearchOutput output) {
         return service.save(output);

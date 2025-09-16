@@ -1,6 +1,7 @@
 package za.co.univen.research_output.services;
 
 import org.springframework.stereotype.Service;
+import za.co.univen.research_output.entities.OutputStatus;
 import za.co.univen.research_output.repositories.ResearchOutputRepository;
 import za.co.univen.research_output.entities.ResearchOutput;
 
@@ -21,6 +22,10 @@ public class ResearchOutputService {
 
     public List<ResearchOutput> findAllByCreatedBy(String username) {
         return repository.findAllByCreatedBy(username);
+    }
+
+    public  List<ResearchOutput> findAllByStatus(OutputStatus status) {
+        return repository.findAllByStatus(status);
     }
 
     public Optional<ResearchOutput> findById(Long id) {
