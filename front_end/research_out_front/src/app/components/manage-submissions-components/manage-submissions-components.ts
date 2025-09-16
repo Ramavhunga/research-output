@@ -18,7 +18,7 @@ import Swal from 'sweetalert2';
 export class ManageSubmissionsComponents  implements OnInit {
   researchOutputs: ResearchOutput[] = [];
 
-  constructor( private service: ResearchOutputService ) {}
+  constructor( private service: ResearchOutputService , private router: Router) {}
 
   ngOnInit(): void {
 
@@ -34,7 +34,8 @@ export class ManageSubmissionsComponents  implements OnInit {
   }
 
   viewOutput(output: any) {
-
+    console.log('viewOutput:', output);
+    this.router.navigate(['/manage-submissions/details'], { state: { output } });
   }
 
 }
