@@ -4,26 +4,27 @@ import {
   FormBuilder,
   FormControl,
   FormGroup, FormsModule, ReactiveFormsModule,
-
   Validators
 } from '@angular/forms';
 
 import {Router} from '@angular/router';
 import {Journal} from '../../models/journal.model';
 import {AuthorAffiliation, Authors, ClaimingAuthorsContribution, Units} from '../../models/common.model';
+import {Component} from '@angular/core';
 
-// @ts-ignore
+
+
 @Component({
   selector: 'app-journal-detail-component',
+  template: `
+
+  `,
   imports: [
     FormsModule,
     ReactiveFormsModule
-  ],
-  templateUrl: './journal-detail-component.html',
-  styleUrl: './journal-detail-component.css'
+  ]
 })
-const DOI_REGEX = /^10\.\d{4,9}\/[\-._;()/:A-Z0-9]+$/i;
-const ISSN_REGEX = /^\d{4}-\d{3}[\dX]$/i;
+
 export class JournalDetailComponent {
   showPreview = false;
   previewJson = '';
@@ -32,7 +33,7 @@ export class JournalDetailComponent {
   constructor(private fb: FormBuilder, private router: Router) {
     const journal = this.router.getCurrentNavigation()?.extras.state?.['journal'];
     this.form = this.fb.group({
-      dhetNo: [{ value: journal?.dhetNo || '', disabled: true }],
+      dhetNo: [{value: journal?.dhetNo || '', disabled: true}],
       year: [journal?.year || '', [Validators.required]],
       title: [journal?.title || '', [Validators.required]],
       publisher: [journal?.publisher || '', Validators.required],
@@ -40,10 +41,11 @@ export class JournalDetailComponent {
       comply: [journal?.comply ?? null, Validators.required],
       volume: [journal?.volume ?? null],
       issue: [journal?.issue ?? null],
-      issn: [journal?.issn || '', [this.patternOptional(ISSN_REGEX)]],
+     // issn: [journal?.issn || '', [this.patternOptional(ISSN_REGEX)]],
       eSsn: [journal?.eSsn || ''],
-      doi: [journal?.doi || '', [this.patternOptional(DOI_REGEX)]],
-
+      //doi: [journal?.doi || '', [this.patternOptional(DOI_REGEX)]],
+      // const DOI_REGEX = /^10\.\d{4,9}\/[\-._;()/:A-Z0-9]+$/i;
+      // const ISSN_REGEX = /^\d{4}-\d{3}[\dX]$/i;
       authors: this.fb.array(
         (journal?.authors && journal.authors.length
             ? journal.authors
@@ -102,10 +104,10 @@ export class JournalDetailComponent {
       //affiliation: [a?.affiliation || ''],
       //email: [a?.email || '', [this.patternOptional(/^[^@\s]+@[^@\s]+\.[^@\s]+$/)]],
       orcid: [a?.orcid || '', [this.patternOptional(/^\d{4}-\d{4}-\d{4}-[\dX]{4}$/i)]],
-     // corresponding: [a?.corresponding ?? false],
-     // proportionOfAuthors: [a?.proportionOfAuthors ?? null],
-    //  authorUnitsClaimed: [a?.authorUnitsClaimed ?? null],
-     // additionalComments: [a?.additionalComments || ''],
+      // corresponding: [a?.corresponding ?? false],
+      // proportionOfAuthors: [a?.proportionOfAuthors ?? null],
+      //  authorUnitsClaimed: [a?.authorUnitsClaimed ?? null],
+      // additionalComments: [a?.additionalComments || ''],
     });
   }
 
@@ -124,7 +126,7 @@ export class JournalDetailComponent {
   patternOptional(rx: RegExp) {
     return (control: FormControl) => {
       const val = (control.value || '').trim();
-      return !val || rx.test(val) ? null : { pattern: true };
+      return !val || rx.test(val) ? null : {pattern: true};
     };
   }
 
@@ -165,26 +167,26 @@ export class JournalDetailComponent {
     const maxUnits = unitsFG.get('maxUnitsForPublication')?.value || 0;
     const authorsCount = this.authorsFA.length || 1;
 
-    unitsFG.get('authorsCount')?.setValue(authorsCount, { emitEvent: false });
+    unitsFG.get('authorsCount')?.setValue(authorsCount, {emitEvent: false});
 
     const proportion = 1 / authorsCount;
     const totalPropCtrl = unitsFG.get('totalProportionOfAuthors');
     const totalProp = totalPropCtrl?.value || 1;
 
     const totalUnits = maxUnits * totalProp;
-    unitsFG.get('totalUnitsClaimed')?.setValue(totalUnits, { emitEvent: false });
+    unitsFG.get('totalUnitsClaimed')?.setValue(totalUnits, {emitEvent: false});
 
     // @ts-ignore
     this.authorsFA.controls.forEach((ctrl: FormGroup<any>) => {
       const fg = ctrl as FormGroup;
-      fg.get('proportionOfAuthors')?.setValue(proportion, { emitEvent: false });
-      fg.get('authorUnitsClaimed')?.setValue(maxUnits * proportion, { emitEvent: false });
+      fg.get('proportionOfAuthors')?.setValue(proportion, {emitEvent: false});
+      fg.get('authorUnitsClaimed')?.setValue(maxUnits * proportion, {emitEvent: false});
     });
 
     this.claimingAuthorsContributionFG.get('proportionOfAuthors')
-      ?.setValue(proportion, { emitEvent: false });
+      ?.setValue(proportion, {emitEvent: false});
     this.claimingAuthorsContributionFG.get('authorUnitsClaimed')
-      ?.setValue(maxUnits * proportion, { emitEvent: false });
+      ?.setValue(maxUnits * proportion, {emitEvent: false});
   }
 
   // === Payload / preview / submit ===

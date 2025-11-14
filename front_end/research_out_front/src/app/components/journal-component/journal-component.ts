@@ -5,6 +5,7 @@ import {ResearchOutputService} from '../../services/research-output-service';
 import {catchError, of} from 'rxjs';
 import Swal from 'sweetalert2';
 import {JournalService} from '../../services/journal-service';
+import {Journal} from '../../models/journal.model';
 
 @Component({
   selector: 'app-journal-component',
