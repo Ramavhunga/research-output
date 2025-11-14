@@ -4,7 +4,6 @@ export interface Authors {
   firstName: string;
   surname: string;
   initials: string;
-  firstNames: string;
   gender: string;
   populationGroup: string;
   dob: string; // yyyy-mm-dd

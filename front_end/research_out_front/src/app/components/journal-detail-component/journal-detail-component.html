@@ -1,233 +1,277 @@
-<div class="pc-container">
-  <div class="pc-content">
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center g-0">
-          <div class="col-sm-auto">
-            <div class="page-header-title">
-              <h5 class="mb-0">Journal Output Details</h5>
-            </div>
-          </div>
-          <div class="col-sm-auto">
-            <ul class="breadcrumb">
-              <li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li>
-              <li class="breadcrumb-item"><a routerLink="/research-output">Journals</a></li>
-              <li class="breadcrumb-item" aria-current="page">Details</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
+<!--&lt;!&ndash; [ Main Content ] start &ndash;&gt;-->
+<!--<div class="pc-container">-->
+<!--  <div class="pc-content">-->
+<!--    &lt;!&ndash; [ breadcrumb ] start &ndash;&gt;-->
+<!--    <div class="page-header">-->
+<!--      <div class="page-block">-->
+<!--        <div class="row align-items-center g-0">-->
+<!--          <div class="col-sm-auto">-->
+<!--            <div class="page-header-title">-->
+<!--              <h5 class="mb-0">Journal (Article) Details</h5>-->
+<!--            </div>-->
+<!--          </div>-->
+<!--          <div class="col-sm-auto">-->
+<!--            <ul class="breadcrumb">-->
+<!--              <li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li>-->
+<!--              <li class="breadcrumb-item"><a routerLink="/research-output">Research Outputs</a></li>-->
+<!--              <li class="breadcrumb-item" aria-current="page">Journal Details</li>-->
+<!--            </ul>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--    &lt;!&ndash; [ breadcrumb ] end &ndash;&gt;-->
 
+<!--    &lt;!&ndash; [ Main Content ] start &ndash;&gt;-->
+<!--    <div class="row">-->
+<!--      <div class="col-12">-->
+<!--        <div class="card">-->
+<!--          <div class="card-header d-flex justify-content-between align-items-center">-->
+<!--            <h5 class="mb-0">Researcher’s Journal Interface</h5>-->
+<!--            <button class="btn btn-outline-secondary btn-sm" type="button" (click)="preview()">Preview JSON</button>-->
+<!--          </div>-->
 
+<!--          <div class="card-body">-->
+<!--            <form [formGroup]="form" (ngSubmit)="onSubmit()">-->
 
-    <div class="row">
-      <div class="col-12">
+<!--              &lt;!&ndash; Journal Details &ndash;&gt;-->
+<!--              <div class="mb-4">-->
+<!--                <h6 class="mb-3">Journal Details</h6>-->
+<!--                <div class="row g-3">-->
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">DHET No.</label>-->
+<!--                    <input class="form-control" formControlName="dhetNo" readonly />-->
+<!--                  </div>-->
 
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label required">Year of Publication</label>-->
+<!--                    <input type="number" class="form-control" formControlName="year" />-->
+<!--                  </div>-->
 
-        <div class="card">
-          <div class="card-header">
-            <h5 class="mb-0">Journals Information</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label required">Journal Title</label>-->
+<!--                    <input class="form-control" formControlName="title" />-->
+<!--                  </div>-->
 
-              <form [formGroup]="form" (ngSubmit)="onSubmit()">
-                <div >
-                  <div class="row g-3">
-                    <div class="col-12">
-                      <label class="form-label required">Title</label>
-                      <input class="form-control" formControlName="title" placeholder="e.g., Machine Learning for Student Success in HEIs" />
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label required">Output Type</label>
-                      <select class="form-select" formControlName="outputType" (change)="onOutputTypeChange()">
-                        <option value="" disabled>Choose...</option>
-                        <option>Journal Article</option>
-                        <option>Conference Paper</option>
-                        <option>Book Chapter</option>
-                        <option>Monograph</option>
-                        <option>Dataset</option>
-                        <option>Creative Work</option>
-                        <option>Patent</option>
-                        <option>Other</option>
-                      </select>
-                    </div>
-                    <div class="col-md-6" *ngIf="form.get('outputType')?.value === 'Other'">
-                      <label class="form-label required">Specify Other Type</label>
-                      <input class="form-control" formControlName="otherType" />
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label required">Publication Year</label>
-                      <input type="number" class="form-control" formControlName="year" />
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">DOI</label>
-                      <input class="form-control" formControlName="doi" placeholder="10.1234/xyz-abc.123" />
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Public URL</label>
-                      <input type="url" class="form-control" formControlName="url" placeholder="https://…" />
-                    </div>
-                  </div>
+<!--                  <div class="col-md-6">-->
+<!--                    <label class="form-label required">Publisher</label>-->
+<!--                    <input class="form-control" formControlName="publisher" />-->
+<!--                  </div>-->
 
+<!--                  <div class="col-md-6">-->
+<!--                    <label class="form-label">Index</label>-->
+<!--                    <input class="form-control" formControlName="index" />-->
+<!--                  </div>-->
 
-                  <!-- Authors -->
-                  <div class="mb-4 pt-3">
-                    <div class="section-title mb-2">Authors</div>
-                    <div formArrayName="authors" class="vstack gap-3">
-                      <div class="author-card" *ngFor="let a of authorsFA.controls; let i = index" [formGroupName]="i">
-                        <div class="row g-3 align-items-end">
-                          <div class="col-md-4">
-                            <label class="form-label required">Full Name</label>
-                            <input class="form-control" formControlName="name" />
-                          </div>
-                          <div class="col-md-4">
-                            <label class="form-label">ORCID</label>
-                            <input class="form-control" formControlName="orcid" placeholder="0000-0000-0000-0000" />
-                          </div>
-                          <div class="col-md-3">
-                            <label class="form-label">Affiliation</label>
-                            <input class="form-control" formControlName="affiliation" placeholder="e.g., Univ. of Venda" />
-                          </div>
-                          <div class="col-md-1 d-grid">
-                            <button type="button" class="btn btn-outline-danger" (click)="removeAuthor(i)" title="Remove author">&times;</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <button type="button" class="btn btn-outline-primary mt-2" (click)="addAuthor()">+ Add Author</button>
-                  </div>
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">Comply with 75% rule</label>-->
+<!--                    <select class="form-select" formControlName="comply">-->
+<!--                      <option [ngValue]="null" disabled>Choose...</option>-->
+<!--                      <option [ngValue]="true">Yes</option>-->
+<!--                      <option [ngValue]="false">No</option>-->
+<!--                    </select>-->
+<!--                  </div>-->
 
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">Volume</label>-->
+<!--                    <input type="number" class="form-control" formControlName="volume" />-->
+<!--                  </div>-->
 
-                  <!-- Outlet Details -->
-                  <div class="mb-4" [formGroup]="outletFG">
-                    <div class="row g-3">
-                      <div class="col-md-6">
-                        <label class="form-label">Journal / Proceedings / Publisher</label>
-                        <input class="form-control" formControlName="name" />
-                      </div>
-                      <div class="col-md-3">
-                        <label class="form-label">ISSN</label>
-                        <input class="form-control" formControlName="issn" placeholder="1234-567X" />
-                      </div>
-                      <div class="col-md-3">
-                        <label class="form-label">ISBN</label>
-                        <input class="form-control" formControlName="isbn" placeholder="978-..." />
-                      </div>
-                      <div class="col-md-3">
-                        <label class="form-label">Volume</label>
-                        <input class="form-control" formControlName="volume" />
-                      </div>
-                      <div class="col-md-3">
-                        <label class="form-label">Issue</label>
-                        <input class="form-control" formControlName="issue" />
-                      </div>
-                      <div class="col-md-3">
-                        <label class="form-label">Pages</label>
-                        <input class="form-control" formControlName="pages" placeholder="e.g., 101–120" />
-                      </div>
-                      <div class="col-md-3">
-                        <label class="form-label">Publication Date</label>
-                        <input type="date" class="form-control" formControlName="publicationDate" />
-                      </div>
-                    </div>
-                  </div>
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">Issue</label>-->
+<!--                    <input type="number" class="form-control" formControlName="issue" />-->
+<!--                  </div>-->
 
-                  <!-- Access & Indexing -->
-                  <div class="mb-4" [formGroup]="accessFG">
-                    <div class="row g-3">
-                      <div class="col-md-6">
-                        <label class="mb-2">Open Access</label>
-                        <div class="d-flex gap-3">
-                          <label class="form-check-label">
-                            <input class="form-check-input" type="radio" [value]="'Yes'" formControlName="openAccess" (change)="onOpenAccessChange()" /> Yes
-                          </label>
-                          <label class="form-check-label">
-                            <input class="form-check-input" type="radio" [value]="'No'" formControlName="openAccess" (change)="onOpenAccessChange()" /> No
-                          </label>
-                        </div>
-                      </div>
-                      <div class="col-12" [formGroup]="indexingGroup">
-                        <label class="mb-2">Indexing</label>
-                        <div class="d-flex flex-wrap gap-3">
-                          <label class="form-check-label">
-                            <input class="form-check-input" type="checkbox" formControlName="scopus" (change)="onIdxDhetChange()" /> Scopus
-                          </label>
-                          <label class="form-check-label">
-                            <input class="form-check-input" type="checkbox" formControlName="webOfScience" (change)="onIdxDhetChange()" /> Web of Science
-                          </label>
-                          <label class="form-check-label">
-                            <input class="form-check-input" type="checkbox" formControlName="ibss" (change)="onIdxDhetChange()" /> IBSS
-                          </label>
-                          <label class="form-check-label">
-                            <input class="form-check-input" type="checkbox" formControlName="dhetAccredited" (change)="onIdxDhetChange()" /> DHET Accredited
-                          </label>
-                        </div>
-                      </div>
-                      <div class="col-12">
-                        <label class="mb-2">Peer‑reviewed</label>
-                        <div>
-                          <input class="form-check-input" type="checkbox" formControlName="peerReviewed" /> Peer‑reviewed
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="mb-4" [formGroup]="fundingGroup">
-                    <div class="row g-3">
-                      <div class="col-md-6">
-                        <label class="form-label">Funder</label>
-                        <input class="form-control" formControlName="funder" placeholder="e.g., NRF, NIH" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label">Grant / Project Number</label>
-                        <input class="form-control" formControlName="grantNumber" />
-                      </div>
-                    </div>
-                  </div>
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">ISSN</label>-->
+<!--                    <input class="form-control" formControlName="issn" placeholder="1234-567X" />-->
+<!--                  </div>-->
 
-                  <!-- Keywords & Abstract -->
-                  <div class="mb-4">
-                    <div class="mb-3">
-                      <label class="form-label">Keywords (press Enter to add)</label>
-                      <input type="text" class="form-control" (keydown)="addKeywordFromInput($event)" placeholder="e.g., HEMIS, enrolment planning, LLM" />
-                      <div class="mt-2 d-flex flex-wrap gap-2">
-                        <span class="chip d-flex align-items-center px-2 py-1 bg-primary text-white rounded-pill" *ngFor="let k of keywordsFA.controls; let i=index" style="font-size: 0.95em;">
-                          <span class="me-2">{{ k.value }}</span>
-                          <button type="button" class="btn btn-sm btn-light btn-close p-0 ms-1" (click)="removeKeyword(i)" aria-label="Remove" style="font-size:1.1em; line-height:1;">×</button>
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <label class="form-label">Abstract</label>
-                      <textarea class="form-control" rows="6" formControlName="abstractText"></textarea>
-                      <div class="d-flex justify-content-between">
-                        <span class="form-hint">Useful for repository submissions and review.</span>
-                        <span class="form-hint"><span class="counter">{{ (form.get('abstractText')?.value || '').length }}</span>/2000</span>
-                      </div>
-                    </div>
-                  </div>
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">e-ISSN</label>-->
+<!--                    <input class="form-control" formControlName="eSsn" />-->
+<!--                  </div>-->
 
-                  <!-- Attachments -->
-                  <div class="mb-4">
-                    <div class="section-title mb-2">Attachment</div>
-                    <label class="form-label">Upload PDF (max 20MB)</label>
-                    <input class="form-control" type="file" (change)="onFileSelected($event)" accept="application/pdf" />
-                  </div>
-                </div>
-                <div class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white">
-                  <button type="submit" class="btn btn-primary">Submit</button>
-                </div>
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">DOI</label>-->
+<!--                    <input class="form-control" formControlName="doi" placeholder="10.1234/xyz-abc.123" />-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--              </div>-->
 
-              </form>
+<!--              &lt;!&ndash; Authors &ndash;&gt;-->
+<!--              <div class="mb-4">-->
+<!--                <h6 class="mb-3">Claiming Authors (Journal Article)</h6>-->
+<!--                <div formArrayName="authors" class="vstack gap-3">-->
+<!--                  <div class="author-card border rounded p-3" *ngFor="let a of authorsFA.controls; let i = index" [formGroupName]="i">-->
+<!--                    <div class="row g-3 align-items-end">-->
+<!--                      <div class="col-md-3">-->
+<!--                        <label class="form-label required">First Name</label>-->
+<!--                        <input class="form-control" formControlName="firstName" />-->
+<!--                      </div>-->
+<!--                      <div class="col-md-3">-->
+<!--                        <label class="form-label required">Last Name</label>-->
+<!--                        <input class="form-control" formControlName="lastName" />-->
+<!--                      </div>-->
+<!--                      <div class="col-md-3">-->
+<!--                        <label class="form-label">Email</label>-->
+<!--                        <input class="form-control" formControlName="email" type="email" />-->
+<!--                      </div>-->
+<!--                      <div class="col-md-3">-->
+<!--                        <label class="form-label">ORCID</label>-->
+<!--                        <input class="form-control" formControlName="orcid" placeholder="0000-0000-0000-0000" />-->
+<!--                      </div>-->
 
-            </div>
+<!--                      <div class="col-md-3">-->
+<!--                        <label class="form-label">Affiliation</label>-->
+<!--                        <input class="form-control" formControlName="affiliation" />-->
+<!--                      </div>-->
+<!--                      <div class="col-md-3 d-flex align-items-center">-->
+<!--                        <div class="form-check mt-4">-->
+<!--                          <input class="form-check-input" type="checkbox" formControlName="corresponding" id="corresponding-{{i}}" />-->
+<!--                          <label class="form-check-label" for="corresponding-{{i}}">Corresponding</label>-->
+<!--                        </div>-->
+<!--                      </div>-->
 
-          </div>
-        </div>
-      </div>
-    </div>
+<!--                      <div class="col-md-3">-->
+<!--                        <label class="form-label">Proportion of Authors</label>-->
+<!--                        <input class="form-control" formControlName="proportionOfAuthors" readonly />-->
+<!--                      </div>-->
+<!--                      <div class="col-md-3">-->
+<!--                        <label class="form-label">Author Units Claimed</label>-->
+<!--                        <input class="form-control" formControlName="authorUnitsClaimed" readonly />-->
+<!--                      </div>-->
 
+<!--                      <div class="col-12">-->
+<!--                        <label class="form-label">Additional Comments</label>-->
+<!--                        <textarea class="form-control" rows="2" formControlName="additionalComments"></textarea>-->
+<!--                      </div>-->
 
-  </div>
-</div>
+<!--                      <div class="col-12 d-flex justify-content-end">-->
+<!--                        <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeAuthor(i)" *ngIf="authorsFA.length > 1">-->
+<!--                          Remove Author-->
+<!--                        </button>-->
+<!--                      </div>-->
+<!--                    </div>-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--                <button type="button" class="btn btn-outline-primary mt-2" (click)="addAuthor()">+ Add Author</button>-->
+<!--              </div>-->
+
+<!--              &lt;!&ndash; Units &ndash;&gt;-->
+<!--              <div class="mb-4" formArrayName="units">-->
+<!--                <h6 class="mb-3">Units</h6>-->
+<!--                <div class="unit-card border rounded p-3" *ngFor="let u of unitsFA.controls; let i = index" [formGroupName]="i">-->
+<!--                  <div class="row g-3">-->
+<!--                    <div class="col-md-3">-->
+<!--                      <label class="form-label">Max units for publication</label>-->
+<!--                      <input type="number" class="form-control" formControlName="maxUnitsForPublication" />-->
+<!--                    </div>-->
+<!--                    <div class="col-md-3">-->
+<!--                      <label class="form-label">Total Proportion of Authors</label>-->
+<!--                      <input type="number" step="0.01" class="form-control" formControlName="totalProportionOfAuthors" />-->
+<!--                    </div>-->
+<!--                    <div class="col-md-3">-->
+<!--                      <label class="form-label">Authors Count</label>-->
+<!--                      <input type="number" class="form-control" formControlName="authorsCount" readonly />-->
+<!--                    </div>-->
+<!--                    <div class="col-md-3">-->
+<!--                      <label class="form-label">Total Units Claimed</label>-->
+<!--                      <input type="number" class="form-control" formControlName="totalUnitsClaimed" readonly />-->
+<!--                    </div>-->
+
+<!--                    <div class="col-12">-->
+<!--                      <label class="form-label">Other Authors (Non-affiliates)</label>-->
+<!--                      <textarea class="form-control" rows="2" formControlName="otherAuthorsNonAffiliates"></textarea>-->
+<!--                    </div>-->
+
+<!--                    <div class="col-12">-->
+<!--                      <label class="form-label">Additional Comments</label>-->
+<!--                      <textarea class="form-control" rows="2" formControlName="additionalComments"></textarea>-->
+<!--                    </div>-->
+
+<!--                    <div class="col-12 d-flex justify-content-end">-->
+<!--                      <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeUnit(i)" *ngIf="unitsFA.length > 1">-->
+<!--                        Remove Units Block-->
+<!--                      </button>-->
+<!--                    </div>-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--                <button type="button" class="btn btn-outline-primary mt-2" (click)="addUnit()">+ Add Units Block</button>-->
+<!--              </div>-->
+
+<!--              &lt;!&ndash; Author Affiliation &ndash;&gt;-->
+<!--              <div class="mb-4" [formGroup]="authorAffiliationFG">-->
+<!--                <h6 class="mb-3">Claiming Author – Affiliations</h6>-->
+<!--                <div class="row g-3">-->
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label required">Student/Employee No.</label>-->
+<!--                    <input type="number" class="form-control" formControlName="studentEmployeeNo" />-->
+<!--                  </div>-->
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">Employment status</label>-->
+<!--                    <input class="form-control" formControlName="employmentStatus" />-->
+<!--                  </div>-->
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">Academic Title</label>-->
+<!--                    <input class="form-control" formControlName="academicTitle" />-->
+<!--                  </div>-->
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">Other Affiliations (Only SA HEIs)</label>-->
+<!--                    <input class="form-control" formControlName="otherAffiliationsSaHeis" />-->
+<!--                  </div>-->
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">Other Affiliations (Only SA Institutions)</label>-->
+<!--                    <input class="form-control" formControlName="otherAffiliationsSaInstitutions" />-->
+<!--                  </div>-->
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">Other Affiliations (International Institutions)</label>-->
+<!--                    <input class="form-control" formControlName="otherAffiliationsInternationalInstitutions" />-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--              </div>-->
+
+<!--              &lt;!&ndash; Claiming Authors Contribution &ndash;&gt;-->
+<!--              <div class="mb-4" [formGroup]="claimingAuthorsContributionFG">-->
+<!--                <h6 class="mb-3">Claiming Authors Contribution</h6>-->
+<!--                <div class="row g-3">-->
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">Proportion of Authors</label>-->
+<!--                    <input type="number" step="0.01" class="form-control" formControlName="proportionOfAuthors" readonly />-->
+<!--                  </div>-->
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">Author Units Claimed</label>-->
+<!--                    <input type="number" step="0.01" class="form-control" formControlName="authorUnitsClaimed" readonly />-->
+<!--                  </div>-->
+<!--                  <div class="col-md-12">-->
+<!--                    <label class="form-label">Additional Comments</label>-->
+<!--                    <textarea class="form-control" rows="2" formControlName="additionalComments"></textarea>-->
+<!--                  </div>-->
+<!--                </div>-->
+<!--              </div>-->
+
+<!--              &lt;!&ndash; Actions &ndash;&gt;-->
+<!--              <div class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white">-->
+<!--                <button type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>-->
+<!--                <button type="submit" class="btn btn-primary">Submit</button>-->
+<!--              </div>-->
+
+<!--            </form>-->
+
+<!--            &lt;!&ndash; Preview JSON &ndash;&gt;-->
+<!--            <div class="mt-4" *ngIf="showPreview">-->
+<!--              <h6>Preview JSON</h6>-->
+<!--              <pre class="bg-light p-3 border rounded small" style="max-height: 400px; overflow:auto;">-->
+<!--{{ previewJson }}-->
+<!--              </pre>-->
+<!--              <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closePreview()">Close Preview</button>-->
+<!--            </div>-->
+
+<!--          </div>-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--    &lt;!&ndash; [ Main Content ] end &ndash;&gt;-->
+<!--  </div>-->
+<!--</div>-->
+<!--&lt;!&ndash; [ Main Content ] end &ndash;&gt;-->
