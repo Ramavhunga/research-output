@@ -1,4 +1,4 @@
-import {AuthorAffiliation, Authors, ClaimingAuthorsContribution, Units} from './common.model';
+import { Authors, ClaimingAuthorsContribution, Units} from './common.model';
 
 export interface Journal {
   id: number;
@@ -14,8 +14,8 @@ export interface Journal {
   eSsn: string;
   doi: string;
   authors?: Authors[];
-  units?: Units[];
-  authorAffiliation :AuthorAffiliation;
+  units?: Units;
+
   claimingAuthorsContribution :ClaimingAuthorsContribution
 }
 

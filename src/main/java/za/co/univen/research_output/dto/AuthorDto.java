@@ -1,27 +1,17 @@
-package za.co.univen.research_output.entities;
+package za.co.univen.research_output.dto;
 
-import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.LocalDate;
-
-@Entity
-@Table(name = "authors")
 @Data
-public class Author {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class AuthorDto {
     private Long id;
-
     private String studentEmployeeNo;
     private String firstName;
     private String surname;
     private String initials;
     private String gender;
     private String populationGroup;
-
-    private LocalDate dob;              // or String if you prefer, but LocalDate is better
+    private String dob;               // yyyy-MM-dd as string
     private String orcid;
     private String countryOfBirth;
     private String saResidencyStatus;
@@ -31,8 +21,4 @@ public class Author {
     private String department;
     private String faculty;
     private String academicTitle;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "journal_id")  // FK column in authors table
-    private Journal journal;
 }

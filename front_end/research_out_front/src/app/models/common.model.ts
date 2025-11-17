@@ -47,5 +47,5 @@ export interface AuthorAffiliation {
   eSsn: string;
   doi: string;
   authors?: Authors[];
-  units?: Units[];
+  units?: Units;
 }
