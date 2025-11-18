@@ -130,17 +130,7 @@
                 (a.get('studentEmployeeNo')?.touched || a.get('studentEmployeeNo')?.dirty)
             }"
                         />
-                        <div
-                          class="invalid-feedback"
-                          *ngIf="
-              a.get('studentEmployeeNo')?.errors &&
-              (a.get('studentEmployeeNo')?.touched || a.get('studentEmployeeNo')?.dirty)
-            "
-                        >
-            <span *ngIf="a.get('studentEmployeeNo')?.errors?.['required']">
-              Student/Employee No. is required.
-            </span>
-                        </div>
+
                       </div>
 
                       <div class="col-md-3">
@@ -154,17 +144,7 @@
                 (a.get('firstName')?.touched || a.get('firstName')?.dirty)
             }"
                         />
-                        <div
-                          class="invalid-feedback"
-                          *ngIf="
-              a.get('firstName')?.errors &&
-              (a.get('firstName')?.touched || a.get('firstName')?.dirty)
-            "
-                        >
-            <span *ngIf="a.get('firstName')?.errors?.['required']">
-              First-Names are required.
-            </span>
-                        </div>
+
                       </div>
 
                       <div class="col-md-3">
@@ -178,17 +158,7 @@
                 (a.get('surname')?.touched || a.get('surname')?.dirty)
             }"
                         />
-                        <div
-                          class="invalid-feedback"
-                          *ngIf="
-              a.get('surname')?.errors &&
-              (a.get('surname')?.touched || a.get('surname')?.dirty)
-            "
-                        >
-            <span *ngIf="a.get('surname')?.errors?.['required']">
-              Surname is required.
-            </span>
-                        </div>
+
                       </div>
 
                       <div class="col-md-3">
@@ -196,15 +166,28 @@
                         <input class="form-control" formControlName="initials" />
                       </div>
 
-                      <!-- Row 2: gender, population group, DOB, ORCID -->
+
                       <div class="col-md-3">
+
                         <label class="form-label">Gender</label>
-                        <input class="form-control" formControlName="gender" />
-                      </div>
+                        <select class="form-select" formControlName="gender">
+                          <option [ngValue]="null" disabled>Choose...</option>
+                          <option [ngValue]="'MALE'">Male</option>
+                          <option [ngValue]="'FEMALE'">Female</option>
+                        </select>
+
+                     </div>
 
                       <div class="col-md-3">
                         <label class="form-label">Population Group</label>
-                        <input class="form-control" formControlName="populationGroup" />
+                        <select class="form-select" formControlName="populationGroup">
+                          <option [ngValue]="null" disabled>Choose...</option>
+                          <option value="African">African</option>
+                          <option value="Coloured">Coloured</option>
+                          <option value="Indian/Asian">Indian/Asian</option>
+                          <option value="White">White</option>
+                          <option value="Other">Other</option>
+                        </select>
                       </div>
 
                       <div class="col-md-3">

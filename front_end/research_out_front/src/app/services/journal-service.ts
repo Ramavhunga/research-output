@@ -10,7 +10,7 @@ import {Journal} from '../models/journal.model';
 })
 export class JournalService {
 
-  private baseurl = environment.apiUrl+"/api/journals";
+  private baseurl = environment.apiUrl+"/api/journal";
   constructor(private http: HttpClient) { }
 
 

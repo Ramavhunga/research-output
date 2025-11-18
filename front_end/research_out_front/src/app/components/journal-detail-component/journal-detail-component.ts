@@ -4,7 +4,7 @@ import {
   FormBuilder,
   FormControl,
   FormGroup,
-  FormsModule,
+  FormsModule, MaxLengthValidator,
   ReactiveFormsModule,
   Validators
 } from '@angular/forms';
@@ -106,8 +106,7 @@ export class JournalDetailComponent {
       firstName: [a?.firstName || '', Validators.required],
       surname: [a?.surname || '', Validators.required],
       initials: [a?.initials || ''],
-
-      gender: [a?.gender || ''],
+      gender: [a?.gender ?? null as string | null, Validators.required],
       populationGroup: [a?.populationGroup || ''],
       dob: [a?.dob || ''], // you can later enforce a date pattern if you want
 
@@ -256,4 +255,6 @@ export class JournalDetailComponent {
     this.showPreview = false;
     this.previewJson = '';
   }
+
+  protected readonly MaxLengthValidator = MaxLengthValidator;
 }

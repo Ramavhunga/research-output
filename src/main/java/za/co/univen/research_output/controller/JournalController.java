@@ -15,12 +15,13 @@ public class JournalController {
     public JournalController(JournalService service) {
         this.service = service;
     }
-    @PostMapping
+
+    @PostMapping()
     public ResponseEntity<JournalDto> create(@RequestBody JournalDto dto) {
+        dto.setId(null);
         JournalDto saved = service.createOrUpdate(dto);
         return ResponseEntity.ok(saved);
     }
-
     @PutMapping("/{id}")
     public ResponseEntity<JournalDto> update(@PathVariable Long id, @RequestBody JournalDto dto) {
         dto.setId(id);
@@ -32,4 +33,6 @@ public class JournalController {
     public ResponseEntity<Journal> getOne(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
+
+
 }
