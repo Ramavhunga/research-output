@@ -8,6 +8,8 @@ import za.co.univen.research_output.dto.JournalDto;
 import za.co.univen.research_output.entities.Journal;
 import za.co.univen.research_output.repositories.JournalRepository;
 
+import java.util.List;
+
 @Service
 public class JournalService {
 
@@ -32,4 +34,12 @@ public class JournalService {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Journal not found: " + id));
     }
+//    @Transactional()
+//    public List<JournalDto> findAll() {
+//        return repository.findAll()
+//                .stream()
+//                .map(modelMapper::JournalDto)
+//                .toList();
+//    }
+
 }

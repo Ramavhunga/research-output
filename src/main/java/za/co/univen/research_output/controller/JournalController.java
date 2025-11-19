@@ -1,19 +1,27 @@
 package za.co.univen.research_output.controller;
 
+import jakarta.transaction.Transactional;
+import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import za.co.univen.research_output.dto.JournalDto;
 import za.co.univen.research_output.entities.Journal;
+import za.co.univen.research_output.repositories.JournalRepository;
 import za.co.univen.research_output.services.JournalService;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/journal")
 @CrossOrigin("*")
 public class JournalController {
     private final JournalService service;
+    private final JournalRepository jounralrepository;
+    private final ModelMapper modelMapper = new ModelMapper();
 
-    public JournalController(JournalService service) {
+    public JournalController(JournalService service, JournalRepository jounralrepository) {
         this.service = service;
+        this.jounralrepository = jounralrepository;
     }
 
     @PostMapping()
@@ -33,6 +41,8 @@ public class JournalController {
     public ResponseEntity<Journal> getOne(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
+
+
 
 
 }
