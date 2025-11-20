@@ -36,6 +36,8 @@ export class JournalDetailComponent {
   form: FormGroup;
 
   constructor(private fb: FormBuilder, private router: Router,  private journalService: JournalService) {
+    debugger;
+
     const journal = this.router.getCurrentNavigation()?.extras.state?.['journal'] as Journal | undefined;
 
     this.form = this.fb.group({

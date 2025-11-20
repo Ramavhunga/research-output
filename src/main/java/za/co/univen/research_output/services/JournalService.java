@@ -34,12 +34,11 @@ public class JournalService {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Journal not found: " + id));
     }
-//    @Transactional()
-//    public List<JournalDto> findAll() {
-//        return repository.findAll()
-//                .stream()
-//                .map(modelMapper::JournalDto)
-//                .toList();
-//    }
+    @Transactional()
+    public List<Journal> findAll() {
+        return repository.findAll();
+
+
+    }
 
 }

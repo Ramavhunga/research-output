@@ -41,7 +41,10 @@ public class JournalController {
     public ResponseEntity<Journal> getOne(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
-
+    @GetMapping
+    public ResponseEntity<List<Journal>> getAll() {
+        return ResponseEntity.ok(service.findAll());
+    }
 
 
 

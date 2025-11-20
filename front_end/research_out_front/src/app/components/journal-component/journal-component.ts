@@ -22,18 +22,21 @@ export class JournalComponent {
   constructor(private service: JournalService, private router: Router) {}
 
   ngOnInit(): void {
+    debugger
     const login = sessionStorage.getItem("login");
     if (!login) {
       this.router.navigate(['/login']);
-      return;
+     // return;
     }
-    const username = JSON.parse(login).user.username;
+
+    const username ="";// JSON.parse("").user.username;
     this.service.loud_journals(username).pipe(
       catchError(() => {
         Swal.fire("Failed to Login", "Invalid Credentials!", "error");
         return of();
       })
     ).subscribe(data => {
+      debugger;
       this.journals = data;
 
     });
@@ -43,6 +46,6 @@ export class JournalComponent {
 
   viewJournal(journal: Journal) {
     //console.log('viewOutput:', output);
-    this.router.navigate(['journal/detail'], { state: { journal } });
+    this.router.navigate(['journal/details'], { state: { journal } });
   }
 }
