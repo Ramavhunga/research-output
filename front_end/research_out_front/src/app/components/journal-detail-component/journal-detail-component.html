@@ -227,8 +227,20 @@
                       </div>
 
                       <div class="col-md-3">
-                        <label class="form-label">SA Residency Status</label>
-                        <input class="form-control" formControlName="saResidencyStatus" />
+
+                        <label class="form-label">Residency Status</label>
+                        <select class="form-select" formControlName="saResidencyStatus">
+                          <option [ngValue]="null" disabled>Choose...</option>
+                          <option value="SOUTH_AFRICAN_CITIZEN">South African Citizen</option>
+                          <option value="PERMANENT_RESIDENT">Permanent Resident</option>
+                          <option value="TEMPORARY_RESIDENT">Temporary Resident</option>
+                          <option value="REFUGEE_STATUS">Refugee Status</option>
+                          <option value="ASYLUM_SEEKER">Asylum Seeker</option>
+                          <option value="WORK_PERMIT">Work Permit Holder</option>
+                          <option value="STUDY_PERMIT">Study Permit Holder</option>
+                          <option value="SPOUSAL_RELATIVE_PERMIT">Spousal/Relative Permit</option>
+                          <option value="OTHER">Other</option>
+                        </select>
                       </div>
 
                       <div class="col-md-3">
@@ -242,28 +254,74 @@
                       <!-- Row 4: qualification & employment & department & faculty -->
                       <div class="col-md-3">
                         <label class="form-label">Highest Qualification</label>
-                        <input class="form-control" formControlName="highestQualification" />
+
+
+                        <select class="form-select" formControlName="highestQualification">
+                          <option [ngValue]="null" disabled>Choose...</option>
+                          <option value="HIGHER_CERTIFICATE">Higher Certificate (NQF 5)</option>
+                          <option value="ADVANCED_CERTIFICATE">Advanced Certificate (NQF 6)</option>
+                          <option value="NATIONAL_DIPLOMA">National Diploma (NQF 6)</option>
+                          <option value="ADVANCED_DIPLOMA">Advanced Diploma (NQF 7)</option>
+                          <option value="BACHELORS">Bachelor’s Degree (NQF 7)</option>
+                          <option value="POSTGRADUATE_DIPLOMA">Postgraduate Diploma (NQF 8)</option>
+                          <option value="HONOURS">Honours Degree (NQF 8)</option>
+                          <option value="MASTERS">Master’s Degree (NQF 9)</option>
+                          <option value="DOCTORATE">Doctoral Degree (NQF 10)</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+
                       </div>
 
                       <div class="col-md-3">
+
+
                         <label class="form-label">Employment Status</label>
-                        <input class="form-control" formControlName="employmentStatus" />
+                        <select class="form-select" formControlName="employmentStatus">
+                          <option [ngValue]="null" disabled>Choose...</option>
+                          <option value="EMPLOYED_FULL_TIME">Employed – Full Time</option>
+                          <option value="EMPLOYED_PART_TIME">Employed – Part Time</option>
+                          <option value="SELF_EMPLOYED">Self-Employed</option>
+                          <option value="UNEMPLOYED">Unemployed</option>
+                          <option value="STUDENT">Student</option>
+                          <option value="INTERN">Intern / Learnership / Apprentice</option>
+                          <option value="RETIRED">Retired</option>
+                          <option value="DISABLED">Unable to Work / Disabled</option>
+                          <option value="OTHER">Other</option>
+                        </select>
                       </div>
 
-                      <div class="col-md-3">
-                        <label class="form-label">Department</label>
-                        <input class="form-control" formControlName="department" />
-                      </div>
+
 
                       <div class="col-md-3">
                         <label class="form-label">Faculty</label>
                         <input class="form-control" formControlName="faculty" />
                       </div>
-
+                      <div class="col-md-3">
+                        <label class="form-label">Department</label>
+                        <input class="form-control" formControlName="department" />
+                      </div>
                       <!-- Row 5: academic title -->
                       <div class="col-md-3">
+
+
                         <label class="form-label">Academic Title</label>
-                        <input class="form-control" formControlName="academicTitle" />
+                        <select class="form-select" formControlName="academicTitle">
+                          <option [ngValue]="null" disabled>Choose...</option>
+
+                          <option value="MR">Mr</option>
+                          <option value="MS">Ms</option>
+                          <option value="MRS">Mrs</option>
+                          <option value="MISS">Miss</option>
+                          <option value="DR">Dr</option>
+                          <option value="PROF">Prof</option>
+                          <option value="ADV">Adv</option>
+                          <option value="REV">Rev</option>
+                          <option value="PASTOR">Pastor</option>
+                          <option value="IMAM">Imam</option>
+                          <option value="RABBI">Rabbi</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+
                       </div>
 
                       <!-- Remove button -->

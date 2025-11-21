@@ -50,3 +50,18 @@ export interface AuthorAffiliation {
   units?: Units;
 }
 
+export interface Faculty {
+  id: number;
+  code: string;
+  name: string;
+  // add any other fields you have in the entity
+}
+
+export interface Department {
+  id: number;
+  code: string;
+  name: string;
+  facultyId?: number; // optional, if you expose it
+  // other fields if needed
+}
+
