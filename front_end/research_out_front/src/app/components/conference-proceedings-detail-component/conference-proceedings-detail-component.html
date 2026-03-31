@@ -1,1 +1,188 @@
-<p>conference-proceedings-detail-component works!</p>
+<div class="pc-container">
+  <div class="pc-content">
+    <!-- Breadcrumb -->
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center g-0">
+          <div class="col-sm-auto">
+            <div class="page-header-title">
+              <h5 class="mb-0">Conference Paper Details</h5>
+            </div>
+          </div>
+          <div class="col-sm-auto">
+            <ul class="breadcrumb">
+              <li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li>
+              <li class="breadcrumb-item"><a routerLink="/conference">Conference Papers</a></li>
+              <li class="breadcrumb-item" aria-current="page">Paper Details</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Conference Paper Interface</h5>
+            <button class="btn btn-outline-secondary btn-sm" type="button" (click)="preview()">
+              Preview JSON
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" type="button" (click)="autoPopulateForm()">
+              Auto Populate JSON
+            </button>
+          </div>
+
+          <div class="card-body">
+            <form [formGroup]="form" (ngSubmit)="onSubmit()">
+              <div class="mb-4">
+                <h6 class="mb-3">Paper Details</h6>
+                <div class="row g-3">
+
+                  <div class="col-md-4">
+                    <label class="form-label">DHET No.</label>
+                    <input class="form-control" formControlName="dhetNo" readonly />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Year of Publication</label>
+                    <input type="number" class="form-control" formControlName="yearOfPublication" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Title of Book / Proceedings</label>
+                    <input class="form-control" formControlName="titleOfBook" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Editors</label>
+                    <input class="form-control" formControlName="editors" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Publisher</label>
+                    <input class="form-control" formControlName="publisher" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">ISBN</label>
+                    <input class="form-control" formControlName="isbn" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Field of Research</label>
+                    <input class="form-control" formControlName="fieldOfResearch" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Funders</label>
+                    <input class="form-control" formControlName="funders" placeholder="NRF; NWO; NIH" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Total Pages</label>
+                    <input type="number" class="form-control" formControlName="totalNoPages" />
+                  </div>
+
+                  <div class="col-md-2">
+                    <label class="form-label">Start Page</label>
+                    <input type="number" class="form-control" formControlName="startPage" />
+                  </div>
+
+                  <div class="col-md-2">
+                    <label class="form-label">End Page</label>
+                    <input type="number" class="form-control" formControlName="endPage" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Total Pages Claimed</label>
+                    <input type="number" class="form-control" formControlName="totalPagesClaimed" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Max Units for Publication</label>
+                    <input type="number" class="form-control" formControlName="maxUnitsForPublication" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Total Proportion of Authors</label>
+                    <input type="number" step="0.01" class="form-control" formControlName="totalProportionOfAuthors" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Authors Count</label>
+                    <input type="number" class="form-control" formControlName="authorCount" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Total Units Claimed</label>
+                    <input type="number" class="form-control" formControlName="totalUnitsClaimed" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Other Authors</label>
+                    <input class="form-control" formControlName="otherAuthors" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Additional Comments</label>
+                    <textarea class="form-control" rows="2" formControlName="additionalComments"></textarea>
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Publication Fee Description</label>
+                    <input class="form-control" formControlName="publicationfeedescription" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Publisher Currency</label>
+                    <input class="form-control" formControlName="publishercurrency" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Total Publication Fee</label>
+                    <input type="number" class="form-control" formControlName="totalPublicationFeePublisherCurrency" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Publication Fee for the Article</label>
+                    <input type="number" class="form-control" formControlName="publicationfeearticle" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Authors Contribution Fee</label>
+                    <input type="number" class="form-control" formControlName="authorsContributionFee" />
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label">Authors Contribution Fee in ZAR</label>
+                    <input type="number" class="form-control" formControlName="authorsContributionFeeZar" />
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white">
+                <button type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>
+                <button type="submit" class="btn btn-primary">Submit</button>
+              </div>
+            </form>
+
+            <!-- Preview JSON -->
+            <div class="mt-4" *ngIf="showPreview">
+              <h6>Preview JSON</h6>
+              <pre class="bg-light p-3 border rounded small" style="max-height: 400px; overflow:auto;">
+{{ previewJson }}
+              </pre>
+              <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closePreview()">
+                Close Preview
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

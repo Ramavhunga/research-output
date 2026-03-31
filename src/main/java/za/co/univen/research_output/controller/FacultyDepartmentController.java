@@ -29,7 +29,7 @@ public class FacultyDepartmentController {
 
     @GetMapping("/faculties/{facultyId}/departments")
     public ResponseEntity<List<Department>> getByFaculty(@PathVariable Long facultyId) {
-        return ResponseEntity.ok(departmentRepository.getDepartmentByFaculty_Id(facultyId));
+        return ResponseEntity.ok(departmentRepository.findDepartmentByFacultyId(facultyId));
     }
 
 

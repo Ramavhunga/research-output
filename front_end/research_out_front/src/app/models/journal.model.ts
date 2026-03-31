@@ -1,22 +1,50 @@
-import { Authors, ClaimingAuthorsContribution, Units} from './common.model';
+import { Authors, ClaimingAuthorsContribution, Units } from './common.model';
 
 export interface Journal {
-  id: number;
-  dhetNo: string;
+
+  id: number|null;
+
+  /** Core DHET Info */
+  dhetNo: string; // Must start with J
   year: string;
+  journalTitle: string;
   title: string;
   publisher: string;
   index: string;
   comply: boolean;
-  volume: number;
-  issue: number;
+
+  /** Publication Details */
+  volume?: string;
+  issue?: string;
   issn: string;
-  eSsn: string;
-  doi: string;
-  authors?: Authors[];
-  units?: Units;
+  eIssn?: string;
+  doi?: string;
+  urls?: string; // semicolon separated from UI
+  openaccess?: boolean;
 
-  claimingAuthorsContribution :ClaimingAuthorsContribution
+  /** Research Classification */
+  fieldofsearch: string;
+
+  /** Fees & Funding */
+  publicationfeedescription?: string;
+  publishercurrency?: string;
+  totalPublicationFeePublisherCurrency?: number;
+  publicationfeearticle?: number;
+  authorsContributionFee?: number;
+  authorsContributionFeeZar?: number;
+  funders?: string;
+
+  /** DHET Units */
+  units: Units;
+  maxUnitsForPublication ?: number;
+  /** Authors */
+  authors: Authors[];
+  otherAuthorsNonAffiliated?: string[];
+
+  /** Contribution */
+  claimingAuthorsContribution: ClaimingAuthorsContribution;
+
+  /** Notes */
+  additionalComments?: string;
+
 }
-
-

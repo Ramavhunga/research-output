@@ -4,11 +4,16 @@ import org.apache.logging.log4j.util.Base64Util;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
+import za.co.univen.research_output.dto.Login;
 import za.co.univen.research_output.dto.LoginDTO;
+import za.co.univen.research_output.dto.SearchUserDTO;
 import za.co.univen.research_output.dto.User;
 
 import java.util.Objects;
+import java.util.Optional;
 
 
 @Service
@@ -46,4 +51,5 @@ public class UserService {
         }
         return loginDTO;
     }
+
 }

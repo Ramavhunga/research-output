@@ -20,7 +20,7 @@ public class Faculty {
     @Column(nullable = false, unique = true, length = 255)
     private String name;   // e.g. "Faculty of Science, Engineering and Agriculture"
 
-    @OneToMany(mappedBy = "faculty", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Department> departments = new ArrayList<>();
+//    @OneToMany(mappedBy = "faculty", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<Department> departments = new ArrayList<>();
 
 }

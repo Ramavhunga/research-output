@@ -1,11 +1,13 @@
 package za.co.univen.research_output.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
 @Table(name = "departments")
 @Data
+@JsonIgnoreProperties({"hibernateLazyInitializer","handler"})
 public class Department {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,7 +19,7 @@ public class Department {
     @Column(nullable = false, length = 255)
     private String name;   // e.g. "Department of Computer Science"
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "faculty_id", nullable = false)
-    private Faculty faculty;
+    @Column(name = "faculty_id", nullable = false)
+    private Long facultyId;
+
 }

@@ -1,4 +1,6 @@
 import { Component } from '@angular/core';
+import {Router} from '@angular/router';
+
 
 @Component({
   selector: 'app-conference-proceedings-component',
@@ -8,4 +10,10 @@ import { Component } from '@angular/core';
 })
 export class ConferenceProceedingsComponent {
 
+  constructor(private router: Router) {}
+  goToBookDetails() {
+
+
+    this.router.navigate(['proceeding/conferenceproceedingsdetails']);
+  }
 }

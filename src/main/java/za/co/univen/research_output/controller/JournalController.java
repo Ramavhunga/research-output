@@ -25,15 +25,15 @@ public class JournalController {
     }
 
     @PostMapping()
-    public ResponseEntity<JournalDto> create(@RequestBody JournalDto dto) {
+    public ResponseEntity<Journal> create(@RequestBody Journal dto) {
         dto.setId(null);
-        JournalDto saved = service.createOrUpdate(dto);
+        Journal saved = service.createOrUpdate(dto);
         return ResponseEntity.ok(saved);
     }
     @PutMapping("/{id}")
-    public ResponseEntity<JournalDto> update(@PathVariable Long id, @RequestBody JournalDto dto) {
+    public ResponseEntity<Journal> update(@PathVariable Long id, @RequestBody Journal dto) {
         dto.setId(id);
-        JournalDto saved = service.createOrUpdate(dto);
+        Journal saved = service.createOrUpdate(dto);
         return ResponseEntity.ok(saved);
     }
 

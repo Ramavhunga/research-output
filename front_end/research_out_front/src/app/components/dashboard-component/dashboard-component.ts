@@ -8,4 +8,18 @@ import { Component } from '@angular/core';
 })
 export class DashboardComponent {
 
+  stats = {
+    journals: 5,
+    books: 3,
+    conferences: 3,
+    chapters: 9,
+    totalUnits: 20,
+    totalSubmissions: 30,
+    totalOutputs: 9,
+    activeResearchers: 8,
+    approved: 4,
+    pending: 3,
+    rejected: 2,
+    dhetCompliance: 10
+  };
 }

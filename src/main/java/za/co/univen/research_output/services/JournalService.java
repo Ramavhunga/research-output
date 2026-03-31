@@ -22,17 +22,23 @@ public class JournalService {
     }
 
     @Transactional
-    public JournalDto createOrUpdate(JournalDto dto) {
+    public Journal createOrUpdate(Journal dto) {
 
-        Journal entity = modelMapper.map(dto, Journal.class);
-        Journal saved = repository.save(entity);
-        return modelMapper.map(entity, JournalDto.class);
+      //  Journal entity = modelMapper.map(dto, Journal.class);
+
+        /* IMPORTANT: link authors to journal */
+        if (dto.getAuthors() != null) {
+            dto.getAuthors().forEach(author -> author.setJournal(dto));
+        }
+
+        Journal saved = repository.save(dto);
+
+        return saved;
     }
-
 
     public Journal getById(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Journal not found: " + id));
+                .orElseThrow(() -> new RuntimeException(" Journal not found: " + id));
     }
     @Transactional()
     public List<Journal> findAll() {

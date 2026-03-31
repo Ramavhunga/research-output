@@ -35,6 +35,7 @@ export class LoginComponent {
 
       this.loginService.login(user).pipe(
         catchError(error => {
+          debugger;
           Swal.fire({
             title: "Failed to Login",
             text: "Invalid Credentials!",
@@ -43,6 +44,7 @@ export class LoginComponent {
           return of();
         })
       ).subscribe(data => {
+        debugger;
         sessionStorage.setItem('login', JSON.stringify(data));
         const login: LoginDTO = data;
         console.log('Login:', login);

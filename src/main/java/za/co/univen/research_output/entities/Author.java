@@ -1,9 +1,8 @@
 package za.co.univen.research_output.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
-
-import java.time.LocalDate;
 
 @Entity
 @Table(name = "authors")
@@ -15,24 +14,34 @@ public class Author {
     private Long id;
 
     private String studentEmployeeNo;
+    private Boolean affilication;
     private String firstName;
     private String surname;
     private String initials;
+
     private String gender;
     private String populationGroup;
 
-    private LocalDate dob;              // or String if you prefer, but LocalDate is better
+    private String dob;
+
     private String orcid;
     private String countryOfBirth;
     private String saResidencyStatus;
+
     private Boolean disability;
+
     private String highestQualification;
     private String employmentStatus;
+
     private String department;
     private String faculty;
     private String academicTitle;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "journal_id")  // FK column in authors table
+    /* ================= RELATION ================= */
+
+    @ManyToOne
+    @JoinColumn(name = "journal_id")
+    @JsonBackReference
     private Journal journal;
+
 }

@@ -1,6 +1,7 @@
 package za.co.univen.research_output.controller;
 
 import org.springframework.web.bind.annotation.*;
+import za.co.univen.research_output.dto.Login;
 import za.co.univen.research_output.dto.LoginDTO;
 import za.co.univen.research_output.dto.User;
 import za.co.univen.research_output.services.UserService;
@@ -22,4 +23,6 @@ public class UserController {
     {
         return this.userService.itsLogin( user );
     }
+
+
 }

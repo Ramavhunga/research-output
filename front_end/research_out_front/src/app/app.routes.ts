@@ -13,23 +13,39 @@ import {
 } from './components/manage-submission-details-components/manage-submission-details-components';
 import {JournalComponent} from './components/journal-component/journal-component';
 import {JournalDetailComponent} from './components/journal-detail-component/journal-detail-component';
+import {BooksFieldsComponent} from './components/books-fields-component/books-fields-component';
+import {BooksFieldsDetailComponent} from './components/books-fields-detail-component/books-fields-detail-component';
+import {ChapterComponent} from './components/chapter-component/chapter-component';
+import {ChapterDetailComponent} from './components/chapter-detail-component/chapter-detail-component';
+import {
+  ConferenceProceedingsComponent
+} from './components/conference-proceedings-component/conference-proceedings-component';
+import {
+  ConferenceProceedingsDetailComponent
+} from './components/conference-proceedings-detail-component/conference-proceedings-detail-component';
 
 
 export const routes: Routes = [
-   //   { path: 'login', component: LoginComponent },
+    { path: 'login', component: LoginComponent },
       {
         path: '',
         component: HomeComponent,
         //canActivate: [AuthGuard],
         children: [
-          { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+          { path: 'login', redirectTo: 'login', pathMatch: 'full' },
           { path: 'dashboard', component: DashboardComponent },
           { path: 'manage-submissions', component: ManageSubmissionsComponents },
           { path: 'manage-submissions/details', component: ManageSubmissionDetailsComponents },
           { path: 'research-output', component: ResearchOutputComponent },
           { path: 'research-output/create', component: ResearchOutputDetailComponent },
           { path: 'journal', component: JournalComponent },
-          { path: 'journal/details', component: JournalDetailComponent}
+          { path: 'journal/details', component: JournalDetailComponent},
+          { path: 'books', component: BooksFieldsComponent },
+          { path: 'book/details', component: BooksFieldsDetailComponent},
+          { path: 'chapters', component: ChapterComponent },
+          { path: 'chapter/chapterdetails', component: ChapterDetailComponent},
+          { path: 'proceedings', component: ConferenceProceedingsComponent },
+          { path: 'proceeding/conferenceproceedingsdetails', component: ConferenceProceedingsDetailComponent}
 
         ]
       }

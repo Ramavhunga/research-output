@@ -1,5 +1,6 @@
 export interface Authors {
-  id: number;
+  id: number|null;
+  affiliation: boolean|null;
   studentEmployeeNo:string
   firstName: string;
   surname: string;
@@ -13,8 +14,8 @@ export interface Authors {
   disability: boolean;
   highestQualification: string;
   employmentStatus: string;
-  department: string;
-  faculty: string;
+  department: number;
+  faculty: number;
   academicTitle: string;
 }
 
@@ -24,13 +25,13 @@ export interface ClaimingAuthorsContribution {
   additionalComments?: string;
 }
 
-export interface Units {
-  maxUnitsForPublication: number;
-  totalProportionOfAuthors: number;
-  authorsCount: number;
+export interface  Units {
+  maxUnitsForPublication?: number;
+  totalProportionOfAuthors?: number;
+  authorsCount?: number;
   totalUnitsClaimed?: number;
   otherAuthorsNonAffiliates?: string;
-  additionalComments?: string;
+  unitsAdditionalComments?: string;
 }
 
 export interface AuthorAffiliation {
@@ -63,5 +64,9 @@ export interface Department {
   name: string;
   facultyId?: number; // optional, if you expose it
   // other fields if needed
+}
+
+export interface  Country{
+  name: string
 }
 
