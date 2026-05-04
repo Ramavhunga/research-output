@@ -1,11 +1,12 @@
 export interface Authors {
   id: number|null;
-  affiliation: boolean|null;
+  affiliation: boolean|true;
   studentEmployeeNo:string
   firstName: string;
   surname: string;
   initials: string;
   gender: string;
+  email:string
   populationGroup: string;
   dob: string; // yyyy-mm-dd
   orcid: string;

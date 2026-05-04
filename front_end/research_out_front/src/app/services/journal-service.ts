@@ -59,6 +59,22 @@ debugger
 
 
 
+  exists(title: string, issn: string, id?: number): Observable<boolean> {
+    let url = `${this.baseurl}journal/exists?title=${encodeURIComponent(title)}&issn=${encodeURIComponent(issn)}`;
+
+    if (id) {
+      url += `&id=${id}`;
+    }
+
+    return this.http.get<boolean>(url);
+  }
+
+
+
+
+
+
+
 
 
 

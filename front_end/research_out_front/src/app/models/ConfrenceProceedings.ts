@@ -1,5 +1,7 @@
 export interface ConfrenceProceedings {
+  id: number;
   dhetNo: string;
+  authors: string;
   originalOrPhotocopy: 'Original' | 'O' | 'Photocopy' | 'P';
   evidenceOfPeerReview: 'Yes' | 'Y' | 'No' | 'N';
   typeOfEvidence?: string;

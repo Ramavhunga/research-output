@@ -14,11 +14,11 @@ public class Author {
     private Long id;
 
     private String studentEmployeeNo;
-    private Boolean affilication;
+    private Boolean affiliation;
     private String firstName;
     private String surname;
     private String initials;
-
+    private String email;
     private String gender;
     private String populationGroup;
 
@@ -43,5 +43,10 @@ public class Author {
     @JoinColumn(name = "journal_id")
     @JsonBackReference
     private Journal journal;
+
+    @ManyToOne
+    @JoinColumn(name = "conference_proceedings_id")
+    @JsonBackReference
+    private ConferenceProceedings conferenceProceedings;
 
 }

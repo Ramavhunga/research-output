@@ -43,8 +43,8 @@ public class JournalService {
     @Transactional()
     public List<Journal> findAll() {
         return repository.findAll();
-
-
     }
+
+
 
 }

@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 import za.co.univen.research_output.entities.Attachment;
 import za.co.univen.research_output.entities.Department;
 import za.co.univen.research_output.entities.Faculty;
+import za.co.univen.research_output.entities.Publisher;
 
 @Repository
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {}

@@ -62,22 +62,34 @@
 
                   <div class="col-md-4">
                     <label class="form-label required">Article Title</label>
+
                     <input class="form-control" formControlName="title"
-                           [ngClass]="{'is-invalid': form.get('title')?.invalid && form.get('title')?.touched}" />
+                           [ngClass]="{
+    'is-invalid':
+      (form.get('title')?.invalid && form.get('title')?.touched) ||
+      form.errors?.duplicateJournal
+  }"
+                    />
+
                   </div>
 
 
                   <div class="col-md-4">
                     <label class="form-label required">Publisher</label>
 
-
-                    <select class="form-select" formControlName="publisher"   [ngClass]="{
-          'is-invalid': form.get('publisher')?.invalid && (form.get('publisher')?.touched || form.get('publisher')?.dirty)
+                    <select class="form-select"
+                            formControlName="publisher"
+                            [ngClass]="{
+          'is-invalid': form.get('publisher')?.invalid &&
+                        (form.get('publisher')?.touched || form.get('publisher')?.dirty)
         }">
+
                       <option [ngValue]="null" disabled>Choose...</option>
-                      <option [ngValue]="1">African Institute Journal</option>
-                      <option [ngValue]="2">Research Gate</option>
-                      <option [ngValue]="3">IEEE </option>
+
+                      <option *ngFor="let pub of publishers" [ngValue]="pub.id">
+                        {{ pub.name }}
+                      </option>
+
                     </select>
 
                   </div>
@@ -123,7 +135,7 @@
 
                   <div class="col-md-4">
                     <label class="form-label">e-ISSN</label>
-                    <input class="form-control" formControlName="eIssn" />
+                    <input class="form-control" formControlName="eissn" />
                   </div>
 
                   <div class="col-md-4">
@@ -157,17 +169,29 @@
 
                       <div class="col-md-4">
                         <label class="form-label required">Field of Research</label>
-
-
-                        <select class="form-select" formControlName="fieldofsearch"   [ngClass]="{
-          'is-invalid': form.get('fieldofsearch')?.invalid && (form.get('fieldofsearch')?.touched || form.get('fieldofsearch')?.dirty)
-        }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option [ngValue]="1">Math & Stats </option>
-                          <option [ngValue]="2">Computer Science</option>
-                          <option [ngValue]="3">Human & Social Science</option>
-                          <option [ngValue]="3">Physics & Biology</option>
-                        </select>
+                        <input
+                          type="text"
+                          class="form-control"
+                          formControlName="fieldofsearch"
+                          placeholder="Search research field..."
+                          autocomplete="off"
+                          [ngClass]="{
+              'is-invalid':
+                form.get('fieldofsearch')?.invalid &&
+                (form.get('fieldofsearch')?.touched || form.get('fieldofsearch')?.dirty)
+            }"
+                        />
+                        <!-- Dropdown results -->
+                        <div class="list-group position-absolute w-100 z-3"
+                             *ngIf="filteredResearchFields.length">
+                          <button
+                            type="button"
+                            class="list-group-item list-group-item-action"
+                            *ngFor="let rf of filteredResearchFields"
+                            (click)="selectResearchField(rf)">
+                            {{ rf.code }} - {{ rf.name }}
+                          </button>
+                        </div>
 
                       </div>
 
@@ -278,14 +302,17 @@
                       <div class="col-md-3">
 
                         <label class="form-label">Author Type (Affiliated / Non-Affiliated)</label>
-                        <select class="form-select" formControlName="affiliation"  [ngClass]="{
-              'is-invalid':
-                a.get('affiliation')?.invalid &&
-                (a.get('affiliation')?.touched || a.get('affiliation')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
+                        <select class="form-select"
+                                formControlName="affiliation"
+                                [ngClass]="{
+          'is-invalid':
+            a.get('affiliation')?.invalid &&
+            (a.get('affiliation')?.touched || a.get('affiliation')?.dirty)
+        }">
+
+                          <option value="" disabled>Choose...</option>
                           <option [ngValue]="true">Affiliated</option>
-                          <option [ngValue]="false">Non- Affiliated</option>
+                          <option [ngValue]="false">Non-Affiliated</option>
                         </select>
 
                       </div>
@@ -378,12 +405,53 @@
                       </div>
 
                       <div class="col-md-3">
-                        <label class="form-label">DOB</label>
-                        <input type="date" class="form-control" formControlName="dob"  [ngClass]="{
+                        <label class="form-label">DOB (Month/Day)</label>
+                        <div class="input-group">
+                          <select class="form-select" formControlName="dobMonth"
+                                  [ngClass]="{'is-invalid': a.get('dob')?.invalid && (a.get('dob')?.touched || a.get('dob')?.dirty)}">
+                            <option value="">Month</option>
+                            <option value="01">January</option>
+                            <option value="02">February</option>
+                            <option value="03">March</option>
+                            <option value="04">April</option>
+                            <option value="05">May</option>
+                            <option value="06">June</option>
+                            <option value="07">July</option>
+                            <option value="08">August</option>
+                            <option value="09">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                          </select>
+                          <select class="form-select" formControlName="dobDay"
+                                  [ngClass]="{'is-invalid': a.get('dob')?.invalid && (a.get('dob')?.touched || a.get('dob')?.dirty)}">
+                            <option value="">Day</option>
+                            <option *ngFor="let day of getDaysArray()" [value]="day">{{ day }}</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div class="col-md-3">
+                        <label class="form-label required">Email</label>
+                        <input
+                          type="email"
+                          class="form-control"
+                          formControlName="email"
+                          placeholder="example@email.com"
+                          [ngClass]="{
               'is-invalid':
-                a.get('gender')?.invalid &&
-                (a.get('gender')?.touched || a.get('gender')?.dirty)
-            }" />
+                a.get('email')?.invalid &&
+                (a.get('email')?.touched || a.get('email')?.dirty)
+            }"
+                        />
+                        <div
+                          class="invalid-feedback"
+                          *ngIf="
+              a.get('email')?.errors &&
+              (a.get('email')?.touched || a.get('email')?.dirty)
+            "
+                        >
+                        </div>
                       </div>
 
                       <div class="col-md-3">

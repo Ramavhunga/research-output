@@ -3,7 +3,7 @@ import { Authors, ClaimingAuthorsContribution, Units } from './common.model';
 export interface Journal {
 
   id: number|null;
-
+  duplicateJournal:false|null,
   /** Core DHET Info */
   dhetNo: string; // Must start with J
   year: string;
@@ -17,7 +17,7 @@ export interface Journal {
   volume?: string;
   issue?: string;
   issn: string;
-  eIssn?: string;
+  eissn?: string;
   doi?: string;
   urls?: string; // semicolon separated from UI
   openaccess?: boolean;

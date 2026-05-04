@@ -34,7 +34,7 @@ public class Journal {
     private Integer issue;
 
     private String issn;
-    private String eIssn;
+    private String eissn;
     private String doi;
 
     private String urls;

@@ -47,5 +47,13 @@ public class JournalController {
     }
 
 
-
+    @GetMapping("/exists")
+    public boolean existsByTitleAndIssn(
+            @RequestParam String title,
+            @RequestParam String issn
+    ) {
+        System.out.println("TITLE: " + title);
+        System.out.println("ISSN: " + issn);
+        return jounralrepository.existsByTitleAndIssn(title, issn);
+    }
 }

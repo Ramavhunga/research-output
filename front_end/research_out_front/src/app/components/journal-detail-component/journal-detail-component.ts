@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import {
+  AbstractControl,
   FormArray,
   FormBuilder,
   FormControl,
   FormGroup,
-  FormsModule, MaxLengthValidator,
+  FormsModule,
   ReactiveFormsModule,
   Validators
 } from '@angular/forms';
@@ -13,15 +14,16 @@ import { CommonModule } from '@angular/common';
 
 import { Journal } from '../../models/journal.model';
 import {
-  AuthorAffiliation,
   Authors,
   ClaimingAuthorsContribution, Department, Faculty,
   Units
 } from '../../models/common.model';
 import {JournalService} from '../../services/journal-service';
-import {debounceTime, distinctUntilChanged, switchMap,Subscription } from 'rxjs';
+import {debounceTime, distinctUntilChanged, switchMap, Subscription, of, map} from 'rxjs';
 import {CountriesService} from '../../services/countries.service';
 import Swal from 'sweetalert2';
+import {ResearchfieldService} from '../../services/researchfield.service';
+import {Publisher, PublisherService} from '../../services/publisher.service';
 
 
 // const DOI_REGEX = /^10\.\d{4,9}\/[\-._;()/:A-Z0-9]+$/i;
@@ -39,30 +41,57 @@ export class JournalDetailComponent {
   previewJson = '';
   form: FormGroup;
   faculties: Faculty[] = [];
-  fieldofsearch: string[]=["Agricultural Sciences","Biological Sciences","Chemical Sciences","Computer and Information Sciences","Sciences"];
+  fieldofsearch: string[] = ["Agricultural Sciences", "Biological Sciences", "Chemical Sciences", "Computer and Information Sciences", "Sciences"];
   departmentsMap: { [index: number]: Department[] } = {};
   loadingFaculties = false;
   countryOptionsMap: { [index: number]: string[] } = {};
   countrySubs: { [index: number]: Subscription } = {};
+
+  researchFields: any[] = [];
+  filteredResearchFields: any[] = []
+  showResearchFieldDropdown = false;
+  publishers: Publisher[] = [];
+
   constructor(private fb: FormBuilder,
               private router: Router,
               private journalService: JournalService,
-              private countryService: CountriesService) {
+              private countryService: CountriesService,
+              private researchFieldService: ResearchfieldService,
+              private publisherService: PublisherService ) {
+
+
+    this.researchFieldService.getAll().subscribe(data => {
+      this.researchFields = data;
+      this.filteredResearchFields = data;
+    });
+    this.publisherService.getAll().subscribe({
+      next: (data) => {
+        this.publishers = data;
+      },
+      error: (err) => {
+        console.error('Failed to load publishers', err);
+      }
+    });
 
     this.loadFaculties(); // ✅ add this
     const journal = this.router.getCurrentNavigation()?.extras.state?.['journal'] as Journal | undefined;
-      debugger;
+    debugger;
     this.form = this.fb.group({
-     id: [journal?.id ?? null],
+      id: [journal?.id ?? null],
+      duplicateJournal: [false], // for async validation result
       /** Core DHET */
       dhetNo: [
-        { value: journal?.dhetNo ?? '', disabled: true },
+        {value: journal?.dhetNo ?? '', disabled: true},
         [Validators.required, Validators.pattern(/^J\d+/)]
       ],
 
       year: [journal?.year ?? '', Validators.required],
       journalTitle: [journal?.journalTitle ?? '', Validators.required],
       title: [journal?.title ?? '', Validators.required],
+      issn: [
+        journal?.issn ?? '',
+        [Validators.required, Validators.pattern(/^\d{4}-?\d{3}[\dX]$/i)]
+      ],
       publisher: [journal?.publisher ?? '', Validators.required],
       index: [journal?.index ?? '', Validators.required],
       comply: [journal?.comply ?? null, Validators.required],
@@ -71,12 +100,9 @@ export class JournalDetailComponent {
       volume: [journal?.volume ?? null],
       issue: [journal?.issue ?? null],
 
-      issn: [
-        journal?.issn ?? '',
-        [Validators.required, Validators.pattern(/^\d{4}-?\d{3}[\dX]$/i)]
-      ],
 
-      eIssn: [journal?.eIssn ?? null],
+
+      eissn: [journal?.eissn ?? null],
 
       doi: [
         journal?.doi ?? null,
@@ -88,7 +114,7 @@ export class JournalDetailComponent {
       openaccess: [journal?.openaccess ?? null],
 
       /** Research */
-      fieldofsearch: [journal?.fieldofsearch ?? [], Validators.required],
+      fieldofsearch: [journal?.fieldofsearch ?? '', Validators.required],
 
       /** Fees */
       publicationfeedescription: [journal?.publicationfeedescription ?? null],
@@ -128,19 +154,56 @@ export class JournalDetailComponent {
 
       additionalComments: [journal?.additionalComments ?? '']
 
-    });
+    },{
+
+      asyncValidators: [this.checkTitleIssnUnique(this.journalService)],
+      updateOn: 'blur' // ✅ VERY IMPORTANT
 
 
+
+  }      );
+
+    this.setupFieldSearch();
     this.setupAutoCalc();
 
     this.authorsFA.controls.forEach((_, i) => this.onCountrySearch(i));
+  }
+
+  checkTitleIssnUnique(journalService: JournalService) {
+    return (group: AbstractControl) => {
+      const title = group.get('title')?.value;
+      const issn = group.get('issn')?.value;
+
+      if (!title || !issn) return of(null);
+
+      return journalService.exists(title, issn).pipe(
+        debounceTime(300),
+        map((exists: boolean) => {
+          debugger;
+          return exists ? { duplicateJournal: true } : null;
+        })
+      );
+    };
+  }
+
+
+  setupFieldSearch() {
+    this.form.get('fieldofsearch')?.valueChanges.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(value =>
+        this.researchFieldService.search(value || '')
+      )
+    ).subscribe(results => {
+      this.filteredResearchFields = results;
+    });
   }
 
   loadFaculties() {
     this.loadingFaculties = true;
     this.journalService.getFaculties().subscribe({
       next: (data) => {
-debugger;
+        debugger;
         this.faculties = data ?? [];
         this.loadingFaculties = false;
       },
@@ -151,6 +214,7 @@ debugger;
       }
     });
   }
+
   // === Getters ===
   get authorsFA(): FormArray {
     return this.form.get('authors') as FormArray;
@@ -160,9 +224,6 @@ debugger;
     return this.form.get('units') as FormGroup;
   }
 
-  get authorAffiliationFG(): FormGroup {
-    return this.form.get('authorAffiliation') as FormGroup;
-  }
 
   get claimingAuthorsContributionFG(): FormGroup {
     return this.form.get('claimingAuthorsContribution') as FormGroup;
@@ -170,15 +231,29 @@ debugger;
 
   // === Builders ===
   newAuthor(a?: Authors): FormGroup {
+    // Extract month and day from dob if it exists (format: YYYY-MM-DD)
+    let dobMonth = '';
+    let dobDay = '';
+    if (a?.dob) {
+      const parts = a.dob.split('-');
+      if (parts.length >= 3) {
+        dobMonth = parts[1];
+        dobDay = parts[2];
+      }
+    }
+
     return this.fb.group({
       id: [a?.id ?? null],
+      affiliation: true,
       studentEmployeeNo: [a?.studentEmployeeNo || '', Validators.required],
       firstName: [a?.firstName || '', Validators.required],
       surname: [a?.surname || '', Validators.required],
       initials: [a?.initials || ''],
       gender: [a?.gender ?? null as string | null, Validators.required],
       populationGroup: [a?.populationGroup || ''],
-      dob: [a?.dob || ''], // you can later enforce a date pattern if you want
+      dobMonth: [dobMonth || ''],
+      dobDay: [dobDay || ''],
+      email: [a?.email || '', [Validators.required, Validators.email]],
       facultyId: [a?.faculty ?? null, Validators.required],
       departmentId: [a?.department ?? null, Validators.required],
       orcid: [
@@ -202,8 +277,16 @@ debugger;
   patternOptional(rx: RegExp) {
     return (control: FormControl) => {
       const val = (control.value || '').trim();
-      return !val || rx.test(val) ? null : { pattern: true };
+      return !val || rx.test(val) ? null : {pattern: true};
     };
+  }
+
+  getDaysArray(): string[] {
+    const days: string[] = [];
+    for (let i = 1; i <= 31; i++) {
+      days.push(i.toString().padStart(2, '0'));
+    }
+    return days;
   }
 
   addAuthor() {
@@ -223,7 +306,7 @@ debugger;
 
     this.authorsFA.valueChanges.subscribe(() => this.recalculateContributions());
 
-      this.unitsFG?.valueChanges.subscribe(() => this.recalculateContributions());
+    this.unitsFG?.valueChanges.subscribe(() => this.recalculateContributions());
 
     this.recalculateContributions();
   }
@@ -236,26 +319,26 @@ debugger;
     const maxUnits = unitsFG.get('maxUnitsForPublication')?.value || 0;
     const authorsCount = this.authorsFA.length || 1;
 
-    unitsFG.get('authorCount')?.setValue(authorsCount, { emitEvent: false });
+    unitsFG.get('authorCount')?.setValue(authorsCount, {emitEvent: false});
 
     const totalPropCtrl = unitsFG.get('totalProportionOfAuthors');
     const totalProp = totalPropCtrl?.value || 1;
 
     const totalUnits = maxUnits * totalProp;
-    unitsFG.get('totalUnitsClaimed')?.setValue(totalUnits, { emitEvent: false });
+    unitsFG.get('totalUnitsClaimed')?.setValue(totalUnits, {emitEvent: false});
 
     const proportion = 1 / authorsCount;
 
     this.authorsFA.controls.forEach(ctrl => {
       const fg = ctrl as FormGroup;
-      fg.get('proportionOfAuthors')?.setValue(proportion, { emitEvent: false });
-      fg.get('authorUnitsClaimed')?.setValue(maxUnits * proportion, { emitEvent: false });
+      fg.get('proportionOfAuthors')?.setValue(proportion, {emitEvent: false});
+      fg.get('authorUnitsClaimed')?.setValue(maxUnits * proportion, {emitEvent: false});
     });
 
     this.claimingAuthorsContributionFG.get('proportionOfAuthors')
-      ?.setValue(proportion, { emitEvent: false });
+      ?.setValue(proportion, {emitEvent: false});
     this.claimingAuthorsContributionFG.get('authorUnitsClaimed')
-      ?.setValue(maxUnits * proportion, { emitEvent: false });
+      ?.setValue(maxUnits * proportion, {emitEvent: false});
 
   }
 
@@ -265,6 +348,7 @@ debugger;
     dhetNo: any;
     year: any;
     title: any;
+    duplicateJournal:any;
     journalTitle: any;
     publisher: any;
     index: any;
@@ -272,7 +356,7 @@ debugger;
     volume: any;
     issue: any;
     issn: any;
-    eIssn: any;
+    eissn: any;
     doi: any;
     urls: any;
     openaccess: any;
@@ -304,7 +388,7 @@ debugger;
       year: raw.year,
       title: raw.title,
       journalTitle: raw.journalTitle ?? '',
-
+      duplicateJournal:raw.duplicateJournal ?? false,
       publisher: raw.publisher,
       index: raw.index,
       comply: !!raw.comply,
@@ -313,11 +397,11 @@ debugger;
       volume: raw.volume ?? null,
       issue: raw.issue ?? null,
       issn: raw.issn,
-      eIssn: raw.eIssn ?? null,
+      eissn: raw.eissn ?? null,
       doi: raw.doi ?? null,
 
       // convert URL string to array if needed
-      urls: raw.urls??null,
+      urls: raw.urls ?? null,
 
 
       openaccess: raw.openaccess ?? false,
@@ -382,7 +466,7 @@ debugger;
 
     /** 1. Patch normal fields */
     this.form.patchValue({
-      id:null,
+      id: null,
       dhetNo: 'J0001',
       year: '2025',
       title: 'AI in Modern Enterprise Systems',
@@ -390,16 +474,16 @@ debugger;
       publisher: 1,
       index: 'Scopus',
       comply: true,
-
+      duplicateJournal:false,
       volume: 12,
       issue: 3,
       issn: '1234-5678',
-      eIssn: '8765-4321',
+      eissn: '8765-4321',
       doi: '10.1000/xyz123',
       urls: 'https://example.com/article',
       openaccess: true,
 
-      fieldofsearch: 1,
+      fieldofsearch: 1.02,
 
       publicationfeedescription: 'Article Processing Charge',
       publishercurrency: 'USD',
@@ -432,18 +516,19 @@ debugger;
     const authorsData: Authors[] = [
       {
         id: null,
-        affiliation:true,
+        affiliation: true,
         studentEmployeeNo: 'EMP001',
         firstName: 'Muthu',
         surname: 'Ramavhunga',
         initials: 'MR',
+        email:'testing@univen.ac.za',
         gender: 'MALE',
         populationGroup: 'African',
         dob: '1994-01-23',
         faculty: 1,
         department: 1,
-       // facultyId: this.faculties?.[0]?.id ?? null,
-       // departmentId: null,
+        // facultyId: this.faculties?.[0]?.id ?? null,
+        // departmentId: null,
         orcid: '0000-0000-0000-0001',
         countryOfBirth: 'South Africa',
         saResidencyStatus: 'SOUTH_AFRICAN_CITIZEN',
@@ -461,6 +546,7 @@ debugger;
     /** 3. Recalculate after populate */
     this.recalculateContributions();
   }
+
   preview() {
     this.previewJson = JSON.stringify(this.buildPayload(), null, 2);
     this.showPreview = true;
@@ -471,25 +557,24 @@ debugger;
   }
 
   onSubmit() {
-debugger;
+    debugger;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-    //  return;
+      //  return;
     }
 
     const payload = this.buildPayload();
 
 
-
     this.journalService.save(payload).subscribe({
-      next: saved => {
+      next: _ => {
 
         Swal.fire({
           title: "Success",
           text: "Journal saved successfully.",
           icon: "success"
         });
-      //  alert('Journal saved successfully.');
+        //  alert('Journal saved successfully.');
         this.router.navigate(['/journal']);
       },
       error: err => {
@@ -498,6 +583,7 @@ debugger;
       }
     });
   }
+
   onFacultyChange(authorIndex: number) {
     debugger;
     const facultyId = this.authorsFA.at(authorIndex).get('facultyId')?.value;
@@ -518,6 +604,7 @@ debugger;
     });
 
   }
+
   onCountrySearch(authorIndex: number) {
     debugger
     const fg = this.authorsFA.at(authorIndex) as FormGroup;
@@ -529,6 +616,12 @@ debugger;
     ).subscribe(list => {
       this.countryOptionsMap[authorIndex] = list;
     });
+  }
+
+  selectResearchField(field: any) {
+    this.form.get('fieldofsearch')?.setValue(field.code); // or field.code
+    this.filteredResearchFields = [];
+    this.showResearchFieldDropdown = false;
   }
 
 
@@ -548,6 +641,6 @@ debugger;
     this.showPreview = false;
     this.previewJson = '';
   }
-
-  protected readonly MaxLengthValidator = MaxLengthValidator;
 }
+
+
