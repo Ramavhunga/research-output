@@ -1,6 +1,6 @@
 export interface Authors {
   id: number|null;
-  affiliation: boolean|true;
+  affiliation: boolean|null;
   studentEmployeeNo:string
   firstName: string;
   surname: string;

@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {environment} from '../../environment/environment-url';
-import {ConfrenceProceedings} from '../models/ConfrenceProceedings';
 import {Department, Faculty} from '../models/common.model';
+import {ConferenceProceedings} from '../models/ConfrenceProceedings';
 
 
 @Injectable({
@@ -18,23 +18,23 @@ export class ConferenceProceedingsService {
     return this.http.get<Faculty[]>(`${this.baseurl+"facultydepartment"}/faculties`);
   }
 
-  create(proceedings: ConfrenceProceedings): Observable<ConfrenceProceedings> {
-    return this.http.post<ConfrenceProceedings>(this.baseurl+"conference-proceedings", proceedings);
+  create(proceedings: ConferenceProceedings): Observable<ConferenceProceedings> {
+    return this.http.post<ConferenceProceedings>(this.baseurl+"conference-proceedings", proceedings);
   }
 
-  update(id: number, proceedings: ConfrenceProceedings): Observable<ConfrenceProceedings> {
-    return this.http.put<ConfrenceProceedings>(`${this.baseurl+"conference-proceedings"}/${id}`, proceedings);
+  update(id: number, proceedings: ConferenceProceedings): Observable<ConferenceProceedings> {
+    return this.http.put<ConferenceProceedings>(`${this.baseurl+"conference-proceedings"}/${id}`, proceedings);
   }
 
-  save(proceedings: ConfrenceProceedings): Observable<ConfrenceProceedings> {
+  save(proceedings: ConferenceProceedings): Observable<ConferenceProceedings> {
     if (!proceedings.id || proceedings.id === 0) {
       return this.create(proceedings);
     }
     return this.update(proceedings.id, proceedings);
   }
 
-  getById(id: number): Observable<ConfrenceProceedings> {
-    return this.http.get<ConfrenceProceedings>(`${this.baseurl+"conference-proceedings"}/${id}`);
+  getById(id: number): Observable<ConferenceProceedings> {
+    return this.http.get<ConferenceProceedings>(`${this.baseurl+"conference-proceedings"}/${id}`);
   }
 
   getDepartmentsByFaculty(facultyId: number) {
@@ -43,8 +43,8 @@ export class ConferenceProceedingsService {
     );
   }
 
-  getAll(): Observable<ConfrenceProceedings[]> {
-    return this.http.get<ConfrenceProceedings[]>(this.baseurl + "conference-proceedings");
+  getAll(): Observable<ConferenceProceedings[]> {
+    return this.http.get<ConferenceProceedings[]>(this.baseurl + "conference-proceedings");
   }
 
   exists(title: string, isbn: string, id?: number): Observable<boolean> {

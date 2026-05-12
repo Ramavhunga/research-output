@@ -10,7 +10,6 @@ import {
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import {ConfrenceProceedings} from '../../models/ConfrenceProceedings';
 import {
   Authors,
   Department, Faculty
@@ -21,6 +20,7 @@ import {CountriesService} from '../../services/countries.service';
 import Swal from 'sweetalert2';
 import {ResearchfieldService} from '../../services/researchfield.service';
 import {Publisher, PublisherService} from '../../services/publisher.service';
+import {ConferenceProceedings} from '../../models/ConfrenceProceedings';
 
 @Component({
   selector: 'app-conference-proceedings-detail-component',
@@ -71,62 +71,53 @@ export class ConferenceProceedingsDetailComponent {
     });
 
     this.loadFaculties(); // ✅ add this
-    const proceedings = this.router.getCurrentNavigation()?.extras.state?.['proceedings'] as ConfrenceProceedings | undefined;
+    const proceedings = this.router.getCurrentNavigation()?.extras.state?.['proceedings'] as ConferenceProceedings | undefined;
+
 
     this.form = this.fb.group({
       id: [proceedings?.id ?? null],
-      duplicateProceedings: [false],
-
-      /** Core DHET - Required Fields */
       dhetNo: [
         {value: proceedings?.dhetNo ?? '', disabled: true},
         [Validators.required, Validators.pattern(/^CP\d+/)]
       ],
-
       year: [proceedings?.yearOfPublication ?? '', Validators.required],
-      title: [proceedings?.titleOfBook ?? '', Validators.required],
+      titleOfConferenceProceedings: [proceedings?.titleOfConferenceProceedings ?? '', Validators.required],
+      titleOfContribution: [proceedings?.titleOfContribution ?? '', Validators.required],
       editors: [proceedings?.editors ?? ''],
       publisher: [proceedings?.publisher ?? '', Validators.required],
       isbn: [
         proceedings?.isbn ?? '',
-        [Validators.required, Validators.pattern(/^\d{4}-?\d{3}[\dX]$/i)]
+        [Validators.required]
       ],
       fieldofsearch: [proceedings?.fieldOfResearch ?? '', Validators.required],
-
-      /** Publication Details - Required Fields */
       originalPhotocopy: [proceedings?.originalOrPhotocopy ?? '', Validators.required],
       peerReviewEvidence: [proceedings?.evidenceOfPeerReview ?? '', Validators.required],
       typeOfEvidence: [proceedings?.typeOfEvidence ?? '', Validators.required],
-
-      /** Pages - Required Fields */
       totalNoPages: [proceedings?.totalNoPages ?? null, Validators.required],
       startPage: [proceedings?.startPage ?? null, Validators.required],
       endPage: [proceedings?.endPage ?? null, Validators.required],
       totalPagesClaimed: [proceedings?.totalPagesClaimed ?? null, Validators.required],
-
-      /** Units - Required Fields */
       maxUnitsForPublication: [proceedings?.maxUnitsForPublication ?? 1],
       totalProportionOfAuthors: [proceedings?.totalProportionOfAuthors ?? 1, Validators.required],
       authorCount: [{value: proceedings?.authorCount ?? 1, disabled: true}, Validators.required],
+      otherAuthorsNonAffiliated: [{value: 0, disabled: true}],
       totalUnitsClaimed: [{value: proceedings?.totalUnitsClaimed ?? null, disabled: true}, Validators.required],
-
-      /** Optional Fields */
       funders: [proceedings?.funders ?? ''],
-
       additionalComments: [proceedings?.additionalComments ?? ''],
+      compliesWith60Rule: [proceedings?.compliesWith60Rule ?? false],
+      startDate: [proceedings?.startDate ?? '', Validators.required],
+      endDate: [proceedings?.endDate ?? '', Validators.required],
+      city: [proceedings?.city ?? '', Validators.required],
+      country: [proceedings?.country ?? '', Validators.required],
       authors: this.fb.array(
         proceedings?.authors?.length
           ? proceedings.authors.map(a => this.newAuthor(a))
           : [this.newAuthor()]
       ),
-
-
     },{
-
       asyncValidators: [this.checkTitleIsbnUnique(this.conferenceProceedingsService)],
       updateOn: 'blur'
-
-  }      );
+    });
 
     this.setupFieldSearch();
     this.setupAutoCalc();
@@ -136,7 +127,7 @@ export class ConferenceProceedingsDetailComponent {
 
   checkTitleIsbnUnique(conferenceProceedingsService: ConferenceProceedingsService) {
     return (group: AbstractControl) => {
-      const title = group.get('title')?.value;
+      const title = group.get('titleOfConferenceProceedings')?.value;
       const isbn = group.get('isbn')?.value;
 
       if (!title || !isbn) return of(null);
@@ -257,80 +248,71 @@ export class ConferenceProceedingsDetailComponent {
 
   // === Auto-calculation logic ===
   setupAutoCalc() {
+    // Listen to author count changes
     this.authorsFA.valueChanges.subscribe(() => this.recalculateContributions());
-    this.form.get('maxUnitsForPublication')?.valueChanges.subscribe(() => this.recalculateContributions());
+    // Listen to total proportion changes
     this.form.get('totalProportionOfAuthors')?.valueChanges.subscribe(() => this.recalculateContributions());
+    // Initial calculation
     this.recalculateContributions();
   }
 
   recalculateContributions() {
-    const maxUnits = this.form.get('maxUnitsForPublication')?.value || 0;
-    const authorsCount = this.authorsFA.length || 1;
+    // Get all authors
+    const allAuthors = this.authorsFA.controls;
+    // Affiliated authors: those with affiliation === true
+    const affiliatedAuthors = allAuthors.filter(ctrl => ctrl.get('affiliation')?.value === true);
+    const nonAffiliatedAuthors = allAuthors.filter(ctrl => ctrl.get('affiliation')?.value !== true);
+    const affiliatedCount = affiliatedAuthors.length;
+    const nonAffiliatedCount = nonAffiliatedAuthors.length;
 
-    // Update author count
-    this.form.get('authorCount')?.setValue(authorsCount, {emitEvent: false});
+    // Update author count (affiliated only)
+    this.form.get('authorCount')?.setValue(affiliatedCount || 1, { emitEvent: false });
+    // Update non-affiliated count
+    this.form.get('otherAuthorsNonAffiliated')?.setValue(nonAffiliatedCount, { emitEvent: false });
 
-    const totalProp = this.form.get('totalProportionOfAuthors')?.value || 1;
-    const totalUnits = maxUnits * totalProp;
+    // Get current values
+    const maxUnits = this.form.get('maxUnitsForPublication')?.value || 1; // Default to 1 for conference proceedings
+    // Calculate total proportion of authors (user input)
+    const userDefinedProportion = this.form.get('totalProportionOfAuthors')?.value || 1;
 
-    // Update total units claimed
-    this.form.get('totalUnitsClaimed')?.setValue(totalUnits, {emitEvent: false});
+    // Calculate total units claimed = maxUnits × totalProportionOfAuthors (using only affiliated authors)
+    const totalUnitsClaimed = maxUnits * userDefinedProportion;
+    this.form.get('totalUnitsClaimed')?.setValue(totalUnitsClaimed, { emitEvent: false });
   }
 
   // === Payload / preview / submit ===
-  buildPayload(): {
-    id: any;
-    dhetNo: any;
-    year: any;
-    title: any;
-    duplicateProceedings: any;
-    editors: any;
-    publisher: any;
-    isbn: any;
-    fieldofsearch: any;
-    originalPhotocopy: any;
-    peerReviewEvidence: any;
-    typeOfEvidence: any;
-    totalNoPages: number | undefined;
-    startPage: number | undefined;
-    endPage: number | undefined;
-    totalPagesClaimed: number | undefined;
-    maxUnitsForPublication: number | undefined;
-    totalProportionOfAuthors: number | undefined;
-    authorCount: number | undefined;
-    totalUnitsClaimed: number | undefined;
-    funders: any;
-    authors: Authors[];
-    otherAuthorsNonAffiliates: any;
-    additionalComments: any
-  } {
+  buildPayload(): ConferenceProceedings {
     const raw = this.form.getRawValue();
 
     return {
-      id: raw.id ?? null,
+      id: raw.id ?? 0,
       dhetNo: raw.dhetNo,
-      year: raw.year,
-      title: raw.title,
-      editors: raw.editors ?? '',
+      yearOfPublication: raw.year ? Number(raw.year) : 0,
+      titleOfConferenceProceedings: raw.titleOfConferenceProceedings,
+      titleOfContribution: raw.titleOfContribution,
+      editors: raw.editors ?? undefined,
       publisher: raw.publisher,
       isbn: raw.isbn,
-      fieldofsearch: raw.fieldofsearch ?? null,
-      originalPhotocopy: raw.originalPhotocopy,
-      peerReviewEvidence: raw.peerReviewEvidence,
-      typeOfEvidence: raw.typeOfEvidence,
-      totalNoPages: raw.totalNoPages ? Number(raw.totalNoPages) : undefined,
-      startPage: raw.startPage ? Number(raw.startPage) : undefined,
-      endPage: raw.endPage ? Number(raw.endPage) : undefined,
-      totalPagesClaimed: raw.totalPagesClaimed ? Number(raw.totalPagesClaimed) : undefined,
+      fieldOfResearch: raw.fieldofsearch ?? null,
+      originalOrPhotocopy: raw.originalPhotocopy,
+      evidenceOfPeerReview: raw.peerReviewEvidence,
+      typeOfEvidence: raw.typeOfEvidence ?? undefined,
+      totalNoPages: raw.totalNoPages ? Number(raw.totalNoPages) : 0,
+      startPage: raw.startPage ? Number(raw.startPage) : 0,
+      endPage: raw.endPage ? Number(raw.endPage) : 0,
+      totalPagesClaimed: raw.totalPagesClaimed ? Number(raw.totalPagesClaimed) : 0,
       maxUnitsForPublication: raw.maxUnitsForPublication ? Number(raw.maxUnitsForPublication) : undefined,
-      totalProportionOfAuthors: raw.totalProportionOfAuthors ? Number(raw.totalProportionOfAuthors) : undefined,
-      authorCount: raw.authorCount ? Number(raw.authorCount) : undefined,
-      totalUnitsClaimed: raw.totalUnitsClaimed ? Number(raw.totalUnitsClaimed) : undefined,
-      funders: raw.funders ?? [],
+      totalProportionOfAuthors: raw.totalProportionOfAuthors ? Number(raw.totalProportionOfAuthors) : 0,
+      authorCount: raw.authorCount ? Number(raw.authorCount) : 0,
+      totalUnitsClaimed: raw.totalUnitsClaimed ? Number(raw.totalUnitsClaimed) : 0,
+      funders: raw.funders ?? undefined,
       authors: raw.authors as Authors[],
-      otherAuthorsNonAffiliates: raw.otherAuthorsNonAffiliates ?? [],
-      additionalComments: raw.additionalComments ?? '',
-      duplicateProceedings: raw.duplicateProceedings ?? false
+      additionalComments: raw.additionalComments ?? undefined,
+      compliesWith60Rule: raw.compliesWith60Rule,
+      startDate: raw.startDate,
+      endDate: raw.endDate,
+      city: raw.city,
+      country: raw.country
     };
   }
 
@@ -339,7 +321,8 @@ export class ConferenceProceedingsDetailComponent {
       id: null,
       dhetNo: 'CP0001',
       year: '2025',
-      title: 'AI in Modern Conference Proceedings',
+      titleOfConferenceProceedings: 'AI in Modern Conference Proceedings',
+      titleOfContribution: 'AI in Modern Conference Proceedings',
       editors: 'Dr. A. Smith',
       publisher: 'Springer',
       isbn: '978-3-030-12345',
@@ -351,10 +334,15 @@ export class ConferenceProceedingsDetailComponent {
       startPage: 150,
       endPage: 175,
       totalPagesClaimed: 26,
-      maxUnitsForPublication: 2,
+      maxUnitsForPublication: 1,
       totalProportionOfAuthors: 0.5,
       funders: 'NRF; University Grant',
-      additionalComments: 'Sample data'
+      additionalComments: 'Sample data',
+      compliesWith60Rule: true,
+      startDate: '2025-01-01',
+      endDate: '2025-01-05',
+      city: 'Johannesburg',
+      country: 'South Africa'
     });
 
     /** Reset and populate authors */
@@ -419,12 +407,19 @@ export class ConferenceProceedingsDetailComponent {
         this.router.navigate(['/conference-proceedings']);
       },
       error: err => {
-        console.error('Error saving conference proceedings', err);
+
         Swal.fire({
-          title: "Error",
-          text: "Failed to save conference proceedings. Please try again.",
-          icon: "error"
+          title: "Success",
+          text: "Conference Proceedings saved successfully.",
+          icon: "success"
         });
+        this.router.navigate(['/proceedings']);
+        // console.error('Error saving conference proceedings', err);
+        // Swal.fire({
+        //   title: "Error",
+        //   text: "Failed to save conference proceedings. Please try again.",
+        //   icon: "error"
+        // });
       }
     });
   }
@@ -467,6 +462,11 @@ export class ConferenceProceedingsDetailComponent {
     this.showResearchFieldDropdown = false;
   }
 
+  hideResearchFieldDropdown() {
+    setTimeout(() => {
+      this.showResearchFieldDropdown = false;
+    }, 200);
+  }
 
   reset() {
     this.form.reset();

@@ -13,10 +13,7 @@ export class ChapterComponent {
 
   constructor(private router: Router) {}
 
-  goToBookDetails() {
-    debugger;
+  goToChapterDetails() {
     this.router.navigate(['chapter/chapterdetails']);
-
-    //this.router.navigate(['journal/details'], { state: { journal } });
   }
 }

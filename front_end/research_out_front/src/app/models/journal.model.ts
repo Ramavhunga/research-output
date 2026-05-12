@@ -35,7 +35,7 @@ export interface Journal {
   funders?: string;
 
   /** DHET Units */
-  units: Units;
+  units ?: Units;
   maxUnitsForPublication ?: number;
   /** Authors */
   authors: Authors[];

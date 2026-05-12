@@ -5,5 +5,5 @@ import za.co.univen.research_output.entities.Journal;
 
 public interface JournalRepository extends JpaRepository<Journal, Long> {
 
-    boolean existsByTitleAndIssn(String title, String issn);
+    boolean existsByTitleOrIssn(String title, String issn);
 }

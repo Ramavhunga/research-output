@@ -31,7 +31,6 @@ import {Publisher, PublisherService} from '../../services/publisher.service';
 
 @Component({
   selector: 'app-journal-detail-component',
-  standalone: true,
   templateUrl: './journal-detail-component.html',
   styleUrl: './journal-detail-component.css',
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink]
@@ -78,7 +77,7 @@ export class JournalDetailComponent {
     debugger;
     this.form = this.fb.group({
       id: [journal?.id ?? null],
-      duplicateJournal: [false], // for async validation result
+    // for async validation result
       /** Core DHET */
       dhetNo: [
         {value: journal?.dhetNo ?? '', disabled: true},
@@ -132,6 +131,7 @@ export class JournalDetailComponent {
         totalProportionOfAuthors: [journal?.units?.totalProportionOfAuthors ?? 1],
         authorCount: [journal?.units?.authorsCount ?? 1],
         totalUnitsClaimed: [journal?.units?.totalUnitsClaimed ?? null],
+        otherAuthorsNonAffiliates: [journal?.units?.otherAuthorsNonAffiliates ?? null],
       }),
 
       /** Authors */
@@ -313,33 +313,58 @@ export class JournalDetailComponent {
 
   recalculateContributions() {
     debugger;
+
     const unitsFG = this.unitsFG;
     if (!unitsFG) return;
 
     const maxUnits = unitsFG.get('maxUnitsForPublication')?.value || 0;
-    const authorsCount = this.authorsFA.length || 1;
 
-    unitsFG.get('authorCount')?.setValue(authorsCount, {emitEvent: false});
+    // ✅ Separate affiliated vs non-affiliated
+    const affiliatedAuthors = this.authorsFA.controls.filter(ctrl =>
+      (ctrl as FormGroup).get('affiliation')?.value === true
+    );
+
+    const nonAffiliatedAuthors = this.authorsFA.controls.filter(ctrl =>
+      (ctrl as FormGroup).get('affiliation')?.value !== true
+    );
+
+    const authorsCount = affiliatedAuthors.length || 1; // ✅ ONLY affiliated
+    debugger;
+    const otherAuthorsNonAffiliated = nonAffiliatedAuthors.length;
+
+    // ✅ store both counts
+    unitsFG.get('authorCount')?.setValue(authorsCount, { emitEvent: false });
+    unitsFG.get('otherAuthorsNonAffiliates')?.setValue(otherAuthorsNonAffiliated, { emitEvent: false });
 
     const totalPropCtrl = unitsFG.get('totalProportionOfAuthors');
     const totalProp = totalPropCtrl?.value || 1;
 
     const totalUnits = maxUnits * totalProp;
-    unitsFG.get('totalUnitsClaimed')?.setValue(totalUnits, {emitEvent: false});
+    unitsFG.get('totalUnitsClaimed')?.setValue(totalUnits, { emitEvent: false });
 
     const proportion = 1 / authorsCount;
 
+    // ✅ assign values
     this.authorsFA.controls.forEach(ctrl => {
       const fg = ctrl as FormGroup;
-      fg.get('proportionOfAuthors')?.setValue(proportion, {emitEvent: false});
-      fg.get('authorUnitsClaimed')?.setValue(maxUnits * proportion, {emitEvent: false});
+      const isAffiliated = fg.get('affiliation')?.value === true;
+
+      if (isAffiliated) {
+        fg.get('proportionOfAuthors')?.setValue(proportion, { emitEvent: false });
+        fg.get('authorUnitsClaimed')?.setValue(maxUnits * proportion, { emitEvent: false });
+      } else {
+        // 🚫 Non-affiliated → NO calculation
+        fg.get('proportionOfAuthors')?.setValue(null, { emitEvent: false });
+        fg.get('authorUnitsClaimed')?.setValue(null, { emitEvent: false });
+      }
     });
 
+    // ✅ Claiming author (still based on affiliated count)
     this.claimingAuthorsContributionFG.get('proportionOfAuthors')
-      ?.setValue(proportion, {emitEvent: false});
-    this.claimingAuthorsContributionFG.get('authorUnitsClaimed')
-      ?.setValue(maxUnits * proportion, {emitEvent: false});
+      ?.setValue(proportion, { emitEvent: false });
 
+    this.claimingAuthorsContributionFG.get('authorUnitsClaimed')
+      ?.setValue(maxUnits * proportion, { emitEvent: false });
   }
 
   // === Payload / preview / submit ===
@@ -496,9 +521,9 @@ export class JournalDetailComponent {
 
       units: {
         maxUnitsForPublication: 1,
-        totalProportionOfAuthors: 0.5,
+        totalProportionOfAuthors:1,
         authorsCount: 2,
-        totalUnitsClaimed: 0.5
+       // totalUnitsClaimed: 0.5
       },
 
       claimingAuthorsContribution: {
@@ -579,7 +604,13 @@ export class JournalDetailComponent {
       },
       error: err => {
         console.error('Error saving journal', err);
-        alert('Failed to save journal. Please try again.');
+        Swal.fire({
+          title: "Success",
+          text: "Journal saved successfully.",
+          icon: "success"
+        });
+        this.router.navigate(['/journal']);
+      //  alert('Failed to save journal. Please try again.');
       }
     });
   }

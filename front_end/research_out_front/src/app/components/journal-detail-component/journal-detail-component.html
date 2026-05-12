@@ -67,7 +67,7 @@
                            [ngClass]="{
     'is-invalid':
       (form.get('title')?.invalid && form.get('title')?.touched) ||
-      form.errors?.duplicateJournal
+      form.errors?.['duplicateJournal']
   }"
                     />
 
@@ -130,7 +130,8 @@
                   <label class="form-label">ISSN</label>
                   <input class="form-control" formControlName="issn"
                          placeholder="1234-567X"
-                         [ngClass]="{'is-invalid': form.get('issn')?.invalid && form.get('issn')?.touched}" />
+                         [ngClass]="{'is-invalid': form.get('issn')?.invalid && form.get('issn')?.touched||   form.errors?.['duplicateJournal']}
+" />
                 </div>
 
                   <div class="col-md-4">
@@ -289,7 +290,7 @@
 
               <!-- Authors -->
               <div class="mb-4">
-                <h6 class="mb-3">Claiming Authors (Journal Article)</h6>
+                <h6 class="mb-3">Authors (Journal Article)</h6>
 
                 <div formArrayName="authors" class="vstack gap-3">
                   <div
@@ -304,6 +305,7 @@
                         <label class="form-label">Author Type (Affiliated / Non-Affiliated)</label>
                         <select class="form-select"
                                 formControlName="affiliation"
+                                (change)="recalculateContributions()"
                                 [ngClass]="{
           'is-invalid':
             a.get('affiliation')?.invalid &&
@@ -696,8 +698,13 @@
                     <input type="number" step="0.01" class="form-control" formControlName="totalProportionOfAuthors" />
                   </div>
                   <div class="col-md-3">
-                    <label class="form-label">Authors Count</label>
+                    <label class="form-label">Affiliated Authors Count</label>
                     <input type="number" class="form-control" formControlName="authorCount" readonly />
+                  </div>
+
+                  <div class="col-md-3">
+                    <label class="form-label">Non Affiliated Authors Count</label>
+                    <input type="number" class="form-control" formControlName="otherAuthorsNonAffiliates" readonly />
                   </div>
                   <div class="col-md-3">
                     <label class="form-label">Total Units Claimed</label>
@@ -709,10 +716,10 @@
 <!--                    <textarea class="form-control" rows="2" formControlName="otherAuthorsNonAffiliates"></textarea>-->
 <!--                  </div>-->
 
-                  <div class="col-12">
-                    <label class="form-label">Additional Comments</label>
-                    <textarea class="form-control" rows="2" formControlName="additionalComments"></textarea>
-                  </div>
+<!--                  <div class="col-12">-->
+<!--                    <label class="form-label">Additional Comments</label>-->
+<!--                    <textarea class="form-control" rows="2" formControlName="additionalComments"></textarea>-->
+<!--                  </div>-->
                 </div>
               </div>
               <!-- Claiming Authors Contribution -->

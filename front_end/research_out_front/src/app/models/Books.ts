@@ -1,6 +1,6 @@
 import {Authors} from './common.model';
 
-export interface ConferenceProceedings {
+export interface Books {
   id: number;
   dhetNo: string;
   authors: Authors[];
@@ -8,8 +8,7 @@ export interface ConferenceProceedings {
   evidenceOfPeerReview: 'Yes' | 'Y' | 'No' | 'N';
   typeOfEvidence?: string;
   yearOfPublication: number;
-  titleOfConferenceProceedings: string;
-  titleOfContribution: string;
+  titleOfBook: string;
   editors?: string;
   publisher: string;
   isbn: string;
@@ -25,9 +24,5 @@ export interface ConferenceProceedings {
   authorCount: number;
   totalUnitsClaimed: number;
   additionalComments?: string;
-  compliesWith60Rule: boolean;
-  startDate: string; // yyyy-mm-dd
-  endDate: string; // yyyy-mm-dd
-  city: string;
-  country: string;
 }
+

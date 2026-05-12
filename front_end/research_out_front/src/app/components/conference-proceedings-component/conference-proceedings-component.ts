@@ -13,7 +13,7 @@ export class ConferenceProceedingsComponent {
   constructor(private router: Router) {}
   goToBookDetails() {
 
-
+debugger;
     this.router.navigate(['proceeding/conferenceproceedingsdetails']);
   }
 }
