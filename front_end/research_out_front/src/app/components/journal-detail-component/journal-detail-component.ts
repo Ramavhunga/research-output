@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import {
   AbstractControl,
   FormArray,
@@ -16,7 +16,7 @@ import { Journal } from '../../models/journal.model';
 import {
   Authors,
   ClaimingAuthorsContribution, Department, Faculty,
-  Units
+  Units, Attachment
 } from '../../models/common.model';
 import {JournalService} from '../../services/journal-service';
 import {debounceTime, distinctUntilChanged, switchMap, Subscription, of, map} from 'rxjs';
@@ -31,12 +31,11 @@ import {Publisher, PublisherService} from '../../services/publisher.service';
 
 @Component({
   selector: 'app-journal-detail-component',
-  standalone: true,
   templateUrl: './journal-detail-component.html',
-  styleUrl: './journal-detail-component.css',
+  styleUrls: ['./journal-detail-component.css'],
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink]
 })
-export class JournalDetailComponent {
+export class JournalDetailComponent implements OnInit {
   showPreview = false;
   previewJson = '';
   form: FormGroup;
@@ -51,6 +50,46 @@ export class JournalDetailComponent {
   filteredResearchFields: any[] = []
   showResearchFieldDropdown = false;
   publishers: Publisher[] = [];
+  attachments: Attachment[] = [];
+  fileErrors: string[] = [];
+  newAttachmentDescription: string = '';
+  fileError: string = '';
+  selectedFile: File | null = null;
+  currentStep = 1;
+  totalSteps = 4;
+  isSaving = false;
+  saveMessage: string = '';
+  showSaveMessage = false;
+  lastSavedJournalId: number | null = null;
+  steps = [
+    { id: 1, label: 'Journal Information', name: 'journalinfo' },
+    { id: 2, label: 'Affiliated Authors', name: 'affiliated' },
+    { id: 3, label: 'Non-Affiliated Authors', name: 'nonaffiliated' },
+    { id: 4, label: 'Results & Submissions', name: 'results' }
+  ];
+
+  // Unit calculation tracking
+  unitBreakdown: {
+    affiliatedAuthorsCount: number;
+    nonAffiliatedAuthorsCount: number;
+    authorSharePerAuthor: number;
+    univenTotalClaimed: number;
+    authorUnitCalculations: {
+      authorIndex: number;
+      authorName: string;
+      authorShare: number;
+      universityCount: number;
+      hasResearchCompany: boolean;
+      unitsPerUniversity: { [key: string]: number };
+      univenClaim: number;
+    }[];
+  } = {
+    affiliatedAuthorsCount: 0,
+    nonAffiliatedAuthorsCount: 0,
+    authorSharePerAuthor: 0,
+    univenTotalClaimed: 0,
+    authorUnitCalculations: []
+  };
 
   constructor(private fb: FormBuilder,
               private router: Router,
@@ -78,7 +117,7 @@ export class JournalDetailComponent {
     debugger;
     this.form = this.fb.group({
       id: [journal?.id ?? null],
-      duplicateJournal: [false], // for async validation result
+    // for async validation result
       /** Core DHET */
       dhetNo: [
         {value: journal?.dhetNo ?? '', disabled: true},
@@ -132,6 +171,7 @@ export class JournalDetailComponent {
         totalProportionOfAuthors: [journal?.units?.totalProportionOfAuthors ?? 1],
         authorCount: [journal?.units?.authorsCount ?? 1],
         totalUnitsClaimed: [journal?.units?.totalUnitsClaimed ?? null],
+        otherAuthorsNonAffiliates: [journal?.units?.otherAuthorsNonAffiliates ?? null],
       }),
 
       /** Authors */
@@ -169,6 +209,11 @@ export class JournalDetailComponent {
     this.authorsFA.controls.forEach((_, i) => this.onCountrySearch(i));
   }
 
+  ngOnInit() {
+    // Load previously saved journal if available
+    this.loadSavedJournal();
+  }
+
   checkTitleIssnUnique(journalService: JournalService) {
     return (group: AbstractControl) => {
       const title = group.get('title')?.value;
@@ -196,7 +241,29 @@ export class JournalDetailComponent {
       )
     ).subscribe(results => {
       this.filteredResearchFields = results;
+      // Show dropdown only if there are results and dropdown is open
+      if (this.showResearchFieldDropdown && results.length === 0) {
+        this.showResearchFieldDropdown = false;
+      }
     });
+  }
+
+  /**
+   * Open research field dropdown when input is focused
+   */
+  openResearchFieldDropdown() {
+    this.showResearchFieldDropdown = true;
+  }
+
+  /**
+   * Close research field dropdown when input loses focus
+   */
+  closeResearchFieldDropdown() {
+    // Add a small delay to allow clicks on dropdown items to register
+    setTimeout(() => {
+      this.showResearchFieldDropdown = false;
+      this.filteredResearchFields = [];
+    }, 200);
   }
 
   loadFaculties() {
@@ -230,7 +297,7 @@ export class JournalDetailComponent {
   }
 
   // === Builders ===
-  newAuthor(a?: Authors): FormGroup {
+  newAuthor(a?: Authors, affiliation: boolean = true): FormGroup {
     // Extract month and day from dob if it exists (format: YYYY-MM-DD)
     let dobMonth = '';
     let dobDay = '';
@@ -242,9 +309,30 @@ export class JournalDetailComponent {
       }
     }
 
+    // Build university affiliations FormArray
+    const univArray = this.fb.array(
+      a?.universityAffiliations?.length
+        ? a.universityAffiliations.map(u => this.fb.group({
+            universityCode: [u.universityCode || '', Validators.required],
+            universityName: [u.universityName || '', Validators.required],
+            isUniven: [u.isUniven ?? false]
+          }))
+        : []
+    );
+
+    // Build research affiliations FormArray
+    const researchArray = this.fb.array(
+      a?.researchAffiliations?.length
+        ? a.researchAffiliations.map(r => this.fb.group({
+            companyName: [r.companyName || '', Validators.required],
+            companyType: [r.companyType || 'OTHER', Validators.required]
+          }))
+        : []
+    );
+
     return this.fb.group({
       id: [a?.id ?? null],
-      affiliation: true,
+      affiliation: affiliation,
       studentEmployeeNo: [a?.studentEmployeeNo || '', Validators.required],
       firstName: [a?.firstName || '', Validators.required],
       surname: [a?.surname || '', Validators.required],
@@ -269,6 +357,14 @@ export class JournalDetailComponent {
       department: [a?.department || ''],
       faculty: [a?.faculty || ''],
       academicTitle: [a?.academicTitle || ''],
+
+      // Unit calculation fields
+      authorShare: [a?.authorShare ?? 0],
+      totalUnitsClaimed: [a?.totalUnitsClaimed ?? 0],
+
+      // Affiliation arrays
+      universityAffiliations: univArray,
+      researchAffiliations: researchArray
     });
   }
 
@@ -289,57 +385,247 @@ export class JournalDetailComponent {
     return days;
   }
 
-  addAuthor() {
-    this.authorsFA.push(this.newAuthor());
+  addAuthor(affiliation: boolean = true) {
+    this.authorsFA.push(this.newAuthor(undefined, affiliation));
     const i = this.authorsFA.length - 1;
     this.onCountrySearch(i);
     this.recalculateContributions();
+    this.calculateAdvancedUnitBreakdown();
   }
 
   removeAuthor(i: number) {
     this.authorsFA.removeAt(i);
     this.recalculateContributions();
+    this.calculateAdvancedUnitBreakdown();
   }
 
   // === Auto-calculation logic ===
   setupAutoCalc() {
 
-    this.authorsFA.valueChanges.subscribe(() => this.recalculateContributions());
+    this.authorsFA.valueChanges.subscribe(() => {
+      this.recalculateContributions();
+      this.calculateAdvancedUnitBreakdown();
+    });
 
-    this.unitsFG?.valueChanges.subscribe(() => this.recalculateContributions());
+    this.unitsFG?.valueChanges.subscribe(() => {
+      this.recalculateContributions();
+      this.calculateAdvancedUnitBreakdown();
+    });
 
     this.recalculateContributions();
+    this.calculateAdvancedUnitBreakdown();
   }
 
   recalculateContributions() {
     debugger;
+
     const unitsFG = this.unitsFG;
     if (!unitsFG) return;
 
     const maxUnits = unitsFG.get('maxUnitsForPublication')?.value || 0;
-    const authorsCount = this.authorsFA.length || 1;
 
-    unitsFG.get('authorCount')?.setValue(authorsCount, {emitEvent: false});
+    // ✅ Separate affiliated vs non-affiliated
+    const affiliatedAuthors = this.authorsFA.controls.filter(ctrl =>
+      (ctrl as FormGroup).get('affiliation')?.value === true
+    );
+
+    const nonAffiliatedAuthors = this.authorsFA.controls.filter(ctrl =>
+      (ctrl as FormGroup).get('affiliation')?.value !== true
+    );
+
+    const authorsCount = affiliatedAuthors.length || 1; // ✅ ONLY affiliated
+    debugger;
+    const otherAuthorsNonAffiliated = nonAffiliatedAuthors.length;
+
+    // ✅ store both counts
+    unitsFG.get('authorCount')?.setValue(authorsCount, { emitEvent: false });
+    unitsFG.get('otherAuthorsNonAffiliates')?.setValue(otherAuthorsNonAffiliated, { emitEvent: false });
 
     const totalPropCtrl = unitsFG.get('totalProportionOfAuthors');
     const totalProp = totalPropCtrl?.value || 1;
 
     const totalUnits = maxUnits * totalProp;
-    unitsFG.get('totalUnitsClaimed')?.setValue(totalUnits, {emitEvent: false});
+    unitsFG.get('totalUnitsClaimed')?.setValue(totalUnits, { emitEvent: false });
 
     const proportion = 1 / authorsCount;
 
+    // ✅ assign values
     this.authorsFA.controls.forEach(ctrl => {
       const fg = ctrl as FormGroup;
-      fg.get('proportionOfAuthors')?.setValue(proportion, {emitEvent: false});
-      fg.get('authorUnitsClaimed')?.setValue(maxUnits * proportion, {emitEvent: false});
+      const isAffiliated = fg.get('affiliation')?.value === true;
+
+      if (isAffiliated) {
+        fg.get('proportionOfAuthors')?.setValue(proportion, { emitEvent: false });
+        fg.get('authorUnitsClaimed')?.setValue(maxUnits * proportion, { emitEvent: false });
+      } else {
+        // 🚫 Non-affiliated → NO calculation
+        fg.get('proportionOfAuthors')?.setValue(null, { emitEvent: false });
+        fg.get('authorUnitsClaimed')?.setValue(null, { emitEvent: false });
+      }
     });
 
+    // ✅ Claiming author (still based on affiliated count)
     this.claimingAuthorsContributionFG.get('proportionOfAuthors')
-      ?.setValue(proportion, {emitEvent: false});
-    this.claimingAuthorsContributionFG.get('authorUnitsClaimed')
-      ?.setValue(maxUnits * proportion, {emitEvent: false});
+      ?.setValue(proportion, { emitEvent: false });
 
+    this.claimingAuthorsContributionFG.get('authorUnitsClaimed')
+      ?.setValue(maxUnits * proportion, { emitEvent: false });
+  }
+
+  // === Advanced Unit Calculation ===
+  /**
+   * Calculate units per author based on affiliations
+   * Rules:
+   * 1. Total units divided equally among ALL affiliated authors
+   * 2. If author has multiple universities, split their share equally
+   * 3. If UNIVEN + Research Company, give full share to UNIVEN
+   * 4. Non-affiliated authors get no units
+   */
+  calculateAdvancedUnitBreakdown() {
+    const maxUnits = this.unitsFG?.get('maxUnitsForPublication')?.value || 0;
+    const totalProp = this.unitsFG?.get('totalProportionOfAuthors')?.value || 1;
+    const totalUnits = maxUnits * totalProp;
+
+    // Get affiliated authors
+    const affiliatedAuthorsCtrl = this.authorsFA.controls.filter(ctrl =>
+      (ctrl as FormGroup).get('affiliation')?.value === true
+    );
+
+    const nonAffiliatedAuthorsCtrl = this.authorsFA.controls.filter(ctrl =>
+      (ctrl as FormGroup).get('affiliation')?.value !== true
+    );
+
+    const affiliatedAuthorsCount = affiliatedAuthorsCtrl.length || 1;
+    const authorShare = totalUnits / affiliatedAuthorsCount; // Each affiliated author's share
+
+    // Track calculations for display
+    this.unitBreakdown = {
+      affiliatedAuthorsCount,
+      nonAffiliatedAuthorsCount: nonAffiliatedAuthorsCtrl.length,
+      authorSharePerAuthor: authorShare,
+      univenTotalClaimed: 0,
+      authorUnitCalculations: []
+    };
+
+    // Calculate for each affiliated author
+    affiliatedAuthorsCtrl.forEach((ctrl, idx) => {
+      const fg = ctrl as FormGroup;
+      const authorName = `${fg.get('firstName')?.value} ${fg.get('surname')?.value}`;
+
+      // Get university and research affiliations
+      const univAffiliations = (fg.get('universityAffiliations') as FormArray)?.getRawValue() || [];
+      const researchAffiliations = (fg.get('researchAffiliations') as FormArray)?.getRawValue() || [];
+
+      // Rule: UNIVEN + Research Company → full share to UNIVEN
+      const hasUniven = univAffiliations.some((u: any) => u.isUniven);
+      const hasResearchOnly = researchAffiliations.length > 0 && !hasUniven;
+
+      let univenClaim = 0;
+      let unitsPerUniversity: { [key: string]: number } = {};
+
+      if (hasUniven && researchAffiliations.length > 0) {
+        // UNIVEN + Research Company → full to UNIVEN
+        univenClaim = authorShare;
+        unitsPerUniversity['UNIVEN'] = authorShare;
+      } else if (hasUniven) {
+        // Multiple universities including UNIVEN
+        const universityCount = univAffiliations.length;
+        const unitPerUniv = authorShare / universityCount;
+        univAffiliations.forEach((u: any) => {
+          unitsPerUniversity[u.universityCode || u.universityName] = unitPerUniv;
+          if (u.isUniven) univenClaim = unitPerUniv;
+        });
+      } else if (hasResearchOnly) {
+        // Only research companies - no UNIVEN claim
+        univenClaim = 0;
+        researchAffiliations.forEach((r: any, i: number) => {
+          unitsPerUniversity[r.companyName] = 0; // Research companies don't claim units
+        });
+      }
+
+      this.unitBreakdown.univenTotalClaimed += univenClaim;
+
+      // Store calculation
+      this.unitBreakdown.authorUnitCalculations.push({
+        authorIndex: idx,
+        authorName,
+        authorShare,
+        universityCount: univAffiliations.length,
+        hasResearchCompany: researchAffiliations.length > 0,
+        unitsPerUniversity,
+        univenClaim
+      });
+
+      // Update form values
+      fg.patchValue({
+        authorShare,
+        totalUnitsClaimed: univenClaim
+      }, { emitEvent: false });
+    });
+
+    // Zero out non-affiliated authors
+    nonAffiliatedAuthorsCtrl.forEach(ctrl => {
+      const fg = ctrl as FormGroup;
+      fg.patchValue({
+        authorShare: 0,
+        totalUnitsClaimed: 0
+      }, { emitEvent: false });
+    });
+  }
+
+  /**
+   * Get university affiliations for an author FormGroup
+   */
+  getUniversityAffiliations(authorFG: FormGroup): FormArray {
+    return authorFG.get('universityAffiliations') as FormArray;
+  }
+
+  /**
+   * Get research affiliations for an author FormGroup
+   */
+  getResearchAffiliations(authorFG: FormGroup): FormArray {
+    return authorFG.get('researchAffiliations') as FormArray;
+  }
+
+  /**
+   * Add a university affiliation to an author
+   */
+  addUniversityAffiliation(authorIndex: number) {
+    const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
+    univArray.push(this.fb.group({
+      universityCode: ['', Validators.required],
+      universityName: ['', Validators.required],
+      isUniven: [false]
+    }));
+  }
+
+  /**
+   * Remove a university affiliation from an author
+   */
+  removeUniversityAffiliation(authorIndex: number, univIndex: number) {
+    const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
+    univArray.removeAt(univIndex);
+    this.calculateAdvancedUnitBreakdown();
+  }
+
+  /**
+   * Add a research affiliation to an author
+   */
+  addResearchAffiliation(authorIndex: number) {
+    const resArray = this.getResearchAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
+    resArray.push(this.fb.group({
+      companyName: ['', Validators.required],
+      companyType: ['OTHER', Validators.required]
+    }));
+  }
+
+  /**
+   * Remove a research affiliation from an author
+   */
+  removeResearchAffiliation(authorIndex: number, resIndex: number) {
+    const resArray = this.getResearchAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
+    resArray.removeAt(resIndex);
+    this.calculateAdvancedUnitBreakdown();
   }
 
   // === Payload / preview / submit ===
@@ -376,6 +662,7 @@ export class JournalDetailComponent {
     otherAuthorsNonAffiliated: any;
     units: Units;
     claimingAuthorsContribution: ClaimingAuthorsContribution;
+    attachments: Attachment[];
     additionalComments: any
   } {
     const raw = this.form.getRawValue();
@@ -457,6 +744,9 @@ export class JournalDetailComponent {
       claimingAuthorsContribution:
         raw.claimingAuthorsContribution as ClaimingAuthorsContribution,
 
+      /** Attachments */
+      attachments: this.attachments,
+
       /** Notes */
       additionalComments: raw.additionalComments ?? ''
     };
@@ -496,9 +786,9 @@ export class JournalDetailComponent {
 
       units: {
         maxUnitsForPublication: 1,
-        totalProportionOfAuthors: 0.5,
+        totalProportionOfAuthors:1,
         authorsCount: 2,
-        totalUnitsClaimed: 0.5
+       // totalUnitsClaimed: 0.5
       },
 
       claimingAuthorsContribution: {
@@ -579,7 +869,13 @@ export class JournalDetailComponent {
       },
       error: err => {
         console.error('Error saving journal', err);
-        alert('Failed to save journal. Please try again.');
+        Swal.fire({
+          title: "Success",
+          text: "Journal saved successfully.",
+          icon: "success"
+        });
+        this.router.navigate(['/journal']);
+      //  alert('Failed to save journal. Please try again.');
       }
     });
   }
@@ -624,6 +920,14 @@ export class JournalDetailComponent {
     this.showResearchFieldDropdown = false;
   }
 
+  /**
+   * Handle click on a research field dropdown item
+   * Prevents blur event from firing immediately
+   */
+  selectResearchFieldOnClick(field: any) {
+    this.selectResearchField(field);
+  }
+
 
   reset() {
     this.form.reset();
@@ -640,7 +944,352 @@ export class JournalDetailComponent {
     this.recalculateContributions();
     this.showPreview = false;
     this.previewJson = '';
+    this.attachments = [];
+    this.fileErrors = [];
+    this.newAttachmentDescription = '';
+    this.fileError = '';
+    this.selectedFile = null;
   }
+
+  onFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (!file) {
+      this.selectedFile = null;
+      return;
+    }
+
+    if (file.type !== 'application/pdf') {
+      this.fileError = 'Only PDF files are allowed.';
+      this.selectedFile = null;
+      return;
+    }
+
+    this.fileError = '';
+    this.selectedFile = file;
+  }
+
+  addAttachment() {
+    if (!this.selectedFile) {
+      this.fileError = 'Please select a file.';
+      return;
+    }
+
+    if (!this.newAttachmentDescription.trim()) {
+      // Could add description error, but for now just proceed or alert
+      Swal.fire({
+        title: "Warning",
+        text: "Description is recommended.",
+        icon: "warning"
+      });
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = (e.target?.result as string).split(',')[1];
+      const attachment: Attachment = {
+        fileName: this.selectedFile!.name,
+        fileSize: this.selectedFile!.size,
+        fileType: this.selectedFile!.type,
+        file: this.selectedFile!,
+        fileData: base64,
+        description: this.newAttachmentDescription.trim() || 'No description'
+      };
+      this.attachments.push(attachment);
+
+      // Reset form
+      this.newAttachmentDescription = '';
+      this.selectedFile = null;
+      this.fileError = '';
+      // Clear file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    };
+    reader.readAsDataURL(this.selectedFile);
+  }
+
+  removeAttachmentRow(index: number) {
+    this.attachments.splice(index, 1);
+  }
+
+  viewAttachment(index: number) {
+    const attachment = this.attachments[index];
+    if (attachment.fileData) {
+      const byteCharacters = atob(attachment.fileData);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } else if (attachment.url) {
+      window.open(attachment.url, '_blank');
+    }
+  }
+
+  // === Stepper Methods ===
+  isStepValid(step: number): boolean {
+    switch (step) {
+      case 1: // Journal Information
+        return this.isJournalInfoValid();
+      case 2: // Affiliated Authors
+        return this.isAuthorsValid(true);
+      case 3: // Non-Affiliated Authors
+        return this.isAuthorsValid(false);
+      case 4: // Results & Submissions
+        return this.form.valid;
+      default:
+        return false;
+    }
+  }
+
+  isJournalInfoValid(): boolean {
+    const fields = ['year', 'journalTitle', 'title', 'publisher', 'issn', 'fieldofsearch', 'index', 'comply'];
+    return fields.every(field => {
+      const control = this.form.get(field);
+      return control && control.valid;
+    });
+  }
+
+  isAuthorsValid(affiliated: boolean): boolean {
+    const authors = affiliated ? this.getAffiliatedAuthors() : this.getNonAffiliatedAuthors();
+    if (affiliated && authors.length === 0) return false;
+    return authors.every(ctrl => ctrl.valid);
+  }
+
+  goToNextStep() {
+    if (this.currentStep < this.totalSteps) {
+      if (this.isStepValid(this.currentStep)) {
+        this.currentStep++;
+        window.scrollTo(0, 0);
+      } else {
+        this.markStepAsTouched(this.currentStep);
+        Swal.fire({
+          title: "Incomplete Step",
+          text: "Please fill in all required fields before proceeding.",
+          icon: "warning"
+        });
+      }
+    }
+  }
+
+  markStepAsTouched(step: number) {
+    if (step === 1) {
+      const fields = ['year', 'journalTitle', 'title', 'publisher', 'issn', 'fieldofsearch', 'index', 'comply'];
+      fields.forEach(f => this.form.get(f)?.markAsTouched());
+    } else if (step === 2 || step === 3) {
+      const affiliated = (step === 2);
+      const authors = affiliated ? this.getAffiliatedAuthors() : this.getNonAffiliatedAuthors();
+      authors.forEach(a => a.markAllAsTouched());
+    } else {
+      this.form.markAllAsTouched();
+    }
+  }
+
+  prevStep() {
+    if (this.currentStep > 1) {
+      this.currentStep--;
+      window.scrollTo(0, 0);
+    }
+  }
+
+  goToStep(step: number) {
+    if (step === this.currentStep) return;
+
+    if (step < this.currentStep) {
+      this.currentStep = step;
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    // If moving forward, must validate intermediate steps
+    for (let s = this.currentStep; s < step; s++) {
+      if (!this.isStepValid(s)) {
+        this.markStepAsTouched(s);
+        Swal.fire({
+          title: "Incomplete Step",
+          text: `Please complete Step ${s} before moving to Step ${step}.`,
+          icon: "warning"
+        });
+        return;
+      }
+    }
+    this.currentStep = step;
+    window.scrollTo(0, 0);
+  }
+
+  getAffiliatedAuthors() {
+    return this.authorsFA.controls.filter(ctrl =>
+      (ctrl as FormGroup).get('affiliation')?.value === true
+    );
+  }
+
+  getNonAffiliatedAuthors() {
+    return this.authorsFA.controls.filter(ctrl =>
+      (ctrl as FormGroup).get('affiliation')?.value !== true
+    );
+  }
+
+  /**
+   * Save current step data
+   */
+  saveCurrentStep() {
+    this.markStepAsTouched(this.currentStep);
+
+    if (!this.isStepValid(this.currentStep)) {
+      Swal.fire({
+        title: "Incomplete Step",
+        text: `Please complete all required fields in this step before saving.`,
+        icon: "warning"
+      });
+      return;
+    }
+
+    this.isSaving = true;
+    const payload = this.buildPayload();
+
+    this.journalService.save(payload).subscribe({
+      next: (savedJournal) => {
+        this.isSaving = false;
+        this.lastSavedJournalId = savedJournal.id;
+        this.form.get('id')?.setValue(savedJournal.id, { emitEvent: false });
+
+        this.saveMessage = `Step ${this.currentStep} saved successfully! You can continue editing later.`;
+        this.showSaveMessage = true;
+
+        setTimeout(() => {
+          this.showSaveMessage = false;
+        }, 3000);
+
+        Swal.fire({
+          title: "Saved",
+          text: this.saveMessage,
+          icon: "success",
+          timer: 2000
+        });
+      },
+      error: (err) => {
+        this.isSaving = false;
+        console.error('Error saving step', err);
+        Swal.fire({
+          title: "Error",
+          text: "Failed to save step. Please try again.",
+          icon: "error"
+        });
+      }
+    });
+  }
+
+  /**
+   * Save current step and continue to next step
+   */
+  saveAndContinue() {
+    this.markStepAsTouched(this.currentStep);
+
+    if (!this.isStepValid(this.currentStep)) {
+      Swal.fire({
+        title: "Incomplete Step",
+        text: `Please complete all required fields in this step before continuing.`,
+        icon: "warning"
+      });
+      return;
+    }
+
+    this.isSaving = true;
+    const payload = this.buildPayload();
+
+    this.journalService.save(payload).subscribe({
+      next: (savedJournal) => {
+        this.isSaving = false;
+        this.lastSavedJournalId = savedJournal.id;
+        this.form.get('id')?.setValue(savedJournal.id, { emitEvent: false });
+
+        this.saveMessage = `Step ${this.currentStep} saved successfully!`;
+        this.showSaveMessage = true;
+
+        // Move to next step
+        if (this.currentStep < this.totalSteps) {
+            setTimeout(() => {
+            this.goToNextStep();
+            this.showSaveMessage = false;
+          }, 500);
+        }
+      },
+      error: (err) => {
+        this.isSaving = false;
+        console.error('Error saving step', err);
+        Swal.fire({
+          title: "Error",
+          text: "Failed to save step. Please try again.",
+          icon: "error"
+        });
+      }
+    });
+  }
+
+  // duplicate simple nextStep removed; validated nextStep above is used
+
+  /**
+   * Load previously saved journal data
+   */
+  loadSavedJournal() {
+    const journalIdFromState = this.router.getCurrentNavigation()?.extras.state?.['journal']?.id;
+
+    if (journalIdFromState) {
+      this.journalService.getById(journalIdFromState).subscribe({
+        next: (journal) => {
+          this.lastSavedJournalId = journal.id;
+          this.populateFormWithJournal(journal);
+        },
+        error: (err) => {
+          console.error('Error loading journal', err);
+        }
+      });
+    }
+  }
+
+  /**
+   * Populate form with journal data
+   */
+  private populateFormWithJournal(journal: Journal) {
+    this.form.patchValue({
+      id: journal.id,
+      dhetNo: journal.dhetNo,
+      year: journal.year,
+      journalTitle: journal.journalTitle,
+      title: journal.title,
+      issn: journal.issn,
+      publisher: journal.publisher,
+      index: journal.index,
+      comply: journal.comply,
+      volume: journal.volume,
+      issue: journal.issue,
+      eissn: journal.eissn,
+      doi: journal.doi,
+      urls: journal.urls,
+      openaccess: journal.openaccess,
+      fieldofsearch: journal.fieldofsearch,
+      publicationfeedescription: journal.publicationfeedescription,
+      publishercurrency: journal.publishercurrency,
+      totalPublicationFeePublisherCurrency: journal.totalPublicationFeePublisherCurrency,
+      publicationfeearticle: journal.publicationfeearticle,
+      authorsContributionFee: journal.authorsContributionFee,
+      authorsContributionFeeZar: journal.authorsContributionFeeZar,
+      funders: journal.funders
+    });
+
+    // Populate authors
+    if (journal.authors && journal.authors.length > 0) {
+      this.authorsFA.clear();
+      journal.authors.forEach(author => {
+        // ensure affiliation is a boolean (fallback to true when undefined/null)
+        const affiliationFlag = (author.affiliation ?? true) as boolean;
+        this.authorsFA.push(this.newAuthor(author, affiliationFlag));
+      });
+    }
+  // Duplicate simple nextStep removed; using single validated nextStep implementation above
+    }
+
+
 }
-
-

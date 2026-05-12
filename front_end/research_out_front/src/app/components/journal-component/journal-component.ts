@@ -12,8 +12,7 @@ import {debug} from 'node:util';
   selector: 'app-journal-component',
   imports: [
     NgForOf,
-    RouterLink,
-    RouterLinkActive
+    RouterLink
   ],
   templateUrl: './journal-component.html',
   styleUrl: './journal-component.css'

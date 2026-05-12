@@ -1,6 +1,17 @@
+export interface AuthorAffiliationDetail {
+  universityCode: string;
+  universityName: string;
+  isUniven: boolean; // true if University of Venda
+}
+
+export interface AuthorResearchAffiliation {
+  companyName: string;
+  companyType: 'RESEARCH_COMPANY' | 'OTHER'; // research company or other
+}
+
 export interface Authors {
   id: number|null;
-  affiliation: boolean|true;
+  affiliation: boolean|null;
   studentEmployeeNo:string
   firstName: string;
   surname: string;
@@ -18,6 +29,13 @@ export interface Authors {
   department: number;
   faculty: number;
   academicTitle: string;
+
+  // Unit calculation fields
+  universityAffiliations?: AuthorAffiliationDetail[]; // e.g., [UNIVEN, UNISA]
+  researchAffiliations?: AuthorResearchAffiliation[]; // e.g., [Research Company ABC]
+  authorShare?: number; // calculated: total units / num affiliated authors
+  unitsPerUniversity?: { [key: string]: number }; // breakdown by university
+  totalUnitsClaimed?: number; // total claimed by this author (may be split across universities)
 }
 
 export interface ClaimingAuthorsContribution {
@@ -71,3 +89,14 @@ export interface  Country{
   name: string
 }
 
+export interface Attachment {
+  formguid?: string;
+  id?: number;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  file?: File; // for new uploads
+  fileData?: string; // base64 string for existing attachments
+  url?: string; // for existing attachments
+  description?: string;
+}

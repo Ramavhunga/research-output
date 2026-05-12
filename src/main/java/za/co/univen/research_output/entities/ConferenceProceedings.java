@@ -18,57 +18,50 @@ public class ConferenceProceedings {
     private Long id;
 
     private String username;
-    private String dhetNo;                          // The unique identifier of the conference paper record
-    private String originalOrPhotocopy;             // Original / O or Photocopy / P
+    private String dhetNo;
+    private String originalOrPhotocopy;
 
     // Evidence Details
-    private Boolean evidenceOfPeerReview;           // Yes / No
-    private String typeOfEvidence;                  // Type of evidence that provides proof of peer review
+    private Boolean evidenceOfPeerReview;
+    private String typeOfEvidence;
 
     // Publication Details
-    private Integer yearOfPublication;              // Year in which the article was published in conference proceeding
-    private String titleOfProceeding;               // Title of the conference proceeding
-    private String titleOfContribution;             // Full title of submission / paper as it appears in proceeding
+    private Integer yearOfPublication;
+    private String titleOfProceeding;
+    private String titleOfContribution;
 
     @Column(name = "complies_60_rule")
-    private Boolean compliesWith60Rule;             // Signed letter from DVC confirming 60% rule
+    private Boolean compliesWith60Rule;
 
-    private String editorIfApplicable;              // Volume number of the journal
-    private String publisher;                       // Publisher of the journal
-    private String issn;                            // ISSN
-    private String isbn;                            // ISBN
+    private String editorIfApplicable;
+    private String publisher;
+    private String issn;
+    private String isbn;
 
     // Research Classification
-    private String fieldOfResearch;                 // Research field(s) - separate multiple values with semi-colons (;)
+    private String fieldOfResearch;   // renamed from fieldOfResearch (already correct, kept consistent)
 
     // Conference Dates and Location
-    private LocalDate startDate;                    // First day of conference (YYYY-MM-DD)
-    private LocalDate endDate;                      // Last day of conference (YYYY-MM-DD)
-    private String city;                            // City where conference was hosted
-    private String country;                         // Country where conference was hosted
+    private LocalDate startDate;
+    private LocalDate endDate;
+    private String city;
+    private String country;
 
     // Funding and Authors
-    private String funders;                         // Funder(s) - separate multiple funders with semi-colons (;)
-    private Double maxUnitsForPublication;          // Maximum number of units for the article (0.5 or 1.0)
-    private Double totalProportionOfAuthors;        // Decimal value between 0 and 1 - sum of all authors
-    private Integer authorCount;                    // Total number of authors
-    private Double totalUnitsClaimed;               // Decimal value between 0 and 1
+    private String funders;
+    private Double totalProportionOfAuthors;
+    private Integer authorCount;
+    private String additionalProceedingComments;
 
-    // Additional Information
-    private String otherAuthorsNonAffiliatedSemicolon;  // List of other contributing authors
-    private String additionalComments;              // Additional comments for DHET and/or panel reviewers
-
-    // Author relationships
+    /* ================= RELATIONSHIPS (UNCHANGED) ================= */
     @OneToMany(mappedBy = "conferenceProceedings", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<Author> authors = new ArrayList<>();
 
-    // Embedded objects for units calculation
+    /* ================= EMBEDDED OBJECTS (UNCHANGED) ================= */
     @Embedded
     private Units units;
 
     @Embedded
     private ClaimingAuthorsContribution claimingAuthorsContribution;
-
 }
-

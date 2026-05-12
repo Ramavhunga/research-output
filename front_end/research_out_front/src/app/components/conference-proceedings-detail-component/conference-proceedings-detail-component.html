@@ -53,23 +53,52 @@
                     </div>
                   </div>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Title of Book <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="title"
-                      [ngClass]="{'is-invalid': form.get('title')?.invalid && form.get('title')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('title')?.invalid && form.get('title')?.touched">
-                      Title is required
-                    </div>
-                  </div>
+                   <div class="col-md-3">
+                     <label class="form-label">Title of Book <span class="text-danger">*</span></label>
+                     <input class="form-control" formControlName="titleOfBook"
+                       [ngClass]="{'is-invalid': form.get('titleOfBook')?.invalid && form.get('titleOfBook')?.touched}" />
+                     <div class="invalid-feedback d-block" *ngIf="form.get('titleOfBook')?.invalid && form.get('titleOfBook')?.touched">
+                       Title of book is required
+                     </div>
+                   </div>
+                   <div class="col-md-3">
+                     <label class="form-label">Title of Contribution <span class="text-danger">*</span></label>
+                     <input class="form-control" formControlName="titleOfContribution"
+                       [ngClass]="{'is-invalid': form.get('titleOfContribution')?.invalid && form.get('titleOfContribution')?.touched}" />
+                     <div class="invalid-feedback d-block" *ngIf="form.get('titleOfContribution')?.invalid && form.get('titleOfContribution')?.touched">
+                       Title of contribution is required
+                     </div>
+                   </div>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Publisher <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="publisher"
-                      [ngClass]="{'is-invalid': form.get('publisher')?.invalid && form.get('publisher')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('publisher')?.invalid && form.get('publisher')?.touched">
-                      Publisher is required
-                    </div>
-                  </div>
+                   <div class="col-md-3">
+                     <label class="form-label">Publisher <span class="text-danger">*</span></label>
+                     <select class="form-select"
+                             formControlName="publisher"
+                             [ngClass]="{
+            'is-invalid': form.get('publisher')?.invalid &&
+                          (form.get('publisher')?.touched || form.get('publisher')?.dirty)
+          }">
+                       <option [ngValue]="null" disabled>Choose...</option>
+                       <option *ngFor="let pub of publishers" [ngValue]="pub.id">
+                         {{ pub.name }}
+                       </option>
+                     </select>
+                     <div class="invalid-feedback d-block" *ngIf="form.get('publisher')?.invalid && form.get('publisher')?.touched">
+                       Publisher is required
+                     </div>
+                   </div>
+                   <div class="col-md-3">
+                     <label class="form-label">Total Chapters in Book <span class="text-danger">*</span></label>
+                     <input type="number" class="form-control" formControlName="totalChaptersInBook"
+                       [ngClass]="{'is-invalid': form.get('totalChaptersInBook')?.invalid && form.get('totalChaptersInBook')?.touched}" />
+                     <div class="invalid-feedback d-block" *ngIf="form.get('totalChaptersInBook')?.invalid && form.get('totalChaptersInBook')?.touched">
+                       Total chapters in book is required
+                     </div>
+                   </div>
+                   <div class="col-md-3">
+                     <label class="form-label">Non Affiliated Authors Count <span class="text-danger">*</span></label>
+                     <input type="number" class="form-control" formControlName="otherAuthorsNonAffiliated" [disabled]="true" />
+                   </div>
 
                   <div class="col-md-3">
                     <label class="form-label">Editors</label>
@@ -91,7 +120,7 @@
                     <div class="position-relative">
                       <input class="form-control" formControlName="fieldofsearch"
                         (click)="showResearchFieldDropdown = true"
-                        (blur)="setTimeout(() => showResearchFieldDropdown = false, 200)"
+                        (blur)="hideResearchFieldDropdown()"
                         [ngClass]="{'is-invalid': form.get('fieldofsearch')?.invalid && form.get('fieldofsearch')?.touched}"
                         placeholder="Search or select..." />
                       <div class="dropdown-menu show position-absolute w-100 start-0" *ngIf="showResearchFieldDropdown && filteredResearchFields.length > 0"
@@ -222,12 +251,12 @@
 
                   <div class="col-md-3">
                     <label class="form-label">Author Count <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="authorCount" disabled />
+                    <input type="number" class="form-control" formControlName="authorCount" [disabled]="true" />
                   </div>
 
                   <div class="col-md-3">
                     <label class="form-label">Total Units Claimed <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="totalUnitsClaimed" disabled />
+                    <input type="number" class="form-control" formControlName="totalUnitsClaimed" [disabled]="true" />
                   </div>
 
                 </div>
@@ -371,10 +400,7 @@
                 <h6 class="mb-3">Optional Information</h6>
                 <div class="row g-3">
 
-                  <div class="col-md-6">
-                    <label class="form-label">Other Authors (Non-Affiliated, Semi-Colon Delimited)</label>
-                    <textarea class="form-control" rows="2" formControlName="otherAuthorsNonAffiliates"></textarea>
-                  </div>
+
 
                   <div class="col-md-6">
                     <label class="form-label">Additional Comments</label>

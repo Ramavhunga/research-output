@@ -2,6 +2,7 @@ package za.co.univen.research_output.controller;
 
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import za.co.univen.research_output.dto.JournalDto;
@@ -24,7 +25,7 @@ public class JournalController {
         this.jounralrepository = jounralrepository;
     }
 
-    @PostMapping()
+    @PostMapping
     public ResponseEntity<Journal> create(@RequestBody Journal dto) {
         dto.setId(null);
         Journal saved = service.createOrUpdate(dto);
@@ -54,6 +55,6 @@ public class JournalController {
     ) {
         System.out.println("TITLE: " + title);
         System.out.println("ISSN: " + issn);
-        return jounralrepository.existsByTitleAndIssn(title, issn);
+        return jounralrepository.existsByTitle(title);
     }
 }

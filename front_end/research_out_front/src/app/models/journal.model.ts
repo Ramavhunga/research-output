@@ -1,4 +1,4 @@
-import { Authors, ClaimingAuthorsContribution, Units } from './common.model';
+import { Authors, ClaimingAuthorsContribution, Units, Attachment } from './common.model';
 
 export interface Journal {
 
@@ -35,7 +35,7 @@ export interface Journal {
   funders?: string;
 
   /** DHET Units */
-  units: Units;
+  units ?: Units;
   maxUnitsForPublication ?: number;
   /** Authors */
   authors: Authors[];
@@ -43,6 +43,9 @@ export interface Journal {
 
   /** Contribution */
   claimingAuthorsContribution: ClaimingAuthorsContribution;
+
+  /** Attachments */
+  attachments?: Attachment[];
 
   /** Notes */
   additionalComments?: string;
