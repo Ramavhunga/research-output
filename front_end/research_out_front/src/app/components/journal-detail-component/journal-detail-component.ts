@@ -70,6 +70,7 @@ export class JournalDetailComponent implements OnInit {
 
   // Unit calculation tracking
   unitBreakdown: {
+    totalAuthorsCount: number;
     affiliatedAuthorsCount: number;
     nonAffiliatedAuthorsCount: number;
     authorSharePerAuthor: number;
@@ -77,13 +78,21 @@ export class JournalDetailComponent implements OnInit {
     authorUnitCalculations: {
       authorIndex: number;
       authorName: string;
+      isAffiliated: boolean;
       authorShare: number;
       universityCount: number;
-      hasResearchCompany: boolean;
-      unitsPerUniversity: { [key: string]: number };
+      researchAffiliationsCount: number;
+      splitDetails: {
+        label: string;
+        type: string;
+        units: number;
+        claimedByUniven: boolean;
+      }[];
+      ruleApplied: string;
       univenClaim: number;
     }[];
   } = {
+    totalAuthorsCount: 0,
     affiliatedAuthorsCount: 0,
     nonAffiliatedAuthorsCount: 0,
     authorSharePerAuthor: 0,
@@ -298,25 +307,16 @@ export class JournalDetailComponent implements OnInit {
 
   // === Builders ===
   newAuthor(a?: Authors, affiliation: boolean = true): FormGroup {
-    // Extract month and day from dob if it exists (format: YYYY-MM-DD)
-    let dobMonth = '';
-    let dobDay = '';
-    if (a?.dob) {
-      const parts = a.dob.split('-');
-      if (parts.length >= 3) {
-        dobMonth = parts[1];
-        dobDay = parts[2];
-      }
-    }
 
     // Build university affiliations FormArray
     const univArray = this.fb.array(
       a?.universityAffiliations?.length
         ? a.universityAffiliations.map(u => this.fb.group({
-            universityCode: [u.universityCode || '', Validators.required],
-            universityName: [u.universityName || '', Validators.required],
-            isUniven: [u.isUniven ?? false]
-          }))
+          universityCode: [u.universityCode || '', Validators.required],
+          universityName: [u.universityName || '', Validators.required],
+          isUniven: [u.isUniven ?? false],
+          isInternationalUniversity: [u.isInternationalUniversity ?? false] // ✅ added
+        }))
         : []
     );
 
@@ -324,49 +324,55 @@ export class JournalDetailComponent implements OnInit {
     const researchArray = this.fb.array(
       a?.researchAffiliations?.length
         ? a.researchAffiliations.map(r => this.fb.group({
-            companyName: [r.companyName || '', Validators.required],
-            companyType: [r.companyType || 'OTHER', Validators.required]
-          }))
+          companyName: [r.companyName || '', Validators.required],
+          companyType: [r.companyType || 'OTHER', Validators.required]
+        }))
         : []
     );
 
     return this.fb.group({
+
       id: [a?.id ?? null],
       affiliation: affiliation,
-      studentEmployeeNo: [a?.studentEmployeeNo || '', Validators.required],
+
+      // ✅ ONLY REQUIRED FIELDS (Affiliated Author Simplified)
       firstName: [a?.firstName || '', Validators.required],
       surname: [a?.surname || '', Validators.required],
       initials: [a?.initials || ''],
-      gender: [a?.gender ?? null as string | null, Validators.required],
-      populationGroup: [a?.populationGroup || ''],
-      dobMonth: [dobMonth || ''],
-      dobDay: [dobDay || ''],
       email: [a?.email || '', [Validators.required, Validators.email]],
-      facultyId: [a?.faculty ?? null, Validators.required],
-      departmentId: [a?.department ?? null, Validators.required],
+
+      // ✅ OPTIONAL / REMOVED REQUIREMENTS (still present but NOT required)
+      studentEmployeeNo: [a?.studentEmployeeNo || null],
+      gender: [a?.gender ?? null],
+      populationGroup: [a?.populationGroup || null],
+      dobMonth: [''],
+      dobDay: [''],
+      facultyId: [a?.faculty ?? null],
+      departmentId: [a?.department ?? null],
+      countryOfBirth: [a?.countryOfBirth || null],
+      saResidencyStatus: [a?.saResidencyStatus || null],
+      disability: [a?.disability ?? false],
+      highestQualification: [a?.highestQualification || null],
+      employmentStatus: [a?.employmentStatus || null],
+      academicTitle: [a?.academicTitle || null],
+
       orcid: [
         a?.orcid || '',
         [this.patternOptional(/^\d{4}-\d{4}-\d{4}-[\dX]{4}$/i)]
       ],
-      countryOfBirth: [a?.countryOfBirth || ''],
-      saResidencyStatus: [a?.saResidencyStatus || ''],
-      disability: [a?.disability ?? false],
 
-      highestQualification: [a?.highestQualification || ''],
-      employmentStatus: [a?.employmentStatus || ''],
-      department: [a?.department || ''],
-      faculty: [a?.faculty || ''],
-      academicTitle: [a?.academicTitle || ''],
-
-      // Unit calculation fields
+      // ✅ Unit calculation fields
       authorShare: [a?.authorShare ?? 0],
       totalUnitsClaimed: [a?.totalUnitsClaimed ?? 0],
 
-      // Affiliation arrays
+      // ✅ Affiliations
       universityAffiliations: univArray,
+      isInternationalUniversity:univArray,
       researchAffiliations: researchArray
+
     });
   }
+
 
 
   // === Utils ===
@@ -433,12 +439,13 @@ export class JournalDetailComponent implements OnInit {
       (ctrl as FormGroup).get('affiliation')?.value !== true
     );
 
-    const authorsCount = affiliatedAuthors.length || 1; // ✅ ONLY affiliated
+    const totalAuthorsCount = this.authorsFA.length;
+    const divisor = totalAuthorsCount > 0 ? totalAuthorsCount : 1;
     debugger;
     const otherAuthorsNonAffiliated = nonAffiliatedAuthors.length;
 
     // ✅ store both counts
-    unitsFG.get('authorCount')?.setValue(authorsCount, { emitEvent: false });
+    unitsFG.get('authorCount')?.setValue(totalAuthorsCount, { emitEvent: false });
     unitsFG.get('otherAuthorsNonAffiliates')?.setValue(otherAuthorsNonAffiliated, { emitEvent: false });
 
     const totalPropCtrl = unitsFG.get('totalProportionOfAuthors');
@@ -447,7 +454,7 @@ export class JournalDetailComponent implements OnInit {
     const totalUnits = maxUnits * totalProp;
     unitsFG.get('totalUnitsClaimed')?.setValue(totalUnits, { emitEvent: false });
 
-    const proportion = 1 / authorsCount;
+    const proportion = totalAuthorsCount > 0 ? (1 / divisor) : 0;
 
     // ✅ assign values
     this.authorsFA.controls.forEach(ctrl => {
@@ -476,115 +483,222 @@ export class JournalDetailComponent implements OnInit {
   /**
    * Calculate units per author based on affiliations
    * Rules:
-   * 1. Total units divided equally among ALL affiliated authors
+   * 1. Total units divided equally among ALL authors
    * 2. If author has multiple universities, split their share equally
-   * 3. If UNIVEN + Research Company, give full share to UNIVEN
-   * 4. Non-affiliated authors get no units
+   * 3. UNIVEN only gets its own split portion among universities
+   * 4. Non-affiliated authors do not contribute to UNIVEN claim
    */
   calculateAdvancedUnitBreakdown() {
+
     const maxUnits = this.unitsFG?.get('maxUnitsForPublication')?.value || 0;
     const totalProp = this.unitsFG?.get('totalProportionOfAuthors')?.value || 1;
     const totalUnits = maxUnits * totalProp;
 
-    // Get affiliated authors
-    const affiliatedAuthorsCtrl = this.authorsFA.controls.filter(ctrl =>
+    const allAuthorsCtrl = this.authorsFA.controls;
+
+    const affiliatedAuthorsCtrl = allAuthorsCtrl.filter(ctrl =>
       (ctrl as FormGroup).get('affiliation')?.value === true
     );
 
-    const nonAffiliatedAuthorsCtrl = this.authorsFA.controls.filter(ctrl =>
+    const nonAffiliatedAuthorsCtrl = allAuthorsCtrl.filter(ctrl =>
       (ctrl as FormGroup).get('affiliation')?.value !== true
     );
 
-    const affiliatedAuthorsCount = affiliatedAuthorsCtrl.length || 1;
-    const authorShare = totalUnits / affiliatedAuthorsCount; // Each affiliated author's share
+    const totalAuthorsCount = allAuthorsCtrl.length;
+    const authorShare = totalAuthorsCount > 0 ? (totalUnits / totalAuthorsCount) : 0;
 
-    // Track calculations for display
     this.unitBreakdown = {
-      affiliatedAuthorsCount,
+      totalAuthorsCount,
+      affiliatedAuthorsCount: affiliatedAuthorsCtrl.length,
       nonAffiliatedAuthorsCount: nonAffiliatedAuthorsCtrl.length,
       authorSharePerAuthor: authorShare,
       univenTotalClaimed: 0,
       authorUnitCalculations: []
     };
 
-    // Calculate for each affiliated author
-    affiliatedAuthorsCtrl.forEach((ctrl, idx) => {
-      const fg = ctrl as FormGroup;
-      const authorName = `${fg.get('firstName')?.value} ${fg.get('surname')?.value}`;
+    allAuthorsCtrl.forEach((ctrl, idx) => {
 
-      // Get university and research affiliations
-      const univAffiliations = (fg.get('universityAffiliations') as FormArray)?.getRawValue() || [];
+      const fg = ctrl as FormGroup;
+
+      const firstName = fg.get('firstName')?.value || '';
+      const surname = fg.get('surname')?.value || '';
+      const authorName = `${firstName} ${surname}`.trim() || `Author ${idx + 1}`;
+
+      const isAffiliated = fg.get('affiliation')?.value === true;
+
+      let univAffiliations = (fg.get('universityAffiliations') as FormArray)?.getRawValue() || [];
       const researchAffiliations = (fg.get('researchAffiliations') as FormArray)?.getRawValue() || [];
 
-      // Rule: UNIVEN + Research Company → full share to UNIVEN
-      const hasUniven = univAffiliations.some((u: any) => u.isUniven);
-      const hasResearchOnly = researchAffiliations.length > 0 && !hasUniven;
-
       let univenClaim = 0;
-      let unitsPerUniversity: { [key: string]: number } = {};
+      let ruleApplied = '';
 
-      if (hasUniven && researchAffiliations.length > 0) {
-        // UNIVEN + Research Company → full to UNIVEN
-        univenClaim = authorShare;
-        unitsPerUniversity['UNIVEN'] = authorShare;
-      } else if (hasUniven) {
-        // Multiple universities including UNIVEN
+      const splitDetails: {
+        label: string;
+        type: string;
+        units: number;
+        claimedByUniven: boolean;
+      }[] = [];
+
+      // ✅ Ensure UNIVEN exists by default for affiliated authors
+      if (isAffiliated) {
+        const hasUniven = univAffiliations.some((u: any) => u.isUniven === true);
+        if (!hasUniven) {
+          univAffiliations = [
+            {
+              universityName: 'UNIVEN',
+              universityCode: 'UNIVEN',
+              isUniven: true,
+              isInternationalUniversity: false
+            },
+            ...univAffiliations
+          ];
+        }
+      }
+
+      if (!isAffiliated) {
+
+        ruleApplied = 'Non-affiliated author: excluded from UNIVEN claim.';
+
+      } else {
+
         const universityCount = univAffiliations.length;
-        const unitPerUniv = authorShare / universityCount;
-        univAffiliations.forEach((u: any) => {
-          unitsPerUniversity[u.universityCode || u.universityName] = unitPerUniv;
-          if (u.isUniven) univenClaim = unitPerUniv;
-        });
-      } else if (hasResearchOnly) {
-        // Only research companies - no UNIVEN claim
-        univenClaim = 0;
-        researchAffiliations.forEach((r: any, i: number) => {
-          unitsPerUniversity[r.companyName] = 0; // Research companies don't claim units
-        });
+
+        const hasUniven = univAffiliations.some((u: any) => u.isUniven === true);
+        const hasInternational = univAffiliations.some((u: any) => u.isInternationalUniversity === true);
+        const hasResearch = researchAffiliations.length > 0;
+
+        // ✅ CASE 1: International University → FULL UNIVEN
+        if (hasInternational) {
+
+          univenClaim = authorShare;
+
+          splitDetails.push({
+            label: 'UNIVEN (International Rule)',
+            type: 'UNIVERSITY',
+            units: authorShare,
+            claimedByUniven: true
+          });
+
+          ruleApplied = 'International university affiliation: full share assigned to UNIVEN.';
+
+        }
+
+        // ✅ CASE 2: UNIVEN + Research Company ONLY → FULL UNIVEN
+        else if (hasUniven && hasResearch && universityCount === 1) {
+
+          univenClaim = authorShare;
+
+          splitDetails.push({
+            label: 'UNIVEN',
+            type: 'UNIVERSITY',
+            units: authorShare,
+            claimedByUniven: true
+          });
+
+          researchAffiliations.forEach((r: any) => {
+            splitDetails.push({
+              label: r.companyName || 'Research Company',
+              type: r.companyType || 'RESEARCH_COMPANY',
+              units: 0,
+              claimedByUniven: false
+            });
+          });
+
+          ruleApplied = 'UNIVEN + Research Company: full share assigned to UNIVEN.';
+        }
+
+        // ✅ CASE 3: Multiple universities → SPLIT
+        else if (universityCount > 1) {
+
+          const unitPerUniv = authorShare / universityCount;
+
+          univAffiliations.forEach((u: any) => {
+
+            const isUniven = u.isUniven === true;
+
+            splitDetails.push({
+              label: u.universityCode || u.universityName || 'University',
+              type: 'UNIVERSITY',
+              units: unitPerUniv,
+              claimedByUniven: isUniven
+            });
+
+            if (isUniven) {
+              univenClaim += unitPerUniv;
+            }
+
+          });
+
+          ruleApplied = 'Split across multiple universities; UNIVEN receives proportional share.';
+        }
+
+        // ✅ CASE 4: UNIVEN only → FULL
+        else if (hasUniven && universityCount === 1) {
+
+          univenClaim = authorShare;
+
+          splitDetails.push({
+            label: 'UNIVEN',
+            type: 'UNIVERSITY',
+            units: authorShare,
+            claimedByUniven: true
+          });
+
+          ruleApplied = 'Single UNIVEN affiliation: full share claimed by UNIVEN.';
+        }
+
+        // ✅ CASE 5: NO UNIVEN → no claim
+        else {
+
+          const unitPerUniv = authorShare / universityCount;
+
+          univAffiliations.forEach((u: any) => {
+            splitDetails.push({
+              label: u.universityName || 'University',
+              type: 'UNIVERSITY',
+              units: unitPerUniv,
+              claimedByUniven: false
+            });
+          });
+
+          ruleApplied = 'No UNIVEN affiliation: no claim.';
+        }
       }
 
       this.unitBreakdown.univenTotalClaimed += univenClaim;
 
-      // Store calculation
       this.unitBreakdown.authorUnitCalculations.push({
         authorIndex: idx,
         authorName,
+        isAffiliated,
         authorShare,
         universityCount: univAffiliations.length,
-        hasResearchCompany: researchAffiliations.length > 0,
-        unitsPerUniversity,
+        researchAffiliationsCount: researchAffiliations.length,
+        splitDetails,
+        ruleApplied,
         univenClaim
       });
 
-      // Update form values
       fg.patchValue({
         authorShare,
         totalUnitsClaimed: univenClaim
       }, { emitEvent: false });
-    });
 
-    // Zero out non-affiliated authors
-    nonAffiliatedAuthorsCtrl.forEach(ctrl => {
-      const fg = ctrl as FormGroup;
-      fg.patchValue({
-        authorShare: 0,
-        totalUnitsClaimed: 0
-      }, { emitEvent: false });
     });
   }
 
   /**
    * Get university affiliations for an author FormGroup
    */
-  getUniversityAffiliations(authorFG: FormGroup): FormArray {
-    return authorFG.get('universityAffiliations') as FormArray;
+  getUniversityAffiliations(authorControl: AbstractControl | null): FormArray {
+    return (authorControl?.get('universityAffiliations') as FormArray) ?? this.fb.array([]);
   }
 
   /**
    * Get research affiliations for an author FormGroup
    */
-  getResearchAffiliations(authorFG: FormGroup): FormArray {
-    return authorFG.get('researchAffiliations') as FormArray;
+  getResearchAffiliations(authorControl: AbstractControl | null): FormArray {
+    return (authorControl?.get('researchAffiliations') as FormArray) ?? this.fb.array([]);
   }
 
   /**
@@ -597,6 +711,7 @@ export class JournalDetailComponent implements OnInit {
       universityName: ['', Validators.required],
       isUniven: [false]
     }));
+    this.calculateAdvancedUnitBreakdown();
   }
 
   /**
@@ -617,6 +732,7 @@ export class JournalDetailComponent implements OnInit {
       companyName: ['', Validators.required],
       companyType: ['OTHER', Validators.required]
     }));
+    this.calculateAdvancedUnitBreakdown();
   }
 
   /**
@@ -1054,23 +1170,31 @@ export class JournalDetailComponent implements OnInit {
 
   isAuthorsValid(affiliated: boolean): boolean {
     const authors = affiliated ? this.getAffiliatedAuthors() : this.getNonAffiliatedAuthors();
+
     if (affiliated && authors.length === 0) return false;
-    return authors.every(ctrl => ctrl.valid);
+
+    return authors.every(ctrl => {
+      return ctrl.get('firstName')?.valid &&
+        ctrl.get('surname')?.valid &&
+        ctrl.get('email')?.valid;
+    });
   }
 
   goToNextStep() {
     if (this.currentStep < this.totalSteps) {
-      if (this.isStepValid(this.currentStep)) {
+      //if (this.isStepValid(this.currentStep))
+      {
         this.currentStep++;
         window.scrollTo(0, 0);
-      } else {
-        this.markStepAsTouched(this.currentStep);
-        Swal.fire({
-          title: "Incomplete Step",
-          text: "Please fill in all required fields before proceeding.",
-          icon: "warning"
-        });
       }
+      // else {
+      //   this.markStepAsTouched(this.currentStep);
+      //   Swal.fire({
+      //     title: "Incomplete Step",
+      //     text: "Please fill in all required fields before proceeding.",
+      //     icon: "warning"
+      //   });
+      // }
     }
   }
 

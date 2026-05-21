@@ -1,5 +1,6 @@
 package za.co.univen.research_output.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -12,6 +13,7 @@ public class User implements java.io.Serializable {
     private Long id;
     @Column(unique = true)
     private String username;
+    @JsonIgnore
     private String password;
     private String email;
     private String role; // ADMIN, RESEARCHER, REVIEWER

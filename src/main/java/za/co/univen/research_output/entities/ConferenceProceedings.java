@@ -49,13 +49,13 @@ public class ConferenceProceedings {
 
     // Funding and Authors
     private String funders;
-    private Double totalProportionOfAuthors;
-    private Integer authorCount;
+ //   private Double totalProportionOfAuthors;
+  //  private Integer authorCount;
     private String additionalProceedingComments;
 
     /* ================= RELATIONSHIPS (UNCHANGED) ================= */
     @OneToMany(mappedBy = "conferenceProceedings", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference("conference-authors")
     private List<Author> authors = new ArrayList<>();
 
     /* ================= EMBEDDED OBJECTS (UNCHANGED) ================= */

@@ -8,6 +8,9 @@ import lombok.Data;
 public class Units {
 
     private Double maxUnitsForPublication;
+    private Double totalProportionOfAuthors;
+    private Integer authorCount;
     private Double totalUnitsClaimed;
+    private Integer otherAuthorsNonAffiliates;
 
 }

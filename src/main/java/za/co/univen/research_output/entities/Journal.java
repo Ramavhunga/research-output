@@ -2,8 +2,10 @@ package za.co.univen.research_output.entities;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+ import jakarta.validation.Valid;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,9 +18,11 @@ public class Journal {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String username;
     private String dhetNo;
     private String year;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private JournalStatus status = JournalStatus.DRAFT;
 
     private String title;          // Article title
     private String journalTitle;   // Journal name
@@ -42,6 +46,9 @@ public class Journal {
     private String funders;
     private String fieldofsearch;
     private Boolean openaccess;
+    private Boolean dhetAccepted;
+    private Double dhetUnitsAwarded;
+    private String dhetComments;
 
     /* ================= NEW PUBLICATION FEE FIELDS ================= */
     private String publicationfeedescription;         // formerly publicationfeedescription
@@ -52,12 +59,27 @@ public class Journal {
     private Double authorscontributionfeezar;
 
     /* ================= AUTHOR/UNITS ================= */
-    private Double totalProportionOfAuthors;
-    private Integer authorCount;
+//    private Double totalProportionOfAuthors;
+//    private Integer authorCount;
 
     @OneToMany(mappedBy = "journal", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @Valid
+    @JsonManagedReference("journal-authors")
     private List<Author> authors = new ArrayList<>();
+
+    @OneToMany(mappedBy = "journal", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Valid
+    private List<Attachment> attachments = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "submitted_by", nullable = false)
+    private User submittedBy;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
 
 
 //    @ElementCollection
@@ -71,6 +93,21 @@ public class Journal {
 
     @Embedded
     private ClaimingAuthorsContribution claimingAuthorsContribution;
+
+    @PrePersist
+    public void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+        if (status == null) {
+            status = JournalStatus.DRAFT;
+        }
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 
     /* ================= GETTERS AND SETTERS ================= */
     // Generate getters and setters for all fields

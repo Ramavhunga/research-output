@@ -2,6 +2,7 @@ export interface AuthorAffiliationDetail {
   universityCode: string;
   universityName: string;
   isUniven: boolean; // true if University of Venda
+  isInternationalUniversity: boolean; // true if international university (not UNIVEN)
 }
 
 export interface AuthorResearchAffiliation {
