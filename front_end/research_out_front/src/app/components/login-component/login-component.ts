@@ -31,33 +31,33 @@ export class LoginComponent {
   }
 
   login() {
-      const user: User = this.loginForm.getRawValue();
+    const user: User = this.loginForm.getRawValue();
 
-      this.loginService.login(user).pipe(
-        catchError(error => {
-          debugger;
-          Swal.fire({
-            title: "Failed to Login",
-            text: "Invalid Credentials!",
-            icon: "error"
-          });
-          return of();
-        })
-      ).subscribe(data => {
+    this.loginService.login(user).pipe(
+      catchError(error => {
         debugger;
-        sessionStorage.setItem('login', JSON.stringify(data));
-        const login: LoginDTO = data;
-        console.log('Login:', login);
-        if (!login) {
-          Swal.fire({
-            title: "Failed to Login",
-            text: "Invalid Credentials!",
-            icon: "error"
-          });
-        } else {
-          this.route.navigate(['/dashboard']).then();
-        }
-      });
+        Swal.fire({
+          title: "Failed to Login",
+          text: "Invalid Credentials!",
+          icon: "error"
+        });
+        return of();
+      })
+    ).subscribe(data => {
+      debugger;
+      sessionStorage.setItem('login', JSON.stringify(data));
+      const login: LoginDTO = data;
+      console.log('Login:', login);
+      if (!login) {
+        Swal.fire({
+          title: "Failed to Login",
+          text: "Invalid Credentials!",
+          icon: "error"
+        });
+      } else {
+        this.route.navigate(['/dashboard']).then();
+      }
+    });
 
   }
 

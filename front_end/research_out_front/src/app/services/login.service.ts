@@ -12,7 +12,8 @@ export class LoginService {
 
   constructor(private http: HttpClient) { }
 
- private urlLogin:string = environment.apiUrl+"user/login"  ;  //"http://localhost:8080/user/login";
+  private urlLogin:string = environment.apiUrl+"user/login"  ;  //"http://localhost:8080/user/login";
+  private urlStudentInfo:string = environment.apiUrl+"user/student-info"  ;
   //private urlLogin:string = "https://univenproduction-researchoutput.azuremicroservices.io/user/login";
 
 
@@ -20,6 +21,16 @@ export class LoginService {
     const headers = {'Content-Type': 'application/json'};
 
     return this.http.post<any>(this.urlLogin, user, { headers });
+  }
+
+  /**
+   * Get student information by student number
+   * @param studentNo Student/Employee number
+   * @returns Observable with complete student information
+   */
+  getStudentInfo(studentNo: string): Observable<any> {
+    const headers = {'Content-Type': 'application/json'};
+    return this.http.get<any>(`${this.urlStudentInfo}/${studentNo}`, { headers });
   }
 
 }
