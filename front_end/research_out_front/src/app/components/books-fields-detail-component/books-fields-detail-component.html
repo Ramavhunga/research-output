@@ -1,692 +1,319 @@
-<div class="pc-container">
-  <div class="pc-content">
-    <!-- Breadcrumb -->
-    <div class="page-header">
-      <div class="page-block">
-        <div class="row align-items-center g-0">
-          <div class="col-sm-auto">
-            <div class="page-header-title">
-              <h5 class="mb-0">Book Details</h5>
-            </div>
-          </div>
-          <div class="col-sm-auto">
-            <ul class="breadcrumb">
-              <li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li>
-              <li class="breadcrumb-item"><a routerLink="/books">Books</a></li>
-              <li class="breadcrumb-item" aria-current="page">Book Details</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row">
-      <div class="col-12">
-        <div class="card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Book Interface</h5>
-            <button class="btn btn-outline-secondary btn-sm" type="button" (click)="preview()">
-              Preview JSON
-            </button>
-            <button class="btn btn-outline-secondary btn-sm" type="button" (click)="autoPopulateForm()">
-              Auto Populate JSON
-            </button>
-          </div>
-
-          <div class="card-body">
-            <form [formGroup]="form" (ngSubmit)="onSubmit()">
-              <div class="mb-4">
-                <h6 class="mb-3">Book Details</h6>
-                <div class="row g-3">
-
-                  <div class="col-md-3">
-                    <label class="form-label">DHET No. <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="dhetNo" readonly />
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Year of Publication <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="year"
-                      [ngClass]="{'is-invalid': form.get('year')?.invalid && form.get('year')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('year')?.invalid && form.get('year')?.touched">
-                      Year is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Title of Book <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="title"
-                      [ngClass]="{'is-invalid': form.get('title')?.invalid && form.get('title')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('title')?.invalid && form.get('title')?.touched">
-                      Title is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Publisher <span class="text-danger">*</span></label>
-                    <select class="form-select"
-                            formControlName="publisher"
-                            [ngClass]="{
-           'is-invalid': form.get('publisher')?.invalid &&
-                         (form.get('publisher')?.touched || form.get('publisher')?.dirty)
-         }">
-
-                      <option [ngValue]="null" disabled>Choose...</option>
-
-                      <option *ngFor="let pub of publishers" [ngValue]="pub.id">
-                        {{ pub.name }}
-                      </option>
-
-                    </select>
-                    <div class="invalid-feedback d-block" *ngIf="form.get('publisher')?.invalid && form.get('publisher')?.touched">
-                      Publisher is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Editors</label>
-                    <input class="form-control" formControlName="editors" />
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">ISBN <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="isbn"
-                      [ngClass]="{'is-invalid': form.get('isbn')?.invalid && form.get('isbn')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('isbn')?.invalid && form.get('isbn')?.touched">
-                      <span *ngIf="form.get('isbn')?.errors?.['required']">ISBN is required</span>
-                      <span *ngIf="form.get('isbn')?.errors?.['pattern']">Invalid ISBN format</span>
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Field of Research <span class="text-danger">*</span></label>
-                    <div class="position-relative">
-                      <input class="form-control" formControlName="fieldofsearch"
-                        (click)="showResearchFieldDropdown = true"
-                        (blur)="hideResearchFieldDropdown()"
-                        [ngClass]="{'is-invalid': form.get('fieldofsearch')?.invalid && form.get('fieldofsearch')?.touched}"
-                        placeholder="Search or select..." />
-                      <div class="dropdown-menu show position-absolute w-100 start-0" *ngIf="showResearchFieldDropdown && filteredResearchFields.length > 0"
-                        style="z-index: 1000; max-height: 200px; overflow-y: auto;">
-                        <button *ngFor="let field of filteredResearchFields" class="dropdown-item" type="button" (click)="selectResearchField(field)">
-                          {{ field.name }} ({{ field.code }})
-                        </button>
-                      </div>
-                    </div>
-                    <div class="invalid-feedback d-block" *ngIf="form.get('fieldofsearch')?.invalid && form.get('fieldofsearch')?.touched">
-                      Field of research is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Funders</label>
-                    <input class="form-control" formControlName="funders" placeholder="NRF; NWO; NIH" />
-                  </div>
-
-                </div>
-              </div>
-
-              <!-- Publication Details Section -->
-              <div class="mb-4">
-                <h6 class="mb-3">Publication Details</h6>
-                <div class="row g-3">
-
-                  <div class="col-md-3">
-                    <label class="form-label">Original/Photocopy <span class="text-danger">*</span></label>
-                    <select class="form-select" formControlName="originalPhotocopy"
-                      [ngClass]="{'is-invalid': form.get('originalPhotocopy')?.invalid && form.get('originalPhotocopy')?.touched}">
-                      <option value="">Select</option>
-                      <option value="O">Original</option>
-                      <option value="P">Photocopy</option>
-                    </select>
-                    <div class="invalid-feedback d-block" *ngIf="form.get('originalPhotocopy')?.invalid && form.get('originalPhotocopy')?.touched">
-                      This field is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Evidence of Peer Review <span class="text-danger">*</span></label>
-                    <select class="form-select" formControlName="peerReviewEvidence"
-                      [ngClass]="{'is-invalid': form.get('peerReviewEvidence')?.invalid && form.get('peerReviewEvidence')?.touched}">
-                      <option value="">Select</option>
-                      <option value="Y">Yes</option>
-                      <option value="N">No</option>
-                    </select>
-                    <div class="invalid-feedback d-block" *ngIf="form.get('peerReviewEvidence')?.invalid && form.get('peerReviewEvidence')?.touched">
-                      This field is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Type of Evidence <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="typeOfEvidence"
-                      [ngClass]="{'is-invalid': form.get('typeOfEvidence')?.invalid && form.get('typeOfEvidence')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('typeOfEvidence')?.invalid && form.get('typeOfEvidence')?.touched">
-                      Type of evidence is required
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-              <!-- Pages Section -->
-              <div class="mb-4">
-                <h6 class="mb-3">Page Information</h6>
-                <div class="row g-3">
-
-                  <div class="col-md-3">
-                    <label class="form-label">Total No. of Pages in Book <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="totalNoPages"
-                      [ngClass]="{'is-invalid': form.get('totalNoPages')?.invalid && form.get('totalNoPages')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('totalNoPages')?.invalid && form.get('totalNoPages')?.touched">
-                      Total pages is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Start Page <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="startPage"
-                      [ngClass]="{'is-invalid': form.get('startPage')?.invalid && form.get('startPage')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('startPage')?.invalid && form.get('startPage')?.touched">
-                      Start page is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">End Page <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="endPage"
-                      [ngClass]="{'is-invalid': form.get('endPage')?.invalid && form.get('endPage')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('endPage')?.invalid && form.get('endPage')?.touched">
-                      End page is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Total Pages Claimed <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="totalPagesClaimed"
-                      [ngClass]="{'is-invalid': form.get('totalPagesClaimed')?.invalid && form.get('totalPagesClaimed')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('totalPagesClaimed')?.invalid && form.get('totalPagesClaimed')?.touched">
-                      Total pages claimed is required
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-              <div class="mb-4">
-                <h6 class="mb-3">Authors (Book)</h6>
-
-                <div formArrayName="authors" class="vstack gap-3">
-                  <div
-                    class="author-card border rounded p-3"
-                    *ngFor="let a of authorsFA.controls; let i = index"
-                    [formGroupName]="i"
-                  >
-
-                    <div class="row g-3 align-items-end">
-                      <div class="col-md-3">
-
-                        <label class="form-label">Author Type (Affiliated / Non-Affiliated)</label>
-                        <select class="form-select"
-                                formControlName="affiliation"
-                                (change)="recalculateContributions()"
-                                [ngClass]="{
-          'is-invalid':
-            a.get('affiliation')?.invalid &&
-            (a.get('affiliation')?.touched || a.get('affiliation')?.dirty)
-        }">
-
-                          <option value="" disabled>Choose...</option>
-                          <option [ngValue]="true">Affiliated</option>
-                          <option [ngValue]="false">Non-Affiliated</option>
-                        </select>
-
-                      </div>
-
-                    </div>
-
-                    <br>
-                    <div class="row g-3 align-items-end">
-                      <!-- Hidden id if needed -->
-                      <!-- <input type="hidden" formControlName="id" /> -->
-
-                      <!-- Row 1: student/employee, first name, surname, initials -->
-                      <div class="col-md-3">
-                        <label class="form-label required">Student/Employee No.</label>
-                        <input
-                          class="form-control"
-                          formControlName="studentEmployeeNo"
-                          [ngClass]="{
-              'is-invalid':
-                a.get('studentEmployeeNo')?.invalid &&
-                (a.get('studentEmployeeNo')?.touched || a.get('studentEmployeeNo')?.dirty)
-            }"
-                        />
-
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label required">First-Names</label>
-                        <input
-                          class="form-control"
-                          formControlName="firstName"`
-                          [ngClass]="{
-              'is-invalid':
-                a.get('firstName')?.invalid &&
-                (a.get('firstName')?.touched || a.get('firstName')?.dirty)
-            }"
-                        />
-
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label required">Surname</label>
-                        <input
-                          class="form-control"
-                          formControlName="surname"
-                          [ngClass]="{
-              'is-invalid':
-                a.get('surname')?.invalid &&
-                (a.get('surname')?.touched || a.get('surname')?.dirty)
-            }"
-                        />
-
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">Initials</label>
-                        <input class="form-control" formControlName="initials" />
-                      </div>
-
-
-                      <div class="col-md-3">
-
-                        <label class="form-label">Gender</label>
-                        <select class="form-select" formControlName="gender"  [ngClass]="{
-              'is-invalid':
-                a.get('gender')?.invalid &&
-                (a.get('gender')?.touched || a.get('gender')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option [ngValue]="'MALE'">Male</option>
-                          <option [ngValue]="'FEMALE'">Female</option>
-                        </select>
-
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">Population Group</label>
-                        <select class="form-select" formControlName="populationGroup"  [ngClass]="{
-              'is-invalid':
-                a.get('gender')?.invalid &&
-                (a.get('gender')?.touched || a.get('gender')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option value="African">African</option>
-                          <option value="Coloured">Coloured</option>
-                          <option value="Indian/Asian">Indian/Asian</option>
-                          <option value="White">White</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">DOB (Month/Day)</label>
-                        <div class="input-group">
-                          <select class="form-select" formControlName="dobMonth"
-                                  [ngClass]="{'is-invalid': a.get('dob')?.invalid && (a.get('dob')?.touched || a.get('dob')?.dirty)}">
-                            <option value="">Month</option>
-                            <option value="01">January</option>
-                            <option value="02">February</option>
-                            <option value="03">March</option>
-                            <option value="04">April</option>
-                            <option value="05">May</option>
-                            <option value="06">June</option>
-                            <option value="07">July</option>
-                            <option value="08">August</option>
-                            <option value="09">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                          </select>
-                          <select class="form-select" formControlName="dobDay"
-                                  [ngClass]="{'is-invalid': a.get('dob')?.invalid && (a.get('dob')?.touched || a.get('dob')?.dirty)}">
-                            <option value="">Day</option>
-                            <option *ngFor="let day of getDaysArray()" [value]="day">{{ day }}</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label required">Email</label>
-                        <input
-                          type="email"
-                          class="form-control"
-                          formControlName="email"
-                          placeholder="example@email.com"
-                          [ngClass]="{
-              'is-invalid':
-                a.get('email')?.invalid &&
-                (a.get('email')?.touched || a.get('email')?.dirty)
-            }"
-                        />
-                        <div
-                          class="invalid-feedback"
-                          *ngIf="
-              a.get('email')?.errors &&
-              (a.get('email')?.touched || a.get('email')?.dirty)
-            "
-                        >
-                        </div>
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">OrcID</label>
-                        <input
-                          class="form-control"
-                          formControlName="orcid"
-                          placeholder="0000-0000-0000-0000"
-                          [ngClass]="{
-              'is-invalid':
-                a.get('orcid')?.invalid &&
-                (a.get('orcid')?.touched || a.get('orcid')?.dirty)
-            }"
-                        />
-                        <div
-                          class="invalid-feedback"
-                          *ngIf="
-              a.get('orcid')?.errors &&
-              (a.get('orcid')?.touched || a.get('orcid')?.dirty)
-            "
-                        >
-            <span *ngIf="a.get('orcid')?.errors?.['pattern']">
-              ORCID must be in the format 0000-0000-0000-0000.
-            </span>
-                        </div>
-                      </div>
-
-                      <!-- Row 3: country & residency & disability -->
-                      <div class="col-md-3">
-                        <label class="form-label">Country of Birth</label>
-                        <!--                        <input class="form-control" formControlName="countryOfBirth"  [ngClass]="{-->
-                        <!--              'is-invalid':-->
-                        <!--                a.get('countryOfBirth')?.invalid &&-->
-                        <!--                (a.get('countryOfBirth')?.touched || a.get('countryOfBirth')?.dirty)-->
-                        <!--            }" />-->
-
-                        <input
-                          type="text"
-                          class="form-control"
-                          formControlName="countryOfBirth"
-                          autocomplete="off"
-                          [ngClass]="{
-              'is-invalid':
-                a.get('countryOfBirth')?.invalid &&
-                (a.get('countryOfBirth')?.touched || a.get('countryOfBirth')?.dirty)
-            }"
-                        />
-
-
-                      </div>
-
-                      <div class="col-md-3">
-
-                        <label class="form-label">Residency Status</label>
-                        <select class="form-select" formControlName="saResidencyStatus"  [ngClass]="{
-              'is-invalid':
-                a.get('saResidencyStatus')?.invalid &&
-                (a.get('saResidencyStatus')?.touched || a.get('saResidencyStatus')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option value="SOUTH_AFRICAN_CITIZEN">South African Citizen</option>
-                          <option value="PERMANENT_RESIDENT">Permanent Resident</option>
-                          <option value="TEMPORARY_RESIDENT">Temporary Resident</option>
-                          <option value="REFUGEE_STATUS">Refugee Status</option>
-                          <option value="ASYLUM_SEEKER">Asylum Seeker</option>
-                          <option value="WORK_PERMIT">Work Permit Holder</option>
-                          <option value="STUDY_PERMIT">Study Permit Holder</option>
-                          <option value="SPOUSAL_RELATIVE_PERMIT">Spousal/Relative Permit</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">Disability</label>
-                        <select class="form-select" formControlName="disability">
-                          <option [ngValue]="false">No</option>
-                          <option [ngValue]="true">Yes</option>
-                        </select>
-                      </div>
-
-                      <!-- Row 4: qualification & employment & department & faculty -->
-                      <div class="col-md-3">
-                        <label class="form-label">Highest Qualification</label>
-
-
-                        <select class="form-select" formControlName="highestQualification"  [ngClass]="{
-              'is-invalid':
-                a.get('highestQualification')?.invalid &&
-                (a.get('highestQualification')?.touched || a.get('highestQualification')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option value="HIGHER_CERTIFICATE">Higher Certificate (NQF 5)</option>
-                          <option value="ADVANCED_CERTIFICATE">Advanced Certificate (NQF 6)</option>
-                          <option value="NATIONAL_DIPLOMA">National Diploma (NQF 6)</option>
-                          <option value="ADVANCED_DIPLOMA">Advanced Diploma (NQF 7)</option>
-                          <option value="BACHELORS">Bachelor’s Degree (NQF 7)</option>
-                          <option value="POSTGRADUATE_DIPLOMA">Postgraduate Diploma (NQF 8)</option>
-                          <option value="HONOURS">Honours Degree (NQF 8)</option>
-                          <option value="MASTERS">Master’s Degree (NQF 9)</option>
-                          <option value="DOCTORATE">Doctoral Degree (NQF 10)</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-
-                      </div>
-
-                      <div class="col-md-3">
-
-
-                        <label class="form-label">Employment Status</label>
-                        <select class="form-select" formControlName="employmentStatus"  [ngClass]="{
-              'is-invalid':
-                a.get('employmentStatus')?.invalid &&
-                (a.get('employmentStatus')?.touched || a.get('employmentStatus')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option value="EMPLOYED_FULL_TIME">Employed – Full Time</option>
-                          <option value="EMPLOYED_PART_TIME">Employed – Part Time</option>
-                          <option value="SELF_EMPLOYED">Self-Employed</option>
-                          <option value="UNEMPLOYED">Unemployed</option>
-                          <option value="STUDENT">Student</option>
-                          <option value="INTERN">Intern / Learnership / Apprentice</option>
-                          <option value="RETIRED">Retired</option>
-                          <option value="DISABLED">Unable to Work / Disabled</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-                      </div>
-
-
-
-                      <div class="col-md-3">
-                        <label class="form-label">Faculty</label>
-                        <select class="form-select" formControlName="facultyId"  [ngClass]="{
-              'is-invalid':
-                a.get('facultyId')?.invalid &&
-                (a.get('facultyId')?.touched || a.get('facultyId')?.dirty)
-            }"
-                                (change)="onFacultyChange(i)">
-                          <option [ngValue]="null">-- Select Faculty --</option>
-                          <option *ngFor="let f of faculties" [ngValue]="f.id">
-                            {{ f.name }}
-                          </option>
-                        </select>
-
-                      </div>
-                      <div class="col-md-3">
-                        <label class="form-label">Department</label>
-
-
-                        <select class="form-select" formControlName="academicTitle"  [ngClass]="{
-              'is-invalid':
-                a.get('departmentId')?.invalid &&
-                (a.get('departmentId')?.touched || a.get('departmentId')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-
-                          <option value="1">Maths</option>
-                          <option value="2">Science</option>
-
-                        </select>
-                        <!--                        <select class="form-select" formControlName="departmentId"  [ngClass]="{-->
-                        <!--              'is-invalid':-->
-                        <!--                a.get('departmentId')?.invalid &&-->
-                        <!--                (a.get('departmentId')?.touched || a.get('departmentId')?.dirty)-->
-                        <!--            }">-->
-                        <!--                          <option [ngValue]="null">&#45;&#45; Select Department &#45;&#45;</option>-->
-                        <!--                          <option-->
-                        <!--                            *ngFor="let d of departmentsMap[i] || []"-->
-                        <!--                            [ngValue]="d.id"-->
-                        <!--                          >-->
-                        <!--                            {{ d.name }}-->
-                        <!--                          </option>-->
-                        <!--                        </select>-->
-
-                      </div>
-                      <!-- Row 5: academic title -->
-                      <div class="col-md-3">
-
-
-                        <label class="form-label">Academic Title</label>
-                        <select class="form-select" formControlName="academicTitle"  [ngClass]="{
-              'is-invalid':
-                a.get('academicTitle')?.invalid &&
-                (a.get('academicTitle')?.touched || a.get('academicTitle')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-
-                          <option value="MR">Mr</option>
-                          <option value="MS">Ms</option>
-                          <option value="MRS">Mrs</option>
-                          <option value="MISS">Miss</option>
-                          <option value="DR">Dr</option>
-                          <option value="PROF">Prof</option>
-                          <option value="ADV">Adv</option>
-                          <option value="REV">Rev</option>
-                          <option value="PASTOR">Pastor</option>
-                          <option value="IMAM">Imam</option>
-                          <option value="RABBI">Rabbi</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-
-                      </div>
-
-                      <!-- Remove button -->
-                      <div class="col-12 d-flex justify-content-end">
-                        <button
-                          type="button"
-                          class="btn btn-outline-danger btn-sm"
-                          (click)="removeAuthor(i)"
-                          *ngIf="authorsFA.length > 1"
-                        >
-                          Remove Author
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <button type="button" class="btn btn-outline-primary mt-2" (click)="addAuthor()">
-                  + Add Author
-                </button>
-              </div>
-              <!-- Units Section -->
-              <div class="mb-4">
-                <h6 class="mb-3">Units & Contributions</h6>
-                <div class="row g-3">
-
-                  <div class="col-md-3">
-                    <label class="form-label">Max Units for Publication</label>
-                    <input type="number" class="form-control" formControlName="maxUnitsForPublication" />
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Total Proportion of Authors <span class="text-danger">*</span></label>
-                    <input type="number" step="0.01" class="form-control" formControlName="totalProportionOfAuthors"
-                      [ngClass]="{'is-invalid': form.get('totalProportionOfAuthors')?.invalid && form.get('totalProportionOfAuthors')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('totalProportionOfAuthors')?.invalid && form.get('totalProportionOfAuthors')?.touched">
-                      Total proportion is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Author Count <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="authorCount" [disabled]="true" />
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Non Affiliated Authors Count <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="otherAuthorsNonAffiliated" [disabled]="true" />
-                  </div>
+<!--<div class="pc-container">-->
+<!--  <div class="pc-content">-->
+
+<!--    &lt;!&ndash; Header &ndash;&gt;-->
+<!--    <div class="page-header">-->
+<!--      <div class="page-block">-->
+<!--        <div class="row align-items-center g-0">-->
+<!--          <div class="col-sm-auto">-->
+<!--            <h5 class="mb-0">Book Details</h5>-->
+<!--          </div>-->
+<!--          <div class="col-sm-auto">-->
+<!--            <ul class="breadcrumb">-->
+<!--              <li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li>-->
+<!--              <li class="breadcrumb-item"><a routerLink="/books">Books</a></li>-->
+<!--              <li class="breadcrumb-item">Details</li>-->
+<!--            </ul>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+
+<!--    &lt;!&ndash; Form &ndash;&gt;-->
+<!--    <div class="card">-->
+<!--      <div class="card-body">-->
+
+<!--        <form [formGroup]="form" (ngSubmit)="onSubmit()">-->
+
+<!--          &lt;!&ndash; BOOK DETAILS &ndash;&gt;-->
+<!--          <h6 class="mb-3">Book Details</h6>-->
+
+<!--          <div class="row g-3">-->
+
+<!--            <div class="col-md-4">-->
+<!--              <label class="form-label">DHET No</label>-->
+<!--              <input class="form-control" formControlName="dhetNo" readonly>-->
+<!--            </div>-->
+
+<!--            <div class="col-md-4">-->
+<!--              <label class="form-label">Year</label>-->
+<!--              <input type="number" class="form-control" formControlName="year">-->
+<!--            </div>-->
+
+<!--            <div class="col-md-4">-->
+<!--              <label class="form-label">Title</label>-->
+<!--              <input class="form-control" formControlName="title">-->
+<!--            </div>-->
+
+<!--            <div class="col-md-4">-->
+<!--              <label class="form-label">Publisher</label>-->
+<!--              <input class="form-control" formControlName="publisher">-->
+<!--            </div>-->
+
+<!--            <div class="col-md-4">-->
+<!--              <label class="form-label">ISBN</label>-->
+<!--              <input class="form-control" formControlName="isbn">-->
+<!--            </div>-->
+
+<!--            <div class="col-md-4">-->
+<!--              <label class="form-label">Field of Research</label>-->
+<!--              <input class="form-control" formControlName="field">-->
+<!--            </div>-->
+
+<!--            <div class="col-md-3">-->
+<!--              <label class="form-label">Total Pages</label>-->
+<!--              <input type="number" class="form-control" formControlName="totalPages">-->
+<!--            </div>-->
+
+<!--            <div class="col-md-3">-->
+<!--              <label class="form-label">Start Page</label>-->
+<!--              <input type="number" class="form-control" formControlName="startPage">-->
+<!--            </div>-->
+
+<!--            <div class="col-md-3">-->
+<!--              <label class="form-label">End Page</label>-->
+<!--              <input type="number" class="form-control" formControlName="endPage">-->
+<!--            </div>-->
+
+<!--            <div class="col-md-3">-->
+<!--              <label class="form-label">Pages Claimed</label>-->
+<!--              <input type="number" class="form-control" formControlName="pagesClaimed">-->
+<!--            </div>-->
+
+<!--          </div>-->
+
+<!--          &lt;!&ndash; AUTHORS &ndash;&gt;-->
+<!--          <div class="mt-4">-->
+<!--            <h6>Authors</h6>-->
+
+<!--            <div formArrayName="authors">-->
+<!--              <div *ngFor="let a of authors.controls; let i = index" [formGroupName]="i" class="border p-3 mb-2">-->
+
+<!--                <div class="row g-2">-->
 
 <!--                  <div class="col-md-3">-->
-<!--                    <label class="form-label">Total Units Claimed <span class="text-danger">*</span></label>-->
-<!--                    <input type="number" class="form-control" formControlName="totalUnitsClaimed" [disabled]="true" />-->
+<!--                    <input class="form-control" placeholder="Employee No" formControlName="employeeNo">-->
 <!--                  </div>-->
 
-                </div>
-              </div>
-              <div class="mb-4">
-                <h6 class="mb-3">Claiming Authors Contribution</h6>
-                <div class="row g-3">
-                  <div class="col-md-4">
-                    <label class="form-label">Proportion of Authors</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      class="form-control"
-                      formControlName="proportionOfAuthors"
-                      readonly
-                    />
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label">Author Units Claimed</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      class="form-control"
-                      formControlName="authorUnitsClaimed"
-                      readonly
-                    />
-                  </div>
-                  <div class="col-md-12">
-                    <label class="form-label">Additional Comments</label>
-                    <textarea class="form-control" rows="2" formControlName="additionalComments"></textarea>
-                  </div>
-                </div>
-              </div>
+<!--                  <div class="col-md-3">-->
+<!--                    <input class="form-control" placeholder="First Name" formControlName="firstName">-->
+<!--                  </div>-->
 
+<!--                  <div class="col-md-3">-->
+<!--                    <input class="form-control" placeholder="Surname" formControlName="surname">-->
+<!--                  </div>-->
 
-              <!-- Optional Fields Section -->
+<!--                  <div class="col-md-3">-->
+<!--                    <input class="form-control" placeholder="Orcid" formControlName="orcid">-->
+<!--                  </div>-->
 
-<!--              &lt;!&ndash; Actions &ndash;&gt;-->
-<!--              <div class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white">-->
-<!--                <button type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>-->
-<!--                <button type="submit" class="btn btn-primary">Submit</button>-->
+<!--                  <div class="col-12 text-end">-->
+<!--                    <button type="button" class="btn btn-danger btn-sm" (click)="removeAuthor(i)">-->
+<!--                      Remove-->
+<!--                    </button>-->
+<!--                  </div>-->
+
+<!--                </div>-->
+
 <!--              </div>-->
-            </form>
+<!--            </div>-->
 
-            <!-- Preview JSON -->
-            <div class="mt-4" *ngIf="showPreview">
-              <h6>Preview JSON</h6>
-              <pre class="bg-light p-3 border rounded small" style="max-height: 400px; overflow:auto;">
-{{ previewJson }}
-              </pre>
-              <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closePreview()">
-                Close Preview
-              </button>
+<!--            <button type="button" class="btn btn-outline-primary" (click)="addAuthor()">-->
+<!--              + Add Author-->
+<!--            </button>-->
+<!--          </div>-->
+
+<!--          &lt;!&ndash; UNITS &ndash;&gt;-->
+<!--          <div class="mt-4" formGroupName="units">-->
+<!--            <h6>Units</h6>-->
+
+<!--            <div class="row g-3">-->
+
+<!--              <div class="col-md-3">-->
+<!--                <label>Max Units</label>-->
+<!--                <input type="number" class="form-control" formControlName="maxUnits">-->
+<!--              </div>-->
+
+<!--              <div class="col-md-3">-->
+<!--                <label>Authors Count</label>-->
+<!--                <input type="number" class="form-control" formControlName="authorsCount" readonly>-->
+<!--              </div>-->
+
+<!--              <div class="col-md-3">-->
+<!--                <label>Proportion</label>-->
+<!--                <input type="number" class="form-control" formControlName="proportion" readonly>-->
+<!--              </div>-->
+
+<!--              <div class="col-md-3">-->
+<!--                <label>Total Units</label>-->
+<!--                <input type="number" class="form-control" formControlName="totalUnits" readonly>-->
+<!--              </div>-->
+
+<!--            </div>-->
+<!--          </div>-->
+
+<!--          &lt;!&ndash; ACTIONS &ndash;&gt;-->
+<!--          <div class="mt-4 text-center">-->
+<!--            <button class="btn btn-primary">Save Book</button>-->
+<!--          </div>-->
+
+<!--        </form>-->
+
+<!--      </div>-->
+<!--    </div>-->
+
+<!--  </div>-->
+<!--</div>-->
+
+<!-- ================= BOOK DETAILS ================= -->
+<div class="pc-container">
+  <div class="pc-content">
+
+    <div class="page-header">
+      <h5>Book Details</h5>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+
+        <form>
+
+          <!-- BOOK DETAILS -->
+          <h6>Book Details</h6>
+
+          <div class="row g-3">
+
+            <div class="col-md-4">
+              <label>DHET No</label>
+              <input class="form-control" value="B0001" readonly>
+            </div>
+
+            <div class="col-md-4">
+              <label>Year</label>
+              <input type="number" class="form-control" value="2025">
+            </div>
+
+            <div class="col-md-4">
+              <label>Title</label>
+              <input class="form-control" value="AI in Modern Systems">
+            </div>
+
+            <div class="col-md-4">
+              <label>Publisher</label>
+              <input class="form-control" value="Springer">
+            </div>
+
+            <div class="col-md-4">
+              <label>ISBN</label>
+              <input class="form-control" value="978-3-16-148410-0">
+            </div>
+
+            <div class="col-md-4">
+              <label>Field of Research</label>
+              <input class="form-control" value="Computer Science">
+            </div>
+
+            <div class="col-md-3">
+              <label>Total Pages</label>
+              <input type="number" class="form-control" value="300">
+            </div>
+
+            <div class="col-md-3">
+              <label>Start Page</label>
+              <input type="number" class="form-control" value="1">
+            </div>
+
+            <div class="col-md-3">
+              <label>End Page</label>
+              <input type="number" class="form-control" value="300">
+            </div>
+
+            <div class="col-md-3">
+              <label>Pages Claimed</label>
+              <input type="number" class="form-control" value="300">
             </div>
 
           </div>
-        </div>
+
+          <!-- AUTHORS -->
+          <div class="mt-4">
+            <h6>Authors</h6>
+
+            <div class="border p-3 mb-2">
+              <div class="row g-2">
+                <div class="col-md-3">
+                  <input class="form-control" value="EMP001">
+                </div>
+                <div class="col-md-3">
+                  <input class="form-control" value="John">
+                </div>
+                <div class="col-md-3">
+                  <input class="form-control" value="Doe">
+                </div>
+                <div class="col-md-3">
+                  <input class="form-control" value="0000-0000-0000-0000">
+                </div>
+              </div>
+            </div>
+
+            <div class="border p-3 mb-2">
+              <div class="row g-2">
+                <div class="col-md-3">
+                  <input class="form-control" value="EMP002">
+                </div>
+                <div class="col-md-3">
+                  <input class="form-control" value="Jane">
+                </div>
+                <div class="col-md-3">
+                  <input class="form-control" value="Smith">
+                </div>
+                <div class="col-md-3">
+                  <input class="form-control" value="0000-0000-0000-0001">
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-outline-primary">
+              + Add Author
+            </button>
+          </div>
+
+          <!-- UNITS -->
+          <div class="mt-4">
+            <h6>Units</h6>
+
+            <div class="row g-3">
+
+              <div class="col-md-3">
+                <label>Max Units</label>
+                <input type="number" class="form-control" value="10">
+              </div>
+
+              <div class="col-md-3">
+                <label>Authors Count</label>
+                <input type="number" class="form-control" value="2" readonly>
+              </div>
+
+              <div class="col-md-3">
+                <label>Proportion</label>
+                <input type="number" class="form-control" value="0.5" readonly>
+              </div>
+
+              <div class="col-md-3">
+                <label>Total Units</label>
+                <input type="number" class="form-control" value="5" readonly>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ACTION -->
+          <div class="mt-4 text-center">
+            <button class="btn btn-primary">Save Book</button>
+          </div>
+
+        </form>
+
       </div>
     </div>
 
