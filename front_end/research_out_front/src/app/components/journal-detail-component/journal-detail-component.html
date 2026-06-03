@@ -26,7 +26,10 @@
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Researcher's Journal Interface</h5>
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2" *ngIf="!isReadOnlyView && !canShowApproverDecisionActions()">
+<!--              <button class="btn btn-outline-success btn-sm" type="button" (click)="exportCurrentJournalExcel()">-->
+<!--                Export Excel-->
+<!--              </button>-->
               <button class="btn btn-outline-secondary btn-sm" type="button" (click)="preview()">
                 Preview JSON
               </button>
@@ -66,10 +69,15 @@
             <!-- Saved Journal Info -->
             <div *ngIf="lastSavedJournalId" class="alert alert-info mt-3" role="alert">
               <i class="fa fa-info-circle me-2"></i>
-              <strong>Previously Saved:</strong> You're editing journal entry (ID: {{ lastSavedJournalId }}). Your progress is automatically saved at each step.
+              <strong>Previously Saved:</strong> You're editing journal entry (ID: {{ lastSavedJournalId }}).
+            </div>
+
+            <div *ngIf="isReadOnlyView" class="alert alert-warning mt-3" role="alert">
+              Review mode: journal details are read-only. Use the review queue page to Approve or Reject.
             </div>
 
             <form [formGroup]="form" (ngSubmit)="onSubmit()">
+              <fieldset [disabled]="isReadOnlyView">
 
               <!-- STEP 1: Journal Information -->
               <div *ngIf="currentStep === 1">
@@ -86,6 +94,9 @@
                     <div class="col-md-4">
                       <label class="form-label required">Year of Publication</label>
                       <input type="number" class="form-control" formControlName="year"
+                             min="1900"
+                             max="2100"
+                             placeholder="e.g., 1995"
                              [ngClass]="{'is-invalid': form.get('year')?.invalid && (form.get('year')?.touched || form.get('year')?.dirty)}" />
                     </div>
 
@@ -119,10 +130,11 @@
                     <div class="col-md-4">
                       <label class="form-label">Comply with 75% rule</label>
                       <select class="form-select" formControlName="comply"
-                              [ngClass]="{'is-invalid': form.get('comply')?.invalid && (form.get('comply')?.touched || form.get('comply')?.dirty)}">
-                        <option [ngValue]="null" disabled>Choose...</option>
+                                [ngClass]="{'is-invalid': form.get('comply')?.invalid && (form.get('comply')?.touched || form.get('comply')?.dirty)}">
+                        <option [ngValue]="">Not Applicable</option>
                         <option [ngValue]="true">Yes</option>
                         <option [ngValue]="false">No</option>
+
                       </select>
                     </div>
 
@@ -140,8 +152,8 @@
 
                     <div class="col-md-4">
                       <label class="form-label">ISSN</label>
-                      <input class="form-control" formControlName="issn" placeholder="1234-567X"
-                             [ngClass]="{'is-invalid': form.get('issn')?.invalid && form.get('issn')?.touched || form.errors?.['duplicateJournal']}" />
+                      <input class="form-control" formControlName="issn" placeholder="1234-567X or 123456"
+                             [ngClass]="{'is-invalid': form.get('issn')?.invalid && (form.get('issn')?.touched || form.get('issn')?.dirty)}"/>
                     </div>
 
                     <div class="col-md-4">
@@ -217,6 +229,15 @@
                       <input type="number" class="form-control" formControlName="authorsContributionFeeZar" />
                     </div>
                   </div>
+
+                  <div class="row g-3 mt-2">
+                    <div class="col-12">
+                      <label class="form-label">Additional Comments</label>
+                      <textarea class="form-control" formControlName="additionalComments"
+                                rows="3" placeholder="Add any additional comments about Journal.."></textarea>
+                      <small class="text-muted">Optional field for additional context or notes</small>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -226,10 +247,10 @@
                  <div class="alert alert-info mb-3">
                    <i class="fa fa-info-circle me-2"></i> Affiliated authors are associated with your institution.
                  </div>
-                 <div formArrayName="authors" class="vstack gap-3">
-                   <ng-container *ngFor="let a of authorsFA.controls; let i = index">
-                     <div *ngIf="a.get('affiliation')?.value === true" class="author-card border rounded p-3" [formGroupName]="i">
-                       <!-- Author Header -->
+                  <div formArrayName="authors" class="vstack gap-3">
+                    <ng-container *ngFor="let a of authorsFA.controls; let i = index; trackBy: trackByIndex">
+                      <div *ngIf="a.get('affiliation')?.value === true" class="author-card border rounded p-3" [formGroupName]="i">
+                        <!-- Author Header -->
                        <div class="row g-3 mb-3">
                          <div class="col-12 d-flex justify-content-between align-items-center">
                            <h6 class="mb-0">Author {{ i + 1 }}</h6>
@@ -241,10 +262,12 @@
 
                        <!-- Row 1: Basic Info (Student/Employee No, First Names, Surname, Initials) -->
                        <div class="row g-3">
-                         <div class="col-md-3">
-                           <label class="form-label required">Student/Employee No.</label>
-                           <input class="form-control" formControlName="studentEmployeeNo" [ngClass]="{'is-invalid': a.get('studentEmployeeNo')?.invalid && a.get('studentEmployeeNo')?.touched}"/>
-                         </div>
+                          <div class="col-md-3">
+                            <label class="form-label required">Student/Employee No.</label>
+                            <input class="form-control" formControlName="studentEmployeeNo"
+                                   [ngClass]="{'is-invalid': a.get('studentEmployeeNo')?.invalid && a.get('studentEmployeeNo')?.touched}"/>
+                            <small class="text-danger" *ngIf="a.get('studentEmployeeNo')?.hasError('required') && a.get('studentEmployeeNo')?.touched">Required for affiliated authors</small>
+                          </div>
                          <div class="col-md-3">
                            <label class="form-label required">First-Names</label>
                            <input class="form-control" formControlName="firstName" [ngClass]="{'is-invalid': a.get('firstName')?.invalid && a.get('firstName')?.touched}"/>
@@ -259,14 +282,16 @@
                          </div>
 
                          <!-- Row 2: Gender, Population Group, DOB -->
-                         <div class="col-md-3">
-                           <label class="form-label required">Gender</label>
-                           <select class="form-select" formControlName="gender" [ngClass]="{'is-invalid': a.get('gender')?.invalid && a.get('gender')?.touched}">
-                             <option [ngValue]="null" disabled>Choose...</option>
-                             <option [ngValue]="'MALE'">Male</option>
-                             <option [ngValue]="'FEMALE'">Female</option>
-                           </select>
-                         </div>
+                          <div class="col-md-3">
+                            <label class="form-label required">Gender</label>
+                            <select class="form-select" formControlName="gender"
+                                    [ngClass]="{'is-invalid': a.get('gender')?.invalid && a.get('gender')?.touched}">
+                              <option [ngValue]="null" disabled>Choose...</option>
+                              <option [ngValue]="'MALE'">Male</option>
+                              <option [ngValue]="'FEMALE'">Female</option>
+                            </select>
+                            <small class="text-danger" *ngIf="a.get('gender')?.hasError('required') && a.get('gender')?.touched">Required for affiliated authors</small>
+                          </div>
                          <div class="col-md-3">
                            <label class="form-label">Population Group</label>
                            <select class="form-select" formControlName="populationGroup">
@@ -278,47 +303,32 @@
                              <option value="Other">Other</option>
                            </select>
                          </div>
-                         <div class="col-md-6">
-                           <label class="form-label">DOB (Month/Day)</label>
-                           <div class="input-group">
-                             <select class="form-select" formControlName="dobMonth">
-                               <option value="">Month</option>
-                               <option value="01">January</option>
-                               <option value="02">February</option>
-                               <option value="03">March</option>
-                               <option value="04">April</option>
-                               <option value="05">May</option>
-                               <option value="06">June</option>
-                               <option value="07">July</option>
-                               <option value="08">August</option>
-                               <option value="09">September</option>
-                               <option value="10">October</option>
-                               <option value="11">November</option>
-                               <option value="12">December</option>
-                             </select>
-                             <select class="form-select" formControlName="dobDay">
-                               <option value="">Day</option>
-                               <option *ngFor="let day of getDaysArray()" [value]="day">{{ day }}</option>
-                             </select>
-                           </div>
+                         <div class="col-md-3">
+                           <label class="form-label">Year of Birth</label>
+                           <input type="number"
+                                  class="form-control"
+                                  formControlName="dob"
+                                  min="1900"
+                                  max="2100"
+                                  placeholder="e.g., 1995" />
                          </div>
 
                          <!-- Row 3: Email, ORCID -->
-                         <div class="col-md-6">
+                         <div class="col-md-3">
                            <label class="form-label required">Email</label>
                            <input type="email" class="form-control" formControlName="email" placeholder="example@email.com" [ngClass]="{'is-invalid': a.get('email')?.invalid && a.get('email')?.touched}"/>
                          </div>
-                         <div class="col-md-6">
+                         <div class="col-md-3">
                            <label class="form-label">ORCID</label>
                            <input class="form-control" formControlName="orcid" placeholder="0000-0000-0000-0000" [ngClass]="{'is-invalid': a.get('orcid')?.invalid && a.get('orcid')?.touched}"/>
                          </div>
 
                          <!-- Row 4: Country of Birth, Residency Status, Disability -->
-                         <div class="col-md-4">
+                         <div class="col-md-3">
                            <label class="form-label">Country of Birth</label>
                            <input type="text" class="form-control" formControlName="countryOfBirth" autocomplete="off" [ngClass]="{'is-invalid': a.get('countryOfBirth')?.invalid && a.get('countryOfBirth')?.touched}"/>
                          </div>
-                         <div class="col-md-4">
+                         <div class="col-md-3">
                            <label class="form-label">Residency Status</label>
                            <select class="form-select" formControlName="saResidencyStatus">
                              <option [ngValue]="null">Choose...</option>
@@ -333,7 +343,7 @@
                              <option value="OTHER">Other</option>
                            </select>
                          </div>
-                         <div class="col-md-4">
+                         <div class="col-md-3">
                            <label class="form-label">Disability</label>
                            <select class="form-select" formControlName="disability">
                              <option [ngValue]="false">No</option>
@@ -342,7 +352,7 @@
                          </div>
 
                          <!-- Row 5: Qualification, Employment, Department -->
-                         <div class="col-md-4">
+                         <div class="col-md-3">
                            <label class="form-label">Highest Qualification</label>
                            <select class="form-select" formControlName="highestQualification">
                              <option [ngValue]="null">Choose...</option>
@@ -358,38 +368,37 @@
                              <option value="OTHER">Other</option>
                            </select>
                          </div>
-                         <div class="col-md-4">
+                         <div class="col-md-3">
                            <label class="form-label">Employment Status</label>
                            <select class="form-select" formControlName="employmentStatus">
                              <option [ngValue]="null">Choose...</option>
-                             <option value="EMPLOYED_FULL_TIME">Employed – Full Time</option>
-                             <option value="EMPLOYED_PART_TIME">Employed – Part Time</option>
-                             <option value="SELF_EMPLOYED">Self-Employed</option>
-                             <option value="UNEMPLOYED">Unemployed</option>
+                             <option value="PERMANENT">Permanent – Full Time</option>
+                             <option value="TEMPORARY">Part Time / Contract</option>
                              <option value="STUDENT">Student</option>
-                             <option value="INTERN">Intern / Learnership / Apprentice</option>
                              <option value="RETIRED">Retired</option>
-                             <option value="DISABLED">Unable to Work / Disabled</option>
+                             <option value="DECEASED">Deceased</option>
                              <option value="OTHER">Other</option>
                            </select>
                          </div>
-                         <div class="col-md-4">
-                           <label class="form-label required">Faculty</label>
-                           <select class="form-select" formControlName="facultyId" (change)="onFacultyChange(i)" [ngClass]="{'is-invalid': a.get('facultyId')?.invalid && a.get('facultyId')?.touched}">
-                             <option [ngValue]="null">-- Select Faculty --</option>
-                             <option *ngFor="let f of faculties" [ngValue]="f.id">{{ f.name }}</option>
-                           </select>
-                         </div>
+                          <div class="col-md-3">
+                            <label class="form-label required">Faculty</label>
+                            <select class="form-select" formControlName="facultyId" (change)="onFacultyChange(i)"
+                                    [ngClass]="{'is-invalid': a.get('facultyId')?.invalid && a.get('facultyId')?.touched}">
+                              <option [ngValue]="null">-- Select Faculty --</option>
+                              <option *ngFor="let f of faculties" [ngValue]="f.id">{{ f.name }}</option>
+                            </select>
+                            <small class="text-danger" *ngIf="a.get('facultyId')?.hasError('required') && a.get('facultyId')?.touched">Required for affiliated authors</small>
+                          </div>
 
                          <!-- Row 6: Department, Academic Title -->
-                         <div class="col-md-6">
+                         <div class="col-md-3">
                            <label class="form-label">Department</label>
                            <select class="form-select" formControlName="departmentId">
                              <option [ngValue]="null">-- Select Department --</option>
                              <option *ngFor="let d of departmentsMap[i] || []" [ngValue]="d.id">{{ d.name }}</option>
                            </select>
                          </div>
-                          <div class="col-md-6">
+                          <div class="col-md-3">
                             <label class="form-label">Academic Title</label>
                             <select class="form-select" formControlName="academicTitle">
                               <option [ngValue]="null">Choose...</option>
@@ -407,10 +416,20 @@
                               <option value="OTHER">Other</option>
                             </select>
                           </div>
-                        </div>
+                         </div>
 
-                        <!-- Unit Calculation & Affiliations Section -->
-                        <div class="row g-3 mt-4 p-3 bg-light rounded">
+                         <!-- Additional Comments Section -->
+                         <div class="row g-3 mt-2">
+                           <div class="col-12">
+                             <label class="form-label">Additional Comments (Affiliated Author)</label>
+                             <textarea class="form-control" formControlName="additionalComments"
+                                       rows="3" placeholder="Add any additional comments about this affiliated author..."></textarea>
+                             <small class="text-muted">Optional field for additional context or notes</small>
+                           </div>
+                         </div>
+
+                         <!-- Unit Calculation & Affiliations Section -->
+                         <div class="row g-3 mt-4 p-3 bg-light rounded">
                           <div class="col-12">
                             <h6 class="mb-3"><i class="fa fa-sitemap me-2"></i>Affiliation & Unit Calculation</h6>
                           </div>
@@ -470,7 +489,7 @@
                                   <div class="col-md-2">
                                     <div class="form-check">
                                       <input type="checkbox" class="form-check-input" formControlName="isUniven" id="univen_{{i}}_{{ui}}" />
-                                      <label class="form-check-label small" for="univen_{{i}}_{{ui}}">Is Internation?</label>
+                                      <label class="form-check-label small" for="univen_{{i}}_{{ui}}">Is International?</label>
                                     </div>
                                   </div>
                                   <div class="col-md-1 text-end">
@@ -621,7 +640,7 @@
                     </div>
                   </div>
 
-                  <button type="button" class="btn btn-outline-primary mt-3" (click)="addAuthor(true)">
+                  <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-primary mt-3" (click)="addAuthor(true)">
                     + Add Affiliated Author
                   </button>
                </div>
@@ -633,9 +652,9 @@
                   <i class="fa fa-info-circle me-2"></i> Non-affiliated authors are not associated with your institution.
                 </div>
                 <div formArrayName="authors" class="vstack gap-3">
-                  <ng-container *ngFor="let a of authorsFA.controls; let i = index">
-                    <div *ngIf="a.get('affiliation')?.value !== true" class="author-card border rounded p-3" [formGroupName]="i">
-                      <div class="row g-3">
+                   <ng-container *ngFor="let a of authorsFA.controls; let i = index; trackBy: trackByIndex">
+                     <div *ngIf="a.get('affiliation')?.value !== true" class="author-card border rounded p-3" [formGroupName]="i">
+                       <div class="row g-3">
                         <div class="col-12 d-flex justify-content-between">
                           <h6>Non-Affiliated Author</h6>
                           <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeAuthor(i)">
@@ -668,7 +687,7 @@
                     </div>
                   </ng-container>
                 </div>
-                <button type="button" class="btn btn-outline-primary mt-3" (click)="addAuthor(false)">
+                <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-primary mt-3" (click)="addAuthor(false)">
                   + Add Non-Affiliated Author
                 </button>
               </div>
@@ -773,7 +792,7 @@
 
                 <div class="mb-4">
                   <h6 class="mb-3">Attachments</h6>
-                  <div class="card mb-3">
+                  <div class="card mb-3" *ngIf="!isReadOnlyView">
                     <div class="card-body">
                       <div class="row g-3 align-items-center">
                         <div class="col-md-5">
@@ -798,7 +817,7 @@
                         <div class="col-md-8"><strong>{{ att.fileName }}</strong> - {{ att.description }}</div>
                         <div class="col-md-4 text-end">
                           <button type="button" class="btn btn-outline-success btn-sm me-2" (click)="viewAttachment(i)"><i class="fa fa-eye"></i></button>
-                          <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeAttachmentRow(i)"><i class="fa fa-trash"></i></button>
+                           <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-danger btn-sm" (click)="removeAttachmentRow(i)"><i class="fa fa-trash"></i></button>
                         </div>
                       </div>
                     </div>
@@ -813,32 +832,41 @@
               </div>
 
               <!-- Stepper Actions -->
-              <div class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white mt-4">
+              <div *ngIf="!isReadOnlyView && !canShowApproverDecisionActions()" class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white mt-4">
                 <button type="button" class="btn btn-outline-secondary" [disabled]="currentStep === 1" (click)="prevStep()">← Previous</button>
 <!--                <button type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>-->
 
-                <!-- Save Button (Available on all steps) -->
-                <button type="button" class="btn btn-outline-success" [disabled]="isSaving" (click)="saveCurrentStep()">
-                  <i class="fa fa-save me-1"></i>
-                  <span *ngIf="!isSaving">Save</span>
-                  <span *ngIf="isSaving"><i class="fa fa-spinner fa-spin"></i> Saving...</span>
-                </button>
+                <!-- Submit-only flow: no intermediate save button -->
 
                 <!-- Save & Continue Button (All steps except last) -->
-                <button *ngIf="currentStep < totalSteps" type="button" class="btn btn-outline-primary" [disabled]="isSaving || currentStep === totalSteps" (click)="saveAndContinue()">
-                  <i class="fa fa-arrow-right me-1"></i>
-                  <span *ngIf="!isSaving">Save & Continue</span>
-                  <span *ngIf="isSaving"><i class="fa fa-spinner fa-spin"></i> Saving...</span>
-                </button>
+<!--                <button *ngIf="currentStep < totalSteps&&currentStep !== 1" type="button" class="btn btn-outline-primary" [disabled]="isSaving || currentStep === totalSteps" (click)="saveAndContinue()">-->
+<!--                  <i class="fa fa-arrow-right me-1"></i>-->
+<!--                  <span *ngIf="!isSaving">Save & Continue</span>-->
+<!--                  <span *ngIf="isSaving"><i class="fa fa-spinner fa-spin"></i> Saving...</span>-->
+<!--                </button>-->
 
                 <!-- Next Button (All steps except last) -->
                 <button *ngIf="currentStep < totalSteps" type="button" class="btn btn-outline-primary" [disabled]="currentStep === totalSteps" (click)="goToNextStep()">Next →</button>
 
                 <!-- Submit Button (Only on last step) -->
-                <button *ngIf="currentStep === totalSteps" type="submit" class="btn btn-primary" (ngSubmit)="onSubmit()">
+                <button *ngIf="currentStep === totalSteps" type="submit" class="btn btn-primary">
                   <i class="fa fa-check me-1"></i> Submit Final
                 </button>
               </div>
+
+              <div *ngIf="canShowApproverDecisionActions()" class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white mt-4">
+                <button type="button" class="btn btn-outline-danger" [disabled]="isSaving" (click)="rejectAfterEdit()">
+                  <i class="fa fa-times me-1"></i>
+                  <span *ngIf="!isSaving">Reject</span>
+                  <span *ngIf="isSaving"><i class="fa fa-spinner fa-spin"></i> Processing...</span>
+                </button>
+                <button type="button" class="btn btn-success" [disabled]="isSaving" (click)="approveAfterEdit()">
+                  <i class="fa fa-check me-1"></i>
+                  <span *ngIf="!isSaving">Approve</span>
+                  <span *ngIf="isSaving"><i class="fa fa-spinner fa-spin"></i> Processing...</span>
+                </button>
+              </div>
+            </fieldset>
 
             </form>
 

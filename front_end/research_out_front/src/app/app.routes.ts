@@ -23,6 +23,8 @@ import {
 import {
   ConferenceProceedingsDetailComponent
 } from './components/conference-proceedings-detail-component/conference-proceedings-detail-component';
+import { JournalReviewComponent } from './components/journal-review-component/journal-review-component';
+import { RoleAssignmentComponent } from './components/role-assignment-component/role-assignment-component';
 
 
 export const routes: Routes = [
@@ -40,6 +42,18 @@ export const routes: Routes = [
           { path: 'research-output/create', component: ResearchOutputDetailComponent },
           { path: 'journal', component: JournalComponent },
           { path: 'journal/details', component: JournalDetailComponent},
+          {
+            path: 'journal/review',
+            component: JournalReviewComponent,
+            canActivate: [AuthGuard],
+            data: { roles: ['ADMIN', 'REVIEWER_LEVEL_1', 'REVIEWER_LEVEL_2'] }
+          },
+          {
+            path: 'admin/roles',
+            component: RoleAssignmentComponent,
+            canActivate: [AuthGuard],
+            data: { roles: ['ADMIN'] }
+          },
           { path: 'books', component: BooksFieldsComponent },
           { path: 'book/details', component: BooksFieldsDetailComponent},
           { path: 'chapters', component: ChapterComponent },

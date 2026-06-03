@@ -29,6 +29,22 @@
             <span class="pc-mtext" data-i18n="Journals / Article" >Journals / Article</span>
           </a>
         </li>
+        <li *ngIf="hasAnyRole('REVIEWER_LEVEL_1', 'REVIEWER_LEVEL_2', 'ADMIN')" class="pc-item" routerLink="journal/review" routerLinkActive="active" >
+          <a routerLink="journal/review" routerLinkActive="active" class="pc-link">
+            <span class="pc-micon">
+              <i class="ph-duotone ph-check-square-offset"></i>
+            </span>
+            <span class="pc-mtext" data-i18n="Reviewer Queue">Reviewer Queue</span>
+          </a>
+        </li>
+        <li *ngIf="hasAnyRole('ADMIN')" class="pc-item" routerLink="admin/roles" routerLinkActive="active" >
+          <a routerLink="admin/roles" routerLinkActive="active" class="pc-link">
+            <span class="pc-micon">
+              <i class="ph-duotone ph-users-three"></i>
+            </span>
+            <span class="pc-mtext" data-i18n="Role Assignment">Role Assignment</span>
+          </a>
+        </li>
         <li class="pc-item" routerLink="books" routerLinkActive="active" >
           <a routerLink="books" routerLinkActive="active" class="pc-link">
             <span class="pc-micon">
@@ -163,26 +179,7 @@
 
 <router-outlet></router-outlet>
 
-<footer class="pc-footer">
-  <div class="footer-wrapper container-fluid">
-    <div class="row">
-      <div class="col my-1">
-        <p class="m-0"
-        >Dashboardkit &#9829; crafted by Team <a href="https://themeforest.net/user/phoenixcoded" target="_blank">Phoenixcoded</a></p
-        >
-      </div>
-      <div class="col-auto my-1">
-        <ul class="list-inline footer-link mb-0">
-          <li class="list-inline-item"><a href="../index.html">Home</a></li>
-          <li class="list-inline-item"
-          ><a href="https://codedthemes.gitbook.io/dashboardkit-bootstrap" target="_blank">Documentation</a></li
-          >
-          <li class="list-inline-item"><a href="https://phoenixcoded.authordesk.app/" target="_blank">Support</a></li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</footer>
+
 
 
 <script>

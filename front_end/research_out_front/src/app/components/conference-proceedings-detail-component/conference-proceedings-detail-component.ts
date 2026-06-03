@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import {
   AbstractControl,
   FormArray,
@@ -37,6 +37,14 @@ export class ConferenceProceedingsDetailComponent {
   showPreview = false;
   previewJson = '';
   form: FormGroup;
+  currentStep = 1;
+  totalSteps = 4;
+  steps = [
+    { id: 1, label: 'Conference Information' },
+    { id: 2, label: 'Affiliated Authors' },
+    { id: 3, label: 'Non-Affiliated Authors' },
+    { id: 4, label: 'Results & Submission' }
+  ];
   faculties: Faculty[] = [];
   fieldofsearch: string[] = ["Agricultural Sciences", "Biological Sciences", "Chemical Sciences", "Computer and Information Sciences", "Sciences"];
   departmentsMap: { [index: number]: Department[] } = {};
@@ -48,13 +56,44 @@ export class ConferenceProceedingsDetailComponent {
   filteredResearchFields: any[] = []
   showResearchFieldDropdown = false;
   publishers: Publisher[] = [];
+  unitBreakdown: {
+    totalAuthorsCount: number;
+    affiliatedAuthorsCount: number;
+    nonAffiliatedAuthorsCount: number;
+    authorSharePerAuthor: number;
+    univenTotalClaimed: number;
+    authorUnitCalculations: {
+      authorIndex: number;
+      authorName: string;
+      isAffiliated: boolean;
+      authorShare: number;
+      universityCount: number;
+      researchAffiliationsCount: number;
+      splitDetails: {
+        label: string;
+        type: string;
+        units: number;
+        claimedByUniven: boolean;
+      }[];
+      ruleApplied: string;
+      univenClaim: number;
+    }[];
+  } = {
+    totalAuthorsCount: 0,
+    affiliatedAuthorsCount: 0,
+    nonAffiliatedAuthorsCount: 0,
+    authorSharePerAuthor: 0,
+    univenTotalClaimed: 0,
+    authorUnitCalculations: []
+  };
 
   constructor(private fb: FormBuilder,
               private router: Router,
               private conferenceProceedingsService: ConferenceProceedingsService,
               private countryService: CountriesService,
               private researchFieldService: ResearchfieldService,
-              private publisherService: PublisherService ) {
+              private publisherService: PublisherService,
+              private cdr: ChangeDetectorRef ) {
 
 
     this.researchFieldService.getAll().subscribe(data => {
@@ -83,6 +122,7 @@ export class ConferenceProceedingsDetailComponent {
       year: [proceedings?.yearOfPublication ?? '', Validators.required],
       titleOfConferenceProceedings: [proceedings?.titleOfConferenceProceedings ?? '', Validators.required],
       titleOfContribution: [proceedings?.titleOfContribution ?? '', Validators.required],
+      totalChaptersInBook: [null],
       editors: [proceedings?.editors ?? ''],
       publisher: [proceedings?.publisher ?? '', Validators.required],
       isbn: [
@@ -111,7 +151,7 @@ export class ConferenceProceedingsDetailComponent {
       country: [proceedings?.country ?? '', Validators.required],
       authors: this.fb.array(
         proceedings?.authors?.length
-          ? proceedings.authors.map(a => this.newAuthor(a))
+          ? proceedings.authors.map(a => this.newAuthor(a, this.asBoolean(a.affiliation, true)))
           : [this.newAuthor()]
       ),
     },{
@@ -123,6 +163,18 @@ export class ConferenceProceedingsDetailComponent {
     this.setupAutoCalc();
 
     this.authorsFA.controls.forEach((_, i) => this.onCountrySearch(i));
+    this.authorsFA.controls.forEach(ctrl => this.initAuthorAffiliationHandling(ctrl as FormGroup));
+  }
+
+  private asBoolean(value: unknown, fallback = false): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true') return true;
+      if (normalized === 'false') return false;
+    }
+    if (typeof value === 'number') return value === 1;
+    return fallback;
   }
 
   checkTitleIsbnUnique(conferenceProceedingsService: ConferenceProceedingsService) {
@@ -175,32 +227,42 @@ export class ConferenceProceedingsDetailComponent {
 
 
   // === Builders ===
-  newAuthor(a?: Authors): FormGroup {
-    // Extract month and day from dob if it exists (format: YYYY-MM-DD)
-    let dobMonth = '';
-    let dobDay = '';
-    if (a?.dob) {
-      const parts = a.dob.split('-');
-      if (parts.length >= 3) {
-        dobMonth = parts[1];
-        dobDay = parts[2];
-      }
-    }
+  newAuthor(a?: Authors, affiliation = true): FormGroup {
+    const resolvedAffiliation = this.asBoolean(a?.affiliation, affiliation);
 
-    return this.fb.group({
+    const univArray = this.fb.array(
+      a?.universityAffiliations?.length
+        ? a.universityAffiliations.map(u => this.fb.group({
+          universityCode: [u.universityCode || '', Validators.required],
+          universityName: [u.universityName || '', Validators.required],
+          isUniven: [u.isUniven ?? false],
+          isInternationalUniversity: [u.isInternationalUniversity ?? false]
+        }))
+        : []
+    );
+
+    const researchArray = this.fb.array(
+      a?.researchAffiliations?.length
+        ? a.researchAffiliations.map(r => this.fb.group({
+          companyName: [r.companyName || '', Validators.required],
+          companyType: [r.companyType || 'OTHER', Validators.required]
+        }))
+        : []
+    );
+
+    const authorFG = this.fb.group({
       id: [a?.id ?? null],
-      affiliation: true,
-      studentEmployeeNo: [a?.studentEmployeeNo || '', Validators.required],
+      affiliation: [resolvedAffiliation],
+      studentEmployeeNo: [a?.studentEmployeeNo || null],
       firstName: [a?.firstName || '', Validators.required],
       surname: [a?.surname || '', Validators.required],
       initials: [a?.initials || ''],
-      gender: [a?.gender ?? null as string | null, Validators.required],
+      gender: [a?.gender ?? null as string | null],
       populationGroup: [a?.populationGroup || ''],
-      dobMonth: [dobMonth || ''],
-      dobDay: [dobDay || ''],
+      dob: [a?.dob || null],
       email: [a?.email || '', [Validators.required, Validators.email]],
-      facultyId: [a?.faculty ?? null, Validators.required],
-      departmentId: [a?.department ?? null, Validators.required],
+      facultyId: [a?.faculty ?? null],
+      departmentId: [a?.department ?? null],
       orcid: [
         a?.orcid || '',
         [this.patternOptional(/^\d{4}-\d{4}-\d{4}-[\dX]{4}$/i)]
@@ -214,6 +276,38 @@ export class ConferenceProceedingsDetailComponent {
       department: [a?.department || ''],
       faculty: [a?.faculty || ''],
       academicTitle: [a?.academicTitle || ''],
+      proportionOfAuthors: [null],
+      authorUnitsClaimed: [null],
+      authorShare: [a?.authorShare ?? 0],
+      totalUnitsClaimed: [a?.totalUnitsClaimed ?? 0],
+      universityAffiliations: univArray,
+      researchAffiliations: researchArray
+    });
+
+    this.updateAffiliatedValidators(authorFG, resolvedAffiliation);
+    return authorFG;
+  }
+
+  updateAffiliatedValidators(authorFG: FormGroup, isAffiliated: boolean) {
+    const requiredFieldsForAffiliated = ['studentEmployeeNo', 'gender', 'facultyId'];
+    requiredFieldsForAffiliated.forEach(field => {
+      const ctrl = authorFG.get(field);
+      if (!ctrl) return;
+
+      if (isAffiliated) {
+        ctrl.setValidators([Validators.required]);
+      } else {
+        ctrl.clearValidators();
+      }
+      ctrl.updateValueAndValidity({ emitEvent: false });
+    });
+  }
+
+  private initAuthorAffiliationHandling(authorFG: FormGroup) {
+    authorFG.get('affiliation')?.valueChanges.subscribe((value) => {
+      const isAffiliated = this.asBoolean(value, false);
+      this.updateAffiliatedValidators(authorFG, isAffiliated);
+      this.recalculateContributions();
     });
   }
 
@@ -234,50 +328,392 @@ export class ConferenceProceedingsDetailComponent {
     return days;
   }
 
-  addAuthor() {
-    this.authorsFA.push(this.newAuthor());
+  addAuthor(affiliation = true) {
+    const newAuthorFG = this.newAuthor(undefined, affiliation);
+    this.authorsFA.push(newAuthorFG);
+    this.initAuthorAffiliationHandling(newAuthorFG);
     const i = this.authorsFA.length - 1;
     this.onCountrySearch(i);
     this.recalculateContributions();
+    this.calculateAdvancedUnitBreakdown();
   }
 
   removeAuthor(i: number) {
     this.authorsFA.removeAt(i);
     this.recalculateContributions();
+    this.calculateAdvancedUnitBreakdown();
   }
 
   // === Auto-calculation logic ===
   setupAutoCalc() {
-    // Listen to author count changes
-    this.authorsFA.valueChanges.subscribe(() => this.recalculateContributions());
-    // Listen to total proportion changes
-    this.form.get('totalProportionOfAuthors')?.valueChanges.subscribe(() => this.recalculateContributions());
-    // Initial calculation
+    this.authorsFA.valueChanges.subscribe(() => {
+      this.recalculateContributions();
+      this.calculateAdvancedUnitBreakdown();
+      this.cdr.markForCheck();
+    });
+
+    this.form.get('totalProportionOfAuthors')?.valueChanges.subscribe(() => {
+      this.recalculateContributions();
+      this.calculateAdvancedUnitBreakdown();
+      this.cdr.markForCheck();
+    });
+    this.form.get('maxUnitsForPublication')?.valueChanges.subscribe(() => {
+      this.recalculateContributions();
+      this.calculateAdvancedUnitBreakdown();
+      this.cdr.markForCheck();
+    });
+
     this.recalculateContributions();
+    this.calculateAdvancedUnitBreakdown();
   }
 
   recalculateContributions() {
-    // Get all authors
     const allAuthors = this.authorsFA.controls;
-    // Affiliated authors: those with affiliation === true
-    const affiliatedAuthors = allAuthors.filter(ctrl => ctrl.get('affiliation')?.value === true);
-    const nonAffiliatedAuthors = allAuthors.filter(ctrl => ctrl.get('affiliation')?.value !== true);
-    const affiliatedCount = affiliatedAuthors.length;
+    const nonAffiliatedAuthors = allAuthors.filter(ctrl => !this.asBoolean(ctrl.get('affiliation')?.value, false));
+    const totalAuthorCount = allAuthors.length;
     const nonAffiliatedCount = nonAffiliatedAuthors.length;
 
-    // Update author count (affiliated only)
-    this.form.get('authorCount')?.setValue(affiliatedCount || 1, { emitEvent: false });
-    // Update non-affiliated count
+    this.form.get('authorCount')?.setValue(totalAuthorCount || 1, { emitEvent: false });
     this.form.get('otherAuthorsNonAffiliated')?.setValue(nonAffiliatedCount, { emitEvent: false });
 
-    // Get current values
-    const maxUnits = this.form.get('maxUnitsForPublication')?.value || 1; // Default to 1 for conference proceedings
-    // Calculate total proportion of authors (user input)
+    const maxUnits = Number(this.form.get('maxUnitsForPublication')?.value ?? 1) || 1;
     const userDefinedProportion = this.form.get('totalProportionOfAuthors')?.value || 1;
 
-    // Calculate total units claimed = maxUnits × totalProportionOfAuthors (using only affiliated authors)
     const totalUnitsClaimed = maxUnits * userDefinedProportion;
     this.form.get('totalUnitsClaimed')?.setValue(totalUnitsClaimed, { emitEvent: false });
+
+    const divisor = totalAuthorCount > 0 ? totalAuthorCount : 1;
+    const proportion = totalAuthorCount > 0 ? (1 / divisor) : 0;
+    allAuthors.forEach(ctrl => {
+      const isAffiliated = this.asBoolean(ctrl.get('affiliation')?.value, false);
+      const authorShare = totalUnitsClaimed * proportion;
+      if (isAffiliated) {
+        ctrl.get('proportionOfAuthors')?.setValue(proportion, { emitEvent: false });
+        ctrl.get('authorUnitsClaimed')?.setValue(authorShare, { emitEvent: false });
+        ctrl.get('authorShare')?.setValue(authorShare, { emitEvent: false });
+      } else {
+        ctrl.get('proportionOfAuthors')?.setValue(null, { emitEvent: false });
+        ctrl.get('authorUnitsClaimed')?.setValue(null, { emitEvent: false });
+        ctrl.get('authorShare')?.setValue(0, { emitEvent: false });
+      }
+    });
+  }
+
+  calculateAdvancedUnitBreakdown() {
+    const maxUnits = Number(this.form.get('maxUnitsForPublication')?.value ?? 1) || 1;
+    const totalProp = Number(this.form.get('totalProportionOfAuthors')?.value ?? 1) || 1;
+    const totalUnits = maxUnits * totalProp;
+
+    const allAuthorsCtrl = this.authorsFA.controls;
+    const affiliatedAuthorsCtrl = allAuthorsCtrl.filter(ctrl => this.asBoolean((ctrl as FormGroup).get('affiliation')?.value, false));
+    const nonAffiliatedAuthorsCtrl = allAuthorsCtrl.filter(ctrl => !this.asBoolean((ctrl as FormGroup).get('affiliation')?.value, false));
+
+    const totalAuthorsCount = allAuthorsCtrl.length;
+    const authorShare = totalAuthorsCount > 0 ? (totalUnits / totalAuthorsCount) : 0;
+
+    this.unitBreakdown = {
+      totalAuthorsCount,
+      affiliatedAuthorsCount: affiliatedAuthorsCtrl.length,
+      nonAffiliatedAuthorsCount: nonAffiliatedAuthorsCtrl.length,
+      authorSharePerAuthor: authorShare,
+      univenTotalClaimed: 0,
+      authorUnitCalculations: []
+    };
+
+    allAuthorsCtrl.forEach((ctrl, idx) => {
+      const fg = ctrl as FormGroup;
+      const firstName = fg.get('firstName')?.value || '';
+      const surname = fg.get('surname')?.value || '';
+      const authorName = `${firstName} ${surname}`.trim() || `Author ${idx + 1}`;
+
+      const isAffiliated = this.asBoolean(fg.get('affiliation')?.value, false);
+
+      let univAffiliations = (fg.get('universityAffiliations') as FormArray)?.getRawValue() || [];
+      const researchAffiliations = (fg.get('researchAffiliations') as FormArray)?.getRawValue() || [];
+
+      let univenClaim = 0;
+      let ruleApplied = '';
+      const splitDetails: { label: string; type: string; units: number; claimedByUniven: boolean }[] = [];
+
+      if (isAffiliated) {
+        const hasUniven = univAffiliations.some((u: any) => u.isUniven === true);
+        if (!hasUniven) {
+          univAffiliations = [{ universityName: 'UNIVEN', universityCode: 'UNIVEN', isUniven: true, isInternationalUniversity: false }, ...univAffiliations];
+        }
+      }
+
+      if (!isAffiliated) {
+        ruleApplied = 'Non-affiliated author: excluded from UNIVEN claim.';
+      } else {
+        const universityCount = univAffiliations.length;
+        const hasUniven = univAffiliations.some((u: any) => u.isUniven === true);
+        const hasInternational = univAffiliations.some((u: any) => u.isInternationalUniversity === true);
+        const hasResearch = researchAffiliations.length > 0;
+
+        if (hasInternational) {
+          univenClaim = authorShare;
+          splitDetails.push({ label: 'UNIVEN (International Rule)', type: 'UNIVERSITY', units: authorShare, claimedByUniven: true });
+          ruleApplied = 'International university affiliation: full share assigned to UNIVEN.';
+        } else if (hasUniven && hasResearch && universityCount === 1) {
+          univenClaim = authorShare;
+          splitDetails.push({ label: 'UNIVEN', type: 'UNIVERSITY', units: authorShare, claimedByUniven: true });
+          researchAffiliations.forEach((r: any) => {
+            splitDetails.push({ label: r.companyName || 'Research Company', type: r.companyType || 'RESEARCH_COMPANY', units: 0, claimedByUniven: false });
+          });
+          ruleApplied = 'UNIVEN + Research Company: full share assigned to UNIVEN.';
+        } else if (universityCount > 1) {
+          const unitPerUniv = authorShare / universityCount;
+          univAffiliations.forEach((u: any) => {
+            const isUniven = u.isUniven === true;
+            splitDetails.push({
+              label: u.universityCode || u.universityName || 'University',
+              type: 'UNIVERSITY',
+              units: unitPerUniv,
+              claimedByUniven: isUniven
+            });
+            if (isUniven) {
+              univenClaim += unitPerUniv;
+            }
+          });
+          ruleApplied = 'Split across multiple universities; UNIVEN receives proportional share.';
+        } else if (hasUniven && universityCount === 1) {
+          univenClaim = authorShare;
+          splitDetails.push({ label: 'UNIVEN', type: 'UNIVERSITY', units: authorShare, claimedByUniven: true });
+          ruleApplied = 'Single UNIVEN affiliation: full share claimed by UNIVEN.';
+        } else {
+          const unitPerUniv = universityCount > 0 ? authorShare / universityCount : 0;
+          univAffiliations.forEach((u: any) => {
+            splitDetails.push({
+              label: u.universityName || 'University',
+              type: 'UNIVERSITY',
+              units: unitPerUniv,
+              claimedByUniven: false
+            });
+          });
+          ruleApplied = 'No UNIVEN affiliation: no claim.';
+        }
+      }
+
+      this.unitBreakdown.univenTotalClaimed += univenClaim;
+      this.unitBreakdown.authorUnitCalculations.push({
+        authorIndex: idx,
+        authorName,
+        isAffiliated,
+        authorShare,
+        universityCount: univAffiliations.length,
+        researchAffiliationsCount: researchAffiliations.length,
+        splitDetails,
+        ruleApplied,
+        univenClaim
+      });
+
+      fg.patchValue({
+        authorShare,
+        totalUnitsClaimed: univenClaim,
+        authorUnitsClaimed: isAffiliated ? univenClaim : null
+      }, { emitEvent: false });
+    });
+  }
+
+  getUniversityAffiliations(authorControl: AbstractControl | null): FormArray {
+    return (authorControl?.get('universityAffiliations') as FormArray) ?? this.fb.array([]);
+  }
+
+  getResearchAffiliations(authorControl: AbstractControl | null): FormArray {
+    return (authorControl?.get('researchAffiliations') as FormArray) ?? this.fb.array([]);
+  }
+
+  addUniversityAffiliation(authorIndex: number) {
+    const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
+    univArray.push(this.fb.group({
+      universityCode: ['', Validators.required],
+      universityName: ['', Validators.required],
+      isUniven: [false],
+      isInternationalUniversity: [false]
+    }));
+    this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
+  }
+
+  removeUniversityAffiliation(authorIndex: number, univIndex: number) {
+    const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
+    univArray.removeAt(univIndex);
+    this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
+  }
+
+  addResearchAffiliation(authorIndex: number) {
+    const resArray = this.getResearchAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
+    resArray.push(this.fb.group({
+      companyName: ['', Validators.required],
+      companyType: ['OTHER', Validators.required]
+    }));
+    this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
+  }
+
+  removeResearchAffiliation(authorIndex: number, resIndex: number) {
+    const resArray = this.getResearchAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
+    resArray.removeAt(resIndex);
+    this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
+  }
+
+  isStepValid(step: number): boolean {
+    switch (step) {
+      case 1:
+        return this.isConferenceInfoValid();
+      case 2:
+        return this.isAuthorsValid(true) && this.isAffiliatedAuthorsComplete();
+      case 3:
+        return this.isAuthorsValid(false);
+      case 4:
+        return this.form.valid;
+      default:
+        return false;
+    }
+  }
+
+  private isConferenceInfoValid(): boolean {
+    const fields = [
+      'year',
+      'titleOfConferenceProceedings',
+      'titleOfContribution',
+      'publisher',
+      'isbn',
+      'fieldofsearch',
+      'originalPhotocopy',
+      'peerReviewEvidence',
+      'typeOfEvidence',
+      'totalNoPages',
+      'startPage',
+      'endPage',
+      'totalPagesClaimed',
+      'startDate',
+      'endDate',
+      'city',
+      'country'
+    ];
+
+    return fields.every(field => {
+      const control = this.form.get(field);
+      return !!control && control.valid;
+    });
+  }
+
+  private isAuthorsValid(affiliated: boolean): boolean {
+    const authors = affiliated ? this.getAffiliatedAuthors() : this.getNonAffiliatedAuthors();
+    if (affiliated && authors.length === 0) return false;
+
+    return authors.every(ctrl => {
+      return ctrl.get('firstName')?.valid
+        && ctrl.get('surname')?.valid
+        && ctrl.get('email')?.valid;
+    });
+  }
+
+  private isAffiliatedAuthorsComplete(): boolean {
+    const authors = this.getAffiliatedAuthors();
+    return authors.every(ctrl => {
+      return ctrl.get('studentEmployeeNo')?.valid
+        && ctrl.get('gender')?.valid
+        && ctrl.get('facultyId')?.valid;
+    });
+  }
+
+  markStepAsTouched(step: number) {
+    if (step === 1) {
+      const fields = [
+        'year',
+        'titleOfConferenceProceedings',
+        'titleOfContribution',
+        'publisher',
+        'isbn',
+        'fieldofsearch',
+        'originalPhotocopy',
+        'peerReviewEvidence',
+        'typeOfEvidence',
+        'totalNoPages',
+        'startPage',
+        'endPage',
+        'totalPagesClaimed',
+        'startDate',
+        'endDate',
+        'city',
+        'country'
+      ];
+      fields.forEach(f => this.form.get(f)?.markAsTouched());
+      return;
+    }
+
+    if (step === 2 || step === 3) {
+      const authors = step === 2 ? this.getAffiliatedAuthors() : this.getNonAffiliatedAuthors();
+      authors.forEach(a => a.markAllAsTouched());
+      return;
+    }
+
+    this.form.markAllAsTouched();
+  }
+
+  goToNextStep() {
+    if (this.currentStep >= this.totalSteps) return;
+
+    if (this.isStepValid(this.currentStep)) {
+      this.currentStep++;
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    this.markStepAsTouched(this.currentStep);
+    Swal.fire({
+      title: 'Incomplete Step',
+      text: 'Please fill in all required fields before proceeding.',
+      icon: 'warning'
+    });
+  }
+
+  prevStep() {
+    if (this.currentStep > 1) {
+      this.currentStep--;
+      window.scrollTo(0, 0);
+    }
+  }
+
+  goToStep(step: number) {
+    if (step === this.currentStep) return;
+
+    if (step < this.currentStep) {
+      this.currentStep = step;
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    for (let s = this.currentStep; s < step; s++) {
+      if (!this.isStepValid(s)) {
+        this.markStepAsTouched(s);
+        Swal.fire({
+          title: 'Incomplete Step',
+          text: `Please complete Step ${s} before moving to Step ${step}.`,
+          icon: 'warning'
+        });
+        return;
+      }
+    }
+
+    this.currentStep = step;
+    window.scrollTo(0, 0);
+  }
+
+  getAffiliatedAuthors() {
+    return this.authorsFA.controls.filter(ctrl => this.asBoolean((ctrl as FormGroup).get('affiliation')?.value, false));
+  }
+
+  getNonAffiliatedAuthors() {
+    return this.authorsFA.controls.filter(ctrl => !this.asBoolean((ctrl as FormGroup).get('affiliation')?.value, false));
+  }
+
+  trackByIndex(index: number): number {
+    return index;
   }
 
   // === Payload / preview / submit ===
@@ -306,7 +742,10 @@ export class ConferenceProceedingsDetailComponent {
       authorCount: raw.authorCount ? Number(raw.authorCount) : 0,
       totalUnitsClaimed: raw.totalUnitsClaimed ? Number(raw.totalUnitsClaimed) : 0,
       funders: raw.funders ?? undefined,
-      authors: raw.authors as Authors[],
+      authors: (raw.authors as Authors[]).map(author => ({
+        ...author,
+        affiliation: this.asBoolean(author.affiliation, true)
+      })),
       additionalComments: raw.additionalComments ?? undefined,
       compliesWith60Rule: raw.compliesWith60Rule,
       startDate: raw.startDate,
@@ -328,14 +767,14 @@ export class ConferenceProceedingsDetailComponent {
       isbn: '978-3-030-12345',
       fieldofsearch: '1.02',
       originalPhotocopy: 'O',
-      peerReviewEvidence: 'Yes',
+      peerReviewEvidence: 'Y',
       typeOfEvidence: 'Peer Reviewed',
       totalNoPages: 400,
       startPage: 150,
       endPage: 175,
       totalPagesClaimed: 26,
       maxUnitsForPublication: 1,
-      totalProportionOfAuthors: 0.5,
+      totalProportionOfAuthors: 1,
       funders: 'NRF; University Grant',
       additionalComments: 'Sample data',
       compliesWith60Rule: true,
@@ -372,10 +811,14 @@ export class ConferenceProceedingsDetailComponent {
     ];
 
     authorsData.forEach(a => {
-      this.authorsFA.push(this.newAuthor(a));
+      const authorFG = this.newAuthor(a);
+      this.authorsFA.push(authorFG);
+      this.initAuthorAffiliationHandling(authorFG);
     });
+    this.authorsFA.controls.forEach((_, i) => this.onCountrySearch(i));
 
     this.recalculateContributions();
+    this.calculateAdvancedUnitBreakdown();
   }
 
   preview() {
@@ -388,6 +831,7 @@ export class ConferenceProceedingsDetailComponent {
   }
 
   onSubmit() {
+    this.markStepAsTouched(this.currentStep);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -406,7 +850,7 @@ export class ConferenceProceedingsDetailComponent {
         });
         this.router.navigate(['/conference-proceedings']);
       },
-      error: err => {
+      error: () => {
 
         Swal.fire({
           title: "Success",
@@ -462,6 +906,10 @@ export class ConferenceProceedingsDetailComponent {
     this.showResearchFieldDropdown = false;
   }
 
+  openResearchFieldDropdown() {
+    this.showResearchFieldDropdown = true;
+  }
+
   hideResearchFieldDropdown() {
     setTimeout(() => {
       this.showResearchFieldDropdown = false;
@@ -470,9 +918,19 @@ export class ConferenceProceedingsDetailComponent {
 
   reset() {
     this.form.reset();
+    this.form.patchValue({
+      maxUnitsForPublication: 1,
+      totalProportionOfAuthors: 1,
+      otherAuthorsNonAffiliated: 0
+    });
     this.authorsFA.clear();
-    this.authorsFA.push(this.newAuthor());
+    const authorFG = this.newAuthor();
+    this.authorsFA.push(authorFG);
+    this.initAuthorAffiliationHandling(authorFG);
+    this.onCountrySearch(0);
+    this.currentStep = 1;
     this.recalculateContributions();
+    this.calculateAdvancedUnitBreakdown();
     this.showPreview = false;
     this.previewJson = '';
   }

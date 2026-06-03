@@ -21,6 +21,7 @@
     </div>
 
     <!-- ===================== STATS CARDS ===================== -->
+    <div *ngIf="loading" class="alert alert-info">Loading dashboard data...</div>
     <div class="row">
 
       <div class="col-xl-6 col-md-12">
@@ -177,8 +178,8 @@
                 </thead>
                 <tbody>
                 <tr *ngFor="let item of recentSubmissions">
-<!--                  <td>{{item.title}}</td>-->
-<!--                  <td>{{item.type}}</td>-->
+                  <td>{{item.title}}</td>
+                  <td>{{item.type}}</td>
                   <td>
                     <span class="badge bg-light-success" *ngIf="item.status==='APPROVED'">Approved</span>
                     <span class="badge bg-light-warning" *ngIf="item.status==='PENDING'">Pending</span>
@@ -188,6 +189,9 @@
                   <td>
                     <i class="feather icon-eye text-primary"></i>
                   </td>
+                </tr>
+                <tr *ngIf="recentSubmissions.length === 0">
+                  <td colspan="5" class="text-center text-muted">No journal submissions found for your role scope.</td>
                 </tr>
                 </tbody>
               </table>

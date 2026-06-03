@@ -4,8 +4,9 @@ import {FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators} fr
 import {LoginService} from '../../services/login.service';
 import {User} from '../../interface/user';
 import Swal from 'sweetalert2';
-import {catchError, map, of} from 'rxjs';
+import {catchError, of} from 'rxjs';
 import {LoginDTO} from '../../interface/login-dto';
+import {UserRoleService} from '../../services/user-role.service';
 
 @Component({
   selector: 'app-login-component',
@@ -26,6 +27,7 @@ export class LoginComponent {
 
   constructor(private fb: FormBuilder,
               private loginService: LoginService,
+              private userRoleService: UserRoleService,
               private route: Router)  {
 
   }
@@ -44,9 +46,7 @@ export class LoginComponent {
         return of();
       })
     ).subscribe(data => {
-      debugger;
-      sessionStorage.setItem('login', JSON.stringify(data));
-      const login: LoginDTO = data;
+      const login: any = data as LoginDTO;
       console.log('Login:', login);
       if (!login) {
         Swal.fire({
@@ -55,7 +55,24 @@ export class LoginComponent {
           icon: "error"
         });
       } else {
-        this.route.navigate(['/dashboard']).then();
+        const username = String(login?.user?.username ?? login?.username ?? '').trim();
+        this.userRoleService.listUsersWithRoles().pipe(
+          catchError(() => of([]))
+        ).subscribe(roleUsers => {
+          const currentUser = (roleUsers ?? []).find((item: any) =>
+            String(item?.username ?? '').trim().toLowerCase() === username.toLowerCase()
+          );
+
+          if (currentUser?.roles?.length) {
+            login.user = {
+              ...(login.user ?? {}),
+              roles: (currentUser.roles ?? []).map((role: any) => String(role).toUpperCase())
+            };
+          }
+
+          sessionStorage.setItem('login', JSON.stringify(login));
+          this.route.navigate(['/dashboard']).then();
+        });
       }
     });
 

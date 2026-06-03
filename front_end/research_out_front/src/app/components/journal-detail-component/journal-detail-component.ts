@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import {
   AbstractControl,
   FormArray,
@@ -19,6 +19,7 @@ import {
   Units, Attachment
 } from '../../models/common.model';
 import {JournalService} from '../../services/journal-service';
+import {JournalPermissionService} from '../../services/journal-permission.service';
 import {debounceTime, distinctUntilChanged, switchMap, Subscription, of, map} from 'rxjs';
 import {CountriesService} from '../../services/countries.service';
 import Swal from 'sweetalert2';
@@ -36,6 +37,8 @@ import {Publisher, PublisherService} from '../../services/publisher.service';
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink]
 })
 export class JournalDetailComponent implements OnInit {
+  isReadOnlyView = false;
+  isApproverDecisionMode = false;
   showPreview = false;
   previewJson = '';
   form: FormGroup;
@@ -103,9 +106,11 @@ export class JournalDetailComponent implements OnInit {
   constructor(private fb: FormBuilder,
               private router: Router,
               private journalService: JournalService,
+              private permissionService: JournalPermissionService,
               private countryService: CountriesService,
               private researchFieldService: ResearchfieldService,
-              private publisherService: PublisherService ) {
+              private publisherService: PublisherService,
+              private cdr: ChangeDetectorRef ) {
 
 
     this.researchFieldService.getAll().subscribe(data => {
@@ -122,14 +127,17 @@ export class JournalDetailComponent implements OnInit {
     });
 
     this.loadFaculties(); // ✅ add this
-    const journal = this.router.getCurrentNavigation()?.extras.state?.['journal'] as Journal | undefined;
+    const navigationState = this.router.getCurrentNavigation()?.extras.state ?? history.state ?? {};
+    const journal = navigationState['journal'] as Journal | undefined;
+    this.isReadOnlyView = !!navigationState['reviewMode'];
     debugger;
     this.form = this.fb.group({
       id: [journal?.id ?? null],
+      attachments: journal?.attachments,
     // for async validation result
       /** Core DHET */
       dhetNo: [
-        {value: journal?.dhetNo ?? '', disabled: true},
+        {value: journal?.dhetNo ?? 'J0001', disabled: true},
         [Validators.required, Validators.pattern(/^J\d+/)]
       ],
 
@@ -205,12 +213,13 @@ export class JournalDetailComponent implements OnInit {
 
     },{
 
-      asyncValidators: [this.checkTitleIssnUnique(this.journalService)],
+      asyncValidators: this.isReadOnlyView ? [] : [this.checkTitleIssnUnique(this.journalService)],
       updateOn: 'blur' // ✅ VERY IMPORTANT
 
 
 
-  }      );
+  }
+  );
 
     this.setupFieldSearch();
     this.setupAutoCalc();
@@ -221,16 +230,136 @@ export class JournalDetailComponent implements OnInit {
   ngOnInit() {
     // Load previously saved journal if available
     this.loadSavedJournal();
+
+    // Get the current journal from router state
+    const navigationState = this.router.getCurrentNavigation()?.extras.state ?? history.state ?? {};
+    const journal = navigationState['journal'] as Journal | undefined;
+    const reviewMode = !!navigationState['reviewMode'];
+
+    // If not in review mode, check edit permissions
+    if (!reviewMode && journal) {
+      const permission = this.permissionService.canEditJournal(journal);
+      if (!permission.canEdit) {
+        // User doesn't have permission to edit - force read-only mode
+        this.isReadOnlyView = true;
+        Swal.fire({
+          title: 'Read-Only Mode',
+          text: permission.reason,
+          icon: 'info'
+        });
+      }
+    }
+
+    const currentRoles = this.getCurrentRoles();
+    const currentStatus = String(journal?.status ?? this.form.get('status')?.value ?? '').toUpperCase();
+    this.isApproverDecisionMode = !this.isReadOnlyView
+      && !reviewMode
+      && this.isApproverRole(currentRoles)
+      && this.canCurrentApproverDecideOnStatus(currentRoles, currentStatus);
+
+    if (this.isReadOnlyView) {
+      this.clearAllValidators(this.form);
+      this.form.disable({ emitEvent: false });
+    }
+  }
+
+  private clearAllValidators(control: AbstractControl): void {
+    control.clearValidators();
+    control.clearAsyncValidators();
+    control.updateValueAndValidity({ emitEvent: false });
+
+    if (control instanceof FormGroup) {
+      Object.values(control.controls).forEach(child => this.clearAllValidators(child));
+      return;
+    }
+
+    if (control instanceof FormArray) {
+      control.controls.forEach(child => this.clearAllValidators(child));
+    }
+  }
+
+  private getCurrentUsername(): string {
+    const loginRaw = sessionStorage.getItem('login');
+    if (!loginRaw) {
+      return '';
+    }
+
+    try {
+      const loginData = JSON.parse(loginRaw);
+      return (loginData?.user?.username ?? loginData?.username ?? '').toString().trim();
+    } catch {
+      return '';
+    }
+  }
+
+  private getCurrentRoles(): string[] {
+    const loginRaw = sessionStorage.getItem('login');
+    if (!loginRaw) {
+      return [];
+    }
+
+    try {
+      const loginData = JSON.parse(loginRaw);
+      const roleSource = loginData?.user?.roles ?? loginData?.user?.userType ?? loginData?.userType ?? '';
+      if (Array.isArray(roleSource)) {
+        return roleSource.map((r: any) => String(r).toUpperCase().trim()).filter(Boolean);
+      }
+      return String(roleSource)
+        .split(',')
+        .map((r: string) => r.toUpperCase().trim())
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  private isApproverRole(roles: string[]): boolean {
+    return roles.includes('ADMIN')
+      || roles.includes('ADMINISTRATOR')
+      || roles.includes('REVIEWER_LEVEL_1')
+      || roles.includes('LEVEL_1_APPROVER')
+      || roles.includes('REVIEWER_LEVEL_2')
+      || roles.includes('LEVEL_2_APPROVER');
+  }
+
+  private canCurrentApproverDecideOnStatus(roles: string[], status: string): boolean {
+    if (!status) {
+      return false;
+    }
+
+    if (roles.includes('ADMIN') || roles.includes('ADMINISTRATOR')) {
+      return status !== 'READY_FOR_POSTING';
+    }
+
+    const isL1 = roles.includes('REVIEWER_LEVEL_1') || roles.includes('LEVEL_1_APPROVER');
+    const isL2 = roles.includes('REVIEWER_LEVEL_2') || roles.includes('LEVEL_2_APPROVER');
+
+    const l1Stage = status === 'SUBMITTED' || status === 'UNDER_REVIEW_L1';
+    const l2Stage = status === 'UNDER_REVIEW_L2';
+
+    return (isL1 && l1Stage) || (isL2 && l2Stage);
+  }
+
+  canShowApproverDecisionActions(): boolean {
+    return this.isApproverDecisionMode && !this.isReadOnlyView;
   }
 
   checkTitleIssnUnique(journalService: JournalService) {
     return (group: AbstractControl) => {
+      if (this.isReadOnlyView) {
+        return of(null);
+      }
+
       const title = group.get('title')?.value;
       const issn = group.get('issn')?.value;
+      const currentIdRaw = group.get('id')?.value;
+      const currentId = currentIdRaw === null || currentIdRaw === undefined || currentIdRaw === ''
+        ? undefined
+        : Number(currentIdRaw);
 
       if (!title || !issn) return of(null);
 
-      return journalService.exists(title, issn).pipe(
+      return journalService.exists(title, issn, Number.isFinite(currentId as number) ? currentId : undefined).pipe(
         debounceTime(300),
         map((exists: boolean) => {
           debugger;
@@ -249,6 +378,7 @@ export class JournalDetailComponent implements OnInit {
         this.researchFieldService.search(value || '')
       )
     ).subscribe(results => {
+      debugger
       this.filteredResearchFields = results;
       // Show dropdown only if there are results and dropdown is open
       if (this.showResearchFieldDropdown && results.length === 0) {
@@ -305,8 +435,100 @@ export class JournalDetailComponent implements OnInit {
     return this.form.get('claimingAuthorsContribution') as FormGroup;
   }
 
+  /**
+   * Normalize boolean-like values that may arrive from API as string/number.
+   */
+  private asBoolean(value: unknown, fallback = false): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'true') return true;
+      if (normalized === 'false') return false;
+    }
+    if (typeof value === 'number') return value === 1;
+    return fallback;
+  }
+
+  /**
+   * Extract numeric id from either a raw id value or an object like { id, ... }.
+   */
+  private asId(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') return null;
+
+    if (typeof value === 'object' && value !== null && 'id' in (value as Record<string, unknown>)) {
+      return this.asId((value as Record<string, unknown>)['id']);
+    }
+
+    const id = Number(value);
+    return Number.isFinite(id) ? id : null;
+  }
+
+  /**
+   * Ensure departments are available for pre-loaded affiliated authors.
+   */
+  private preloadAuthorDepartments() {
+    this.authorsFA.controls.forEach((ctrl, index) => {
+      const authorFG = ctrl as FormGroup;
+      const facultyId = this.asId(authorFG.get('facultyId')?.value);
+      if (!facultyId) return;
+
+      this.journalService.getDepartmentsByFaculty(facultyId).subscribe({
+        next: (deps) => {
+          this.departmentsMap[index] = deps ?? [];
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          console.error('Failed to preload departments', err);
+        }
+      });
+    });
+  }
+
+  /**
+   * Normalize attachment objects from API so UI binding is stable on reload/return.
+   */
+  private normalizeAttachments(rawAttachments: unknown): Attachment[] {
+    let list: unknown[] = [];
+
+    if (Array.isArray(rawAttachments)) {
+      list = rawAttachments;
+    } else if (typeof rawAttachments === 'string') {
+      try {
+        const parsed = JSON.parse(rawAttachments);
+        list = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        list = [];
+      }
+    }
+
+    return list
+      .map((item: any) => {
+        const fileName = item?.fileName ?? item?.filename ?? item?.name ?? '';
+        const fileType = item?.fileType ?? item?.filetype ?? item?.mimeType ?? item?.contentType ?? 'application/pdf';
+        const fileSize = Number(item?.fileSize ?? item?.filesize ?? item?.size ?? 0) || 0;
+
+        return {
+          id: item?.id ?? null,
+          formguid: item?.formguid ?? item?.formGuid ?? undefined,
+          fileName,
+          fileType,
+          fileSize,
+          fileData: item?.fileData ?? item?.data ?? item?.base64 ?? undefined,
+          filePath: item?.filePath ?? item?.filepath ?? null,
+          url: item?.url ?? item?.fileUrl ?? item?.downloadUrl ?? undefined,
+          description: item?.description ?? item?.desc ?? ''
+        } as Attachment;
+      })
+      .filter(att => !!att.fileName);
+  }
+
   // === Builders ===
   newAuthor(a?: Authors, affiliation: boolean = true): FormGroup {
+
+    // Prioritize author's actual affiliation flag if available, otherwise use parameter
+    const resolvedAffiliation = this.asBoolean(a?.affiliation, affiliation);
+    const resolvedFacultyId = this.asId((a as any)?.facultyId ?? a?.faculty);
+    const resolvedDepartmentId = this.asId((a as any)?.departmentId ?? a?.department);
 
     // Build university affiliations FormArray
     const univArray = this.fb.array(
@@ -330,25 +552,28 @@ export class JournalDetailComponent implements OnInit {
         : []
     );
 
-    return this.fb.group({
+    const fg = this.fb.group({
 
       id: [a?.id ?? null],
-      affiliation: affiliation,
+      affiliation: resolvedAffiliation,
 
-      // ✅ ONLY REQUIRED FIELDS (Affiliated Author Simplified)
+      // ✅ CORE FIELDS (always required)
       firstName: [a?.firstName || '', Validators.required],
       surname: [a?.surname || '', Validators.required],
       initials: [a?.initials || ''],
       email: [a?.email || '', [Validators.required, Validators.email]],
 
-      // ✅ OPTIONAL / REMOVED REQUIREMENTS (still present but NOT required)
+      // ✅ AFFILIATED-ONLY REQUIRED FIELDS (will be toggled by updateAffiliatedValidators)
       studentEmployeeNo: [a?.studentEmployeeNo || null],
       gender: [a?.gender ?? null],
+      facultyId: [resolvedFacultyId],
+
+      // ✅ OPTIONAL FIELDS
       populationGroup: [a?.populationGroup || null],
+      dob: [a?.dob || null],
       dobMonth: [''],
       dobDay: [''],
-      facultyId: [a?.faculty ?? null],
-      departmentId: [a?.department ?? null],
+      departmentId: [resolvedDepartmentId],
       countryOfBirth: [a?.countryOfBirth || null],
       saResidencyStatus: [a?.saResidencyStatus || null],
       disability: [a?.disability ?? false],
@@ -365,11 +590,40 @@ export class JournalDetailComponent implements OnInit {
       authorShare: [a?.authorShare ?? 0],
       totalUnitsClaimed: [a?.totalUnitsClaimed ?? 0],
 
+      // ✅ Additional comments (for affiliated authors)
+      additionalComments: [a?.additionalComments || ''],
+
       // ✅ Affiliations
       universityAffiliations: univArray,
-      isInternationalUniversity:univArray,
       researchAffiliations: researchArray
 
+    });
+
+    // Set validators based on affiliation status
+    this.updateAffiliatedValidators(fg, resolvedAffiliation);
+
+    return fg;
+  }
+
+  /**
+   * Update validators for author fields based on affiliation status
+   * Affiliated authors must provide: studentEmployeeNo, gender, facultyId
+   * Non-affiliated need only: firstName, surname, email
+   */
+  updateAffiliatedValidators(authorFG: FormGroup, isAffiliated: boolean) {
+    const requiredFieldsForAffiliated = ['studentEmployeeNo', 'gender', 'facultyId'];
+
+    requiredFieldsForAffiliated.forEach(field => {
+      const ctrl = authorFG.get(field);
+      if (ctrl) {
+        if (isAffiliated) {
+          ctrl.setValidators([Validators.required]);
+        } else {
+          ctrl.setValidators([]);
+          ctrl.setValue(null);
+        }
+        ctrl.updateValueAndValidity({ emitEvent: false });
+      }
     });
   }
 
@@ -392,7 +646,8 @@ export class JournalDetailComponent implements OnInit {
   }
 
   addAuthor(affiliation: boolean = true) {
-    this.authorsFA.push(this.newAuthor(undefined, affiliation));
+    const newAuthorFG = this.newAuthor(undefined, affiliation);
+    this.authorsFA.push(newAuthorFG);
     const i = this.authorsFA.length - 1;
     this.onCountrySearch(i);
     this.recalculateContributions();
@@ -411,15 +666,19 @@ export class JournalDetailComponent implements OnInit {
     this.authorsFA.valueChanges.subscribe(() => {
       this.recalculateContributions();
       this.calculateAdvancedUnitBreakdown();
+      this.cdr.markForCheck();
     });
 
     this.unitsFG?.valueChanges.subscribe(() => {
       this.recalculateContributions();
       this.calculateAdvancedUnitBreakdown();
+      this.cdr.markForCheck();
     });
 
     this.recalculateContributions();
     this.calculateAdvancedUnitBreakdown();
+    // ✅ Initial change detection
+    this.cdr.markForCheck();
   }
 
   recalculateContributions() {
@@ -712,6 +971,7 @@ export class JournalDetailComponent implements OnInit {
       isUniven: [false]
     }));
     this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
   }
 
   /**
@@ -721,6 +981,7 @@ export class JournalDetailComponent implements OnInit {
     const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     univArray.removeAt(univIndex);
     this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
   }
 
   /**
@@ -733,6 +994,7 @@ export class JournalDetailComponent implements OnInit {
       companyType: ['OTHER', Validators.required]
     }));
     this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
   }
 
   /**
@@ -742,6 +1004,7 @@ export class JournalDetailComponent implements OnInit {
     const resArray = this.getResearchAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     resArray.removeAt(resIndex);
     this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
   }
 
   // === Payload / preview / submit ===
@@ -749,6 +1012,7 @@ export class JournalDetailComponent implements OnInit {
     id: any;
     dhetNo: any;
     year: any;
+    status?: string;
     title: any;
     duplicateJournal:any;
     journalTitle: any;
@@ -852,7 +1116,13 @@ export class JournalDetailComponent implements OnInit {
         : undefined,
 
       /** Authors */
-      authors: raw.authors as Authors[],
+      authors: (raw.authors as any[]).map(author => ({
+        ...author,
+        dob: author?.dob === null || author?.dob === undefined || author?.dob === '' ? null : String(author.dob),
+        affiliation: this.asBoolean(author.affiliation, true),
+        faculty: this.asId(author.faculty ?? author.facultyId),
+        department: this.asId(author.department ?? author.departmentId)
+      })) as Authors[],
       otherAuthorsNonAffiliated: raw.otherAuthorsNonAffiliated ?? [],
 
       /** Units & Contributions */
@@ -861,7 +1131,17 @@ export class JournalDetailComponent implements OnInit {
         raw.claimingAuthorsContribution as ClaimingAuthorsContribution,
 
       /** Attachments */
-      attachments: this.attachments,
+      attachments: (this.attachments ?? []).map(att => ({
+        id: att.id,
+        formguid: att.formguid,
+        fileName: att.fileName,
+        fileSize: Number(att.fileSize ?? 0),
+        fileType: att.fileType,
+        fileData: att.fileData,
+        filePath: att.filePath ?? null,
+        url: att.url,
+        description: att.description ?? ''
+      })),
 
       /** Notes */
       additionalComments: raw.additionalComments ?? ''
@@ -900,18 +1180,18 @@ export class JournalDetailComponent implements OnInit {
 
       funders: 'NRF; University Grant',
 
-      units: {
-        maxUnitsForPublication: 1,
-        totalProportionOfAuthors:1,
-        authorsCount: 2,
-       // totalUnitsClaimed: 0.5
-      },
+      // units: {
+      //   maxUnitsForPublication: 1,
+      //   totalProportionOfAuthors:1,
+      //   authorsCount: 2,
+      //  // totalUnitsClaimed: 0.5
+      // },
 
-      claimingAuthorsContribution: {
-        proportionOfAuthors: 0.5,
-        authorUnitsClaimed: 0.5,
-        additionalComments: 'Auto populated'
-      },
+      // claimingAuthorsContribution: {
+      //   proportionOfAuthors: 0.5,
+      //   authorUnitsClaimed: 0.5,
+      //   additionalComments: 'Auto populated'
+      // },
 
       additionalComments: 'Auto-populated sample data'
     });
@@ -962,19 +1242,60 @@ export class JournalDetailComponent implements OnInit {
     this.showPreview = false;
   }
 
+  exportCurrentJournalExcel() {
+    const id = this.form.get('id')?.value ?? this.lastSavedJournalId;
+    debugger;
+    if (!id) {
+      Swal.fire({
+        title: 'No saved journal',
+        text: 'Save/submit the journal first before exporting Excel.',
+        icon: 'warning'
+      });
+      return;
+    }
+
+    this.journalService.exportJournalById(Number(id)).subscribe({
+      next: (blob) => {
+        const dhetNo = this.form.get('dhetNo')?.value || `journal-${id}`;
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${dhetNo}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      },
+      error: (err) => {
+        console.error('Failed to export journal excel', err);
+        Swal.fire({
+          title: 'Export failed',
+          text: 'Could not generate Excel for this journal.',
+          icon: 'error'
+        });
+      }
+    });
+  }
+
   onSubmit() {
+    if (this.isReadOnlyView || this.isApproverDecisionMode) {
+      return;
+    }
     debugger;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       //  return;
     }
 
-    const payload = this.buildPayload();
+    const payload = {
+      ...this.buildPayload(),
+      status: 'SUBMITTED'
+    };
+    const username = this.getCurrentUsername();
 
-
-    this.journalService.save(payload).subscribe({
+    this.journalService.save(payload, username).subscribe({
       next: _ => {
-
+        debugger;
         Swal.fire({
           title: "Success",
           text: "Journal saved successfully.",
@@ -985,20 +1306,145 @@ export class JournalDetailComponent implements OnInit {
       },
       error: err => {
         console.error('Error saving journal', err);
-        Swal.fire({
-          title: "Success",
-          text: "Journal saved successfully.",
-          icon: "success"
+      }
+    });
+  }
+
+  async approveAfterEdit(): Promise<void> {
+    if (!this.canShowApproverDecisionActions()) {
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: 'Approve journal?',
+      input: 'textarea',
+      inputLabel: 'Comments (required)',
+      inputPlaceholder: 'Provide approval comments...',
+      showCancelButton: true,
+      confirmButtonText: 'Approve',
+      preConfirm: (value) => {
+        if (!value || !String(value).trim()) {
+          Swal.showValidationMessage('Approval comments are required.');
+          return false;
+        }
+        return value;
+      }
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      Swal.fire('Incomplete', 'Please complete required fields before approval.', 'warning');
+      return;
+    }
+
+    const username = this.getCurrentUsername();
+    const payload = this.buildPayload();
+    this.isSaving = true;
+
+    this.journalService.save(payload, username).subscribe({
+      next: (saved) => {
+        const id = Number(saved?.id ?? payload.id);
+        if (!id) {
+          this.isSaving = false;
+          Swal.fire('Error', 'Journal ID not found after save.', 'error');
+          return;
+        }
+
+        this.journalService.approve(id, username, String(result.value).trim()).subscribe({
+          next: () => {
+            this.isSaving = false;
+            Swal.fire('Approved', 'Journal saved and moved to the next stage.', 'success').then(() => {
+              this.router.navigate(['/journal-review']);
+            });
+          },
+          error: (err) => {
+            this.isSaving = false;
+            console.error('Approve failed', err);
+            Swal.fire('Error', 'Could not approve journal at the current stage.', 'error');
+          }
         });
-        this.router.navigate(['/journal']);
-      //  alert('Failed to save journal. Please try again.');
+      },
+      error: (err) => {
+        this.isSaving = false;
+        console.error('Save before approve failed', err);
+        Swal.fire('Error', 'Could not save journal before approval.', 'error');
+      }
+    });
+  }
+
+  async rejectAfterEdit(): Promise<void> {
+    if (!this.canShowApproverDecisionActions()) {
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: 'Reject journal?',
+      input: 'textarea',
+      inputLabel: 'Comments (required)',
+      inputPlaceholder: 'Provide rejection comments...',
+      showCancelButton: true,
+      confirmButtonText: 'Reject',
+      preConfirm: (value) => {
+        if (!value || !String(value).trim()) {
+          Swal.showValidationMessage('Rejection comments are required.');
+          return false;
+        }
+        return value;
+      }
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      Swal.fire('Incomplete', 'Please complete required fields before rejection.', 'warning');
+      return;
+    }
+
+    const username = this.getCurrentUsername();
+    const payload = this.buildPayload();
+    this.isSaving = true;
+
+    this.journalService.save(payload, username).subscribe({
+      next: (saved) => {
+        const id = Number(saved?.id ?? payload.id);
+        if (!id) {
+          this.isSaving = false;
+          Swal.fire('Error', 'Journal ID not found after save.', 'error');
+          return;
+        }
+
+        this.journalService.reject(id, username, String(result.value).trim()).subscribe({
+          next: () => {
+            this.isSaving = false;
+            Swal.fire('Rejected', 'Journal saved and rejected for revision.', 'success').then(() => {
+              this.router.navigate(['/journal-review']);
+            });
+          },
+          error: (err) => {
+            this.isSaving = false;
+            console.error('Reject failed', err);
+            Swal.fire('Error', 'Could not reject journal at the current stage.', 'error');
+          }
+        });
+      },
+      error: (err) => {
+        this.isSaving = false;
+        console.error('Save before reject failed', err);
+        Swal.fire('Error', 'Could not save journal before rejection.', 'error');
       }
     });
   }
 
   onFacultyChange(authorIndex: number) {
     debugger;
-    const facultyId = this.authorsFA.at(authorIndex).get('facultyId')?.value;
+    const facultyId = this.asId(this.authorsFA.at(authorIndex).get('facultyId')?.value);
     if (!facultyId) return;
 
     this.journalService.getDepartmentsByFaculty(facultyId).subscribe({
@@ -1141,6 +1587,14 @@ export class JournalDetailComponent implements OnInit {
       window.open(url, '_blank');
     } else if (attachment.url) {
       window.open(attachment.url, '_blank');
+    } else if (attachment.filePath) {
+      window.open(attachment.filePath, '_blank');
+    } else {
+      Swal.fire({
+        title: 'Attachment unavailable',
+        text: 'This attachment has no fileData, URL, or filePath to open.',
+        icon: 'warning'
+      });
     }
   }
 
@@ -1150,7 +1604,7 @@ export class JournalDetailComponent implements OnInit {
       case 1: // Journal Information
         return this.isJournalInfoValid();
       case 2: // Affiliated Authors
-        return this.isAuthorsValid(true);
+        return this.isAuthorsValid(true) && this.isAffiliatedAuthorsComplete();
       case 3: // Non-Affiliated Authors
         return this.isAuthorsValid(false);
       case 4: // Results & Submissions
@@ -1161,7 +1615,7 @@ export class JournalDetailComponent implements OnInit {
   }
 
   isJournalInfoValid(): boolean {
-    const fields = ['year', 'journalTitle', 'title', 'publisher', 'issn', 'fieldofsearch', 'index', 'comply'];
+    const fields = ['year', 'journalTitle', 'title', 'publisher','issn' ,'fieldofsearch', 'index', 'comply'];
     return fields.every(field => {
       const control = this.form.get(field);
       return control && control.valid;
@@ -1174,27 +1628,49 @@ export class JournalDetailComponent implements OnInit {
     if (affiliated && authors.length === 0) return false;
 
     return authors.every(ctrl => {
+      // Step 3 (Non-affiliated) and Step 2 (Affiliated) both only require: firstName, surname, email
       return ctrl.get('firstName')?.valid &&
         ctrl.get('surname')?.valid &&
         ctrl.get('email')?.valid;
     });
   }
 
+  /**
+   * Validate affiliated-specific required fields (studentEmployeeNo, gender, facultyId)
+   * This is checked in addition to isAuthorsValid for Step 2
+   */
+  isAffiliatedAuthorsComplete(): boolean {
+    const authors = this.getAffiliatedAuthors();
+
+    return authors.every(ctrl => {
+      return ctrl.get('studentEmployeeNo')?.valid &&
+        ctrl.get('gender')?.valid &&
+        ctrl.get('facultyId')?.valid;
+    });
+  }
+
   goToNextStep() {
+    debugger;
     if (this.currentStep < this.totalSteps) {
-      //if (this.isStepValid(this.currentStep))
+      if (this.isReadOnlyView) {
+        this.currentStep++;
+        window.scrollTo(0, 0);
+        return;
+      }
+
+      if (this.isStepValid(this.currentStep))
       {
         this.currentStep++;
         window.scrollTo(0, 0);
       }
-      // else {
-      //   this.markStepAsTouched(this.currentStep);
-      //   Swal.fire({
-      //     title: "Incomplete Step",
-      //     text: "Please fill in all required fields before proceeding.",
-      //     icon: "warning"
-      //   });
-      // }
+      else {
+        this.markStepAsTouched(this.currentStep);
+        Swal.fire({
+          title: "Incomplete Step",
+          text: "Please fill in all required fields before proceeding.",
+          icon: "warning"
+        });
+      }
     }
   }
 
@@ -1212,6 +1688,7 @@ export class JournalDetailComponent implements OnInit {
   }
 
   prevStep() {
+    debugger;
     if (this.currentStep > 1) {
       this.currentStep--;
       window.scrollTo(0, 0);
@@ -1219,6 +1696,12 @@ export class JournalDetailComponent implements OnInit {
   }
 
   goToStep(step: number) {
+    if (this.isReadOnlyView) {
+      this.currentStep = step;
+      window.scrollTo(0, 0);
+      return;
+    }
+
     if (step === this.currentStep) return;
 
     if (step < this.currentStep) {
@@ -1273,11 +1756,13 @@ export class JournalDetailComponent implements OnInit {
     this.isSaving = true;
     const payload = this.buildPayload();
 
-    this.journalService.save(payload).subscribe({
+    const username = this.getCurrentUsername();
+    this.journalService.save(payload, username).subscribe({
       next: (savedJournal) => {
         this.isSaving = false;
         this.lastSavedJournalId = savedJournal.id;
         this.form.get('id')?.setValue(savedJournal.id, { emitEvent: false });
+        this.form.get('dhetNo')?.setValue(savedJournal.dhetNo, { emitEvent: false });
 
         this.saveMessage = `Step ${this.currentStep} saved successfully! You can continue editing later.`;
         this.showSaveMessage = true;
@@ -1323,11 +1808,13 @@ export class JournalDetailComponent implements OnInit {
     this.isSaving = true;
     const payload = this.buildPayload();
 
-    this.journalService.save(payload).subscribe({
+    const username = this.getCurrentUsername();
+    this.journalService.save(payload, username).subscribe({
       next: (savedJournal) => {
         this.isSaving = false;
         this.lastSavedJournalId = savedJournal.id;
         this.form.get('id')?.setValue(savedJournal.id, { emitEvent: false });
+        this.form.get('dhetNo')?.setValue(savedJournal.dhetNo, { emitEvent: false });
 
         this.saveMessage = `Step ${this.currentStep} saved successfully!`;
         this.showSaveMessage = true;
@@ -1373,47 +1860,86 @@ export class JournalDetailComponent implements OnInit {
     }
   }
 
+   /**
+    * Populate form with journal data
+    */
+   private populateFormWithJournal(journal: Journal) {
+     this.form.patchValue({
+       id: journal.id,
+       dhetNo: journal.dhetNo,
+       status: journal.status,
+       year: journal.year,
+       journalTitle: journal.journalTitle,
+       title: journal.title,
+       issn: journal.issn,
+       publisher: journal.publisher,
+       index: journal.index,
+       comply: journal.comply,
+       volume: journal.volume,
+       issue: journal.issue,
+       eissn: journal.eissn,
+       doi: journal.doi,
+       urls: journal.urls,
+       openaccess: journal.openaccess,
+       fieldofsearch: journal.fieldofsearch,
+       publicationfeedescription: journal.publicationfeedescription,
+       publishercurrency: journal.publishercurrency,
+       totalPublicationFeePublisherCurrency: journal.totalPublicationFeePublisherCurrency,
+       publicationfeearticle: journal.publicationfeearticle,
+       authorsContributionFee: journal.authorsContributionFee,
+       authorsContributionFeeZar: journal.authorsContributionFeeZar,
+       funders: journal.funders,
+       otherAuthorsNonAffiliated: Array.isArray(journal.otherAuthorsNonAffiliated)
+         ? journal.otherAuthorsNonAffiliated.join('; ')
+         : '',
+       units: {
+         maxUnitsForPublication: journal.units?.maxUnitsForPublication ?? 1,
+         totalProportionOfAuthors: journal.units?.totalProportionOfAuthors ?? 1,
+         authorCount: journal.units?.authorsCount ?? 1,
+         totalUnitsClaimed: journal.units?.totalUnitsClaimed ?? null,
+         otherAuthorsNonAffiliates: journal.units?.otherAuthorsNonAffiliates ?? null,
+       },
+       claimingAuthorsContribution: {
+         proportionOfAuthors: journal.claimingAuthorsContribution?.proportionOfAuthors ?? null,
+         authorUnitsClaimed: journal.claimingAuthorsContribution?.authorUnitsClaimed ?? null,
+         additionalComments: journal.claimingAuthorsContribution?.additionalComments ?? ''
+       },
+       additionalComments: journal.additionalComments ?? ''
+     });
+
+     // Populate authors
+     if (journal.authors && journal.authors.length > 0) {
+       this.authorsFA.clear();
+       journal.authors.forEach(author => {
+         // ensure affiliation is a boolean (fallback to true when undefined/null)
+         const affiliationFlag = this.asBoolean(author.affiliation, true);
+         this.authorsFA.push(this.newAuthor(author, affiliationFlag));
+       });
+     } else {
+       this.authorsFA.clear();
+       this.authorsFA.push(this.newAuthor());
+     }
+
+     this.attachments = this.normalizeAttachments(journal.attachments);
+     this.preloadAuthorDepartments();
+     this.recalculateContributions();
+     this.calculateAdvancedUnitBreakdown();
+
+     if (this.isReadOnlyView) {
+       this.clearAllValidators(this.form);
+       this.form.disable({ emitEvent: false });
+     }
+
+     // ✅ Force change detection to refresh template immediately
+     this.cdr.markForCheck();
+     this.cdr.detectChanges();
+     // Duplicate simple nextStep removed; using single validated nextStep implementation above
+    }
+
   /**
-   * Populate form with journal data
+   * TrackBy function for rendering efficiency
    */
-  private populateFormWithJournal(journal: Journal) {
-    this.form.patchValue({
-      id: journal.id,
-      dhetNo: journal.dhetNo,
-      year: journal.year,
-      journalTitle: journal.journalTitle,
-      title: journal.title,
-      issn: journal.issn,
-      publisher: journal.publisher,
-      index: journal.index,
-      comply: journal.comply,
-      volume: journal.volume,
-      issue: journal.issue,
-      eissn: journal.eissn,
-      doi: journal.doi,
-      urls: journal.urls,
-      openaccess: journal.openaccess,
-      fieldofsearch: journal.fieldofsearch,
-      publicationfeedescription: journal.publicationfeedescription,
-      publishercurrency: journal.publishercurrency,
-      totalPublicationFeePublisherCurrency: journal.totalPublicationFeePublisherCurrency,
-      publicationfeearticle: journal.publicationfeearticle,
-      authorsContributionFee: journal.authorsContributionFee,
-      authorsContributionFeeZar: journal.authorsContributionFeeZar,
-      funders: journal.funders
-    });
-
-    // Populate authors
-    if (journal.authors && journal.authors.length > 0) {
-      this.authorsFA.clear();
-      journal.authors.forEach(author => {
-        // ensure affiliation is a boolean (fallback to true when undefined/null)
-        const affiliationFlag = (author.affiliation ?? true) as boolean;
-        this.authorsFA.push(this.newAuthor(author, affiliationFlag));
-      });
-    }
-  // Duplicate simple nextStep removed; using single validated nextStep implementation above
-    }
-
-
+  trackByIndex(index: number): number {
+    return index;
+  }
 }

@@ -7,6 +7,7 @@ export interface Journal {
   /** Core DHET Info */
   dhetNo: string; // Must start with J
   year: string;
+  status?: string;
   journalTitle: string;
   title: string;
   publisher: string;
@@ -49,5 +50,10 @@ export interface Journal {
 
   /** Notes */
   additionalComments?: string;
+
+  /** Workflow metadata */
+  submittedBy?: {
+    username?: string;
+  };
 
 }

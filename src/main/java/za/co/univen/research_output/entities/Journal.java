@@ -1,13 +1,17 @@
 package za.co.univen.research_output.entities;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
  import jakarta.validation.Valid;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "journals")
@@ -22,7 +26,7 @@ public class Journal {
     private String year;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private JournalStatus status = JournalStatus.DRAFT;
+    private JournalStatus status = JournalStatus.SUBMITTED;
 
     private String title;          // Article title
     private String journalTitle;   // Journal name
@@ -58,6 +62,10 @@ public class Journal {
     private Double authorscontributionfee;
     private Double authorscontributionfeezar;
 
+    // Separate from ClaimingAuthorsContribution.additionalComments.
+    @Column(name = "journal_additional_comments", length = 2000)
+    private String additionalComments;
+
     /* ================= AUTHOR/UNITS ================= */
 //    private Double totalProportionOfAuthors;
 //    private Integer authorCount;
@@ -71,6 +79,7 @@ public class Journal {
     @Valid
     private List<Attachment> attachments = new ArrayList<>();
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "submitted_by", nullable = false)
     private User submittedBy;
@@ -80,6 +89,16 @@ public class Journal {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @JsonProperty("submittedBy")
+    public Map<String, Object> getSubmittedByForJson() {
+        if (submittedBy == null) {
+            return null;
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("username", submittedBy.getUsername());
+        return result;
+    }
 
 
 //    @ElementCollection
@@ -100,7 +119,7 @@ public class Journal {
         createdAt = now;
         updatedAt = now;
         if (status == null) {
-            status = JournalStatus.DRAFT;
+            status = JournalStatus.SUBMITTED;
         }
     }
 

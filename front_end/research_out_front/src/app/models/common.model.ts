@@ -37,6 +37,9 @@ export interface Authors {
   authorShare?: number; // calculated: total units / num affiliated authors
   unitsPerUniversity?: { [key: string]: number }; // breakdown by university
   totalUnitsClaimed?: number; // total claimed by this author (may be split across universities)
+
+  // Additional comments for author
+  additionalComments?: string; // optional comments specific to this author
 }
 
 export interface ClaimingAuthorsContribution {
@@ -98,6 +101,7 @@ export interface Attachment {
   fileType: string;
   file?: File; // for new uploads
   fileData?: string; // base64 string for existing attachments
+  filePath?: string | null; // backend file path when provided
   url?: string; // for existing attachments
   description?: string;
 }

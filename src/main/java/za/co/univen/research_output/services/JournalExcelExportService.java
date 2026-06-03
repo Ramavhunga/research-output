@@ -28,15 +28,16 @@ public class JournalExcelExportService {
             "DOI / URL",
             "Open Access",
             "Field of Research",
+            "Author Type",
             "Surname",
             "Initials",
             "First Name",
             "SA Universities",
             "SA Institutions",
             "International Universities",
-            "Proportion of Author",
+            "Author Share",
             "Author Units Claimed",
-            "Total Units Claimed",
+            "Journal Total Units Claimed",
             "DHET Accepted",
             "DHET Units Awarded",
             "DHET Comments"
@@ -125,6 +126,7 @@ public class JournalExcelExportService {
                 doiUrl(journal),
                 bool(journal.getOpenaccess()),
                 str(journal.getFieldofsearch()),
+                authorType(author),
                 str(author == null ? null : author.getSurname()),
                 str(author == null ? null : author.getInitials()),
                 str(author == null ? null : author.getFirstName()),
@@ -170,6 +172,13 @@ public class JournalExcelExportService {
 
     private String num(Double value) {
         return value == null ? "" : String.format("%.4f", value);
+    }
+
+    private String authorType(Author author) {
+        if (author == null || author.getAffiliation() == null) {
+            return "";
+        }
+        return Boolean.TRUE.equals(author.getAffiliation()) ? "Affiliated" : "Non-Affiliated";
     }
 }
 

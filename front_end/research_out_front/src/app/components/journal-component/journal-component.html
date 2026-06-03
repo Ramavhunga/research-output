@@ -30,13 +30,17 @@
           <div class="card-header">
             <div class="d-sm-flex align-items-center justify-content-between">
               <h5 class="mb-3 mb-sm-0">Research Output list</h5>
-              <div>
+              <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary" (click)="loadJournals()" [disabled]="loading">
+                  {{ loading ? 'Refreshing...' : 'Refresh' }}
+                </button>
                 <a routerLink="/journal/details"
                    class="btn btn-primary">Add Journal</a>
               </div>
             </div>
           </div>
           <div class="card-body pt-3">
+            <div *ngIf="loading" class="text-muted mb-2">Loading journals...</div>
             <div class="table-responsive">
               <table class="table table-hover" id="pc-dt-simple">
                 <thead>
@@ -59,11 +63,23 @@
                   <td class="col-4 text-wrap" style="white-space: normal;">{{ output.publisher }}</td>
                   <td class="col-2">{{ output.doi }}</td>
                   <td class="col-2">{{ output.year }}</td>
-                  <td class="col-2">{{ output.issn }}</td>
+                  <td class="col-2">{{ output.status }}</td>
                   <td class="col-4">
-                    <a href="javascript:void(0)" (click)="viewJournal(output);" class="btn-link-secondary mx-1">
-                      <i class="ti ti-eye f-20"></i>
-                    </a>
+                    <button type="button" class="btn btn-outline-primary btn-sm" (click)="viewJournal(output)">
+                      <i class="ti ti-eye me-1"></i> View
+                    </button>
+
+                    <button type="button"
+                            class="btn btn-outline-info btn-sm ms-2"
+                            (click)="editJournal(output)"
+                            [disabled]="!canEditJournal(output)"
+                            [title]="!canEditJournal(output) ? 'You do not have permission to edit this journal' : 'Edit this journal'">
+                      <i class="ti ti-edit me-1"></i> Edit
+                    </button>
+
+                    <button type="button" class="btn btn-outline-secondary btn-sm ms-2" (click)="toggleTimeline(output)">
+                      Timeline
+                    </button>
 <!--                    <a href="javascript:void(0)" class="btn-link-secondary mx-1">-->
 <!--                      <i class="ti ti-edit f-20"></i>-->
 <!--                    </a>-->
@@ -77,6 +93,39 @@
                 <tr *ngIf="!journals || journals.length === 0">
                   <td colspan="6" class="text-center text-muted">
                     No journals added yet
+                  </td>
+                </tr>
+
+                <tr *ngIf="selectedTimelineJournalId">
+                  <td colspan="6">
+                    <div class="border rounded p-3 bg-light">
+                      <h6>Timeline for journal ID {{ selectedTimelineJournalId }}</h6>
+                      <div class="table-responsive">
+                        <table class="table table-sm table-striped mb-0">
+                          <thead>
+                          <tr>
+                            <th>Date</th>
+                            <th>Action</th>
+                            <th>By</th>
+                            <th>Role</th>
+                            <th>Comments</th>
+                          </tr>
+                          </thead>
+                          <tbody>
+                          <tr *ngFor="let item of timeline">
+                            <td>{{ item.actionDate | date:'medium' }}</td>
+                            <td>{{ item.action }}</td>
+                            <td>{{ item.actionBy }}</td>
+                            <td>{{ item.actionRole }}</td>
+                            <td>{{ item.comments || '-' }}</td>
+                          </tr>
+                          <tr *ngIf="timeline.length === 0">
+                            <td colspan="5" class="text-center text-muted">No timeline items found.</td>
+                          </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </td>
                 </tr>
 

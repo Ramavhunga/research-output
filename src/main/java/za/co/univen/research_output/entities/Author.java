@@ -34,32 +34,30 @@ public class Author {
     private String gender;
     private String populationGroup;
     private String dob;
-    public String dobDay;
-    public String dobMonth;
     private String orcid;
     private String countryOfBirth;
     private String saResidencyStatus;
     private Long departmentId;
     private Long facultyId;
     private Boolean disability;
-
     private String highestQualification;
     private String employmentStatus;
-
     private String department;
     private String faculty;
     private String academicTitle;
+    @Column(length = 2000)
+    private String additionalComments;
     private Double authorShare = 0d;
     private Double totalUnitsClaimed = 0d;
 
     /* ================= RELATION ================= */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "journal_id")
     @JsonBackReference("journal-authors")
     private Journal journal;
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
    // @JoinColumn(name = "conference_proceedings_id")
     @JsonBackReference("conference-authors")
     private ConferenceProceedings conferenceProceedings;
