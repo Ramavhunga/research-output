@@ -86,8 +86,8 @@
 <!--  </div>-->
 <!--</div>-->
 
-<!-- ================= BOOKS LIST ================= -->
-&lt;!&ndash; [ Main Content ] start &ndash;&gt;
+<!-- ================= CHAPTERS LIST ================= -->
+<!-- [ Main Content ] start -->
 <div class="pc-container">
   <div class="pc-content">
 
@@ -95,15 +95,19 @@
       <h5>Chapters</h5>
     </div>
 
-    <div class="card">
+    <div class="card table-card">
       <div class="card-header d-flex justify-content-between">
         <h5>Chapters List</h5>
-
-
-        <button class="btn btn-primary" (click)="goToChapterDetails()">Add Chapter</button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-outline-secondary" (click)="loadChapters()" [disabled]="loading">
+            {{ loading ? 'Refreshing...' : 'Refresh' }}
+          </button>
+          <button class="btn btn-primary" (click)="goToChapterDetails()">Add Chapter</button>
+        </div>
       </div>
 
       <div class="card-body">
+        <div *ngIf="loading" class="text-muted mb-2">Loading chapters...</div>
         <table class="table table-hover">
           <thead>
           <tr>
@@ -118,31 +122,23 @@
 
           <tbody>
 
-          <tr>
-            <td>AI in Modern Systems</td>
-            <td>Springer</td>
-            <td>978-3-16-148410-0</td>
-            <td>2025</td>
-            <td><span class="badge bg-success">Approved</span></td>
-            <td><button class="btn btn-sm btn-outline-primary">View</button></td>
+          <tr *ngFor="let chapter of chapters">
+            <td class="col-4 text-wrap" style="white-space: normal;">
+              <h6 class="mb-0">{{ chapter.titleOfContribution || chapter.titleOfBook }}</h6>
+            </td>
+            <td class="col-3 text-wrap" style="white-space: normal;">{{ chapter.publisher }}</td>
+            <td class="col-2">{{ chapter.isbn }}</td>
+            <td class="col-1">{{ chapter.yearOfPublication }}</td>
+            <td class="col-1">{{ chapterStatus(chapter) }}</td>
+            <td class="col-1">
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="viewChapter(chapter)">View</button>
+            </td>
           </tr>
 
-          <tr>
-            <td>Cloud Computing Handbook</td>
-            <td>Elsevier</td>
-            <td>978-1-23-456789-0</td>
-            <td>2024</td>
-            <td><span class="badge bg-warning">Pending</span></td>
-            <td><button class="btn btn-sm btn-outline-primary">View</button></td>
-          </tr>
-
-          <tr>
-            <td>Data Science Basics</td>
-            <td>IEEE</td>
-            <td>978-9-87-654321-0</td>
-            <td>2023</td>
-            <td><span class="badge bg-danger">Rejected</span></td>
-            <td><button class="btn btn-sm btn-outline-primary">View</button></td>
+          <tr *ngIf="!chapters || chapters.length === 0">
+            <td colspan="6" class="text-center text-muted">
+              No chapters added yet
+            </td>
           </tr>
 
           </tbody>

@@ -14,7 +14,42 @@ IF OBJECT_ID(N'dbo.journals', N'U') IS NOT NULL AND COL_LENGTH('dbo.journals', '
 IF OBJECT_ID(N'dbo.journals', N'U') IS NOT NULL AND COL_LENGTH('dbo.journals', 'idx') IS NULL
     ALTER TABLE dbo.journals ADD idx nvarchar(255);
 IF OBJECT_ID(N'dbo.journals', N'U') IS NOT NULL AND COL_LENGTH('dbo.journals', 'comply') IS NULL
-    ALTER TABLE dbo.journals ADD comply bit;
+    ALTER TABLE dbo.journals ADD comply nvarchar(10);
+
+-- Legacy comply(bit) migration is handled by DatabaseCompatibilityRepairRunner on startup.
+
+IF OBJECT_ID(N'dbo.journals', N'U') IS NOT NULL
+   AND COL_LENGTH('dbo.journals', 'comply') IS NOT NULL
+   AND EXISTS (
+       SELECT 1
+       FROM sys.columns c
+       INNER JOIN sys.types t ON c.user_type_id = t.user_type_id
+       WHERE c.object_id = OBJECT_ID(N'dbo.journals')
+         AND c.name = 'comply'
+         AND t.name <> 'bit'
+   )
+BEGIN
+    UPDATE dbo.journals
+    SET comply = 'N/A'
+    WHERE comply IS NULL OR LTRIM(RTRIM(comply)) = ''
+END;
+
+IF OBJECT_ID(N'dbo.journals', N'U') IS NOT NULL
+   AND EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_journals_comply_values' AND parent_object_id = OBJECT_ID('dbo.journals'))
+    ALTER TABLE dbo.journals DROP CONSTRAINT CK_journals_comply_values;
+
+IF OBJECT_ID(N'dbo.journals', N'U') IS NOT NULL
+   AND COL_LENGTH('dbo.journals', 'comply') IS NOT NULL
+   AND EXISTS (
+       SELECT 1
+       FROM sys.columns c
+       INNER JOIN sys.types t ON c.user_type_id = t.user_type_id
+       WHERE c.object_id = OBJECT_ID(N'dbo.journals')
+         AND c.name = 'comply'
+         AND t.name <> 'bit'
+   )
+    ALTER TABLE dbo.journals
+    ADD CONSTRAINT CK_journals_comply_values CHECK (comply IN ('N/A', 'Yes', 'No'));
 IF OBJECT_ID(N'dbo.journals', N'U') IS NOT NULL AND COL_LENGTH('dbo.journals', 'volume') IS NULL
     ALTER TABLE dbo.journals ADD volume int;
 IF OBJECT_ID(N'dbo.journals', N'U') IS NOT NULL AND COL_LENGTH('dbo.journals', 'issue') IS NULL
@@ -133,3 +168,29 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_journals_created_at' A
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_journals_status_submitted_by' AND object_id = OBJECT_ID('dbo.journals'))
     CREATE NONCLUSTERED INDEX IX_journals_status_submitted_by ON dbo.journals(status, submitted_by);
 
+-- Conference Proceedings Schema Updates
+-- Add new columns for status management and user tracking
+IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL AND COL_LENGTH('dbo.conference_proceedings', 'status') IS NULL
+    ALTER TABLE dbo.conference_proceedings ADD status nvarchar(50);
+
+IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL AND COL_LENGTH('dbo.conference_proceedings', 'submitted_by') IS NULL
+    ALTER TABLE dbo.conference_proceedings ADD submitted_by bigint;
+
+IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL AND COL_LENGTH('dbo.conference_proceedings', 'created_at') IS NULL
+    ALTER TABLE dbo.conference_proceedings ADD created_at datetime2;
+
+IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL AND COL_LENGTH('dbo.conference_proceedings', 'updated_at') IS NULL
+    ALTER TABLE dbo.conference_proceedings ADD updated_at datetime2;
+
+-- Create indexes for conference proceedings
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_conference_proceedings_status' AND object_id = OBJECT_ID('dbo.conference_proceedings'))
+    CREATE NONCLUSTERED INDEX IX_conference_proceedings_status ON dbo.conference_proceedings(status);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_conference_proceedings_submitted_by' AND object_id = OBJECT_ID('dbo.conference_proceedings'))
+    CREATE NONCLUSTERED INDEX IX_conference_proceedings_submitted_by ON dbo.conference_proceedings(submitted_by);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_conference_proceedings_created_at' AND object_id = OBJECT_ID('dbo.conference_proceedings'))
+    CREATE NONCLUSTERED INDEX IX_conference_proceedings_created_at ON dbo.conference_proceedings(created_at DESC);
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_conference_proceedings_status_submitted_by' AND object_id = OBJECT_ID('dbo.conference_proceedings'))
+    CREATE NONCLUSTERED INDEX IX_conference_proceedings_status_submitted_by ON dbo.conference_proceedings(status, submitted_by);

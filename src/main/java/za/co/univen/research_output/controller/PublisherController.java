@@ -8,7 +8,6 @@ import za.co.univen.research_output.services.UserService;
 
 @RestController
 @RequestMapping("/api/publisher")
-@CrossOrigin("*")
 public class PublisherController {
     private final PublisherRepository repository;
 

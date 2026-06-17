@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/research-fields")
-@CrossOrigin(origins = "*") // allow Angular
 
 public class ResearchFieldController {
     @Autowired

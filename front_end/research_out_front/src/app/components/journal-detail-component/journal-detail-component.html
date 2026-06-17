@@ -77,7 +77,7 @@
             </div>
 
             <form [formGroup]="form" (ngSubmit)="onSubmit()">
-              <fieldset [disabled]="isReadOnlyView">
+              <fieldset>
 
               <!-- STEP 1: Journal Information -->
               <div *ngIf="currentStep === 1">
@@ -131,9 +131,9 @@
                       <label class="form-label">Comply with 75% rule</label>
                       <select class="form-select" formControlName="comply"
                                 [ngClass]="{'is-invalid': form.get('comply')?.invalid && (form.get('comply')?.touched || form.get('comply')?.dirty)}">
-                        <option [ngValue]="">Not Applicable</option>
-                        <option [ngValue]="true">Yes</option>
-                        <option [ngValue]="false">No</option>
+                        <option [ngValue]="'N/A'">Not Applicable</option>
+                        <option [ngValue]="'Yes'">Yes</option>
+                        <option [ngValue]="'No'">No</option>
 
                       </select>
                     </div>
@@ -260,14 +260,22 @@
                          </div>
                        </div>
 
-                       <!-- Row 1: Basic Info (Student/Employee No, First Names, Surname, Initials) -->
-                       <div class="row g-3">
-                          <div class="col-md-3">
-                            <label class="form-label required">Student/Employee No.</label>
-                            <input class="form-control" formControlName="studentEmployeeNo"
-                                   [ngClass]="{'is-invalid': a.get('studentEmployeeNo')?.invalid && a.get('studentEmployeeNo')?.touched}"/>
-                            <small class="text-danger" *ngIf="a.get('studentEmployeeNo')?.hasError('required') && a.get('studentEmployeeNo')?.touched">Required for affiliated authors</small>
-                          </div>
+                        <!-- Row 1: Basic Info (Student/Employee No, First Names, Surname, Initials) -->
+                        <div class="row g-3">
+                           <div class="col-md-3">
+                             <label class="form-label required">Student/Employee No.</label>
+                             <div class="input-group">
+                               <input class="form-control" formControlName="studentEmployeeNo"
+                                     (blur)="onStudentEmployeeNoBlur(i)"
+                                      [ngClass]="{'is-invalid': a.get('studentEmployeeNo')?.invalid && a.get('studentEmployeeNo')?.touched}"/>
+                               <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#studentSearchModal" title="Search for student/staff member">
+                                 <i class="fa fa-search"></i>
+                               </button>
+                             </div>
+                             <small class="text-danger" *ngIf="a.get('studentEmployeeNo')?.hasError('required') && a.get('studentEmployeeNo')?.touched">Required for affiliated authors</small>
+                            <small class="text-muted d-block" *ngIf="isAuthorLookupLoading(i)">Loading author info...</small>
+                            <small class="text-danger d-block" *ngIf="authorLookupErrors[i]">{{ authorLookupErrors[i] }}</small>
+                           </div>
                          <div class="col-md-3">
                            <label class="form-label required">First-Names</label>
                            <input class="form-control" formControlName="firstName" [ngClass]="{'is-invalid': a.get('firstName')?.invalid && a.get('firstName')?.touched}"/>
@@ -287,8 +295,7 @@
                             <select class="form-select" formControlName="gender"
                                     [ngClass]="{'is-invalid': a.get('gender')?.invalid && a.get('gender')?.touched}">
                               <option [ngValue]="null" disabled>Choose...</option>
-                              <option [ngValue]="'MALE'">Male</option>
-                              <option [ngValue]="'FEMALE'">Female</option>
+                                <option *ngFor="let option of genderOptions" [ngValue]="option.value">{{ option.label }}</option>
                             </select>
                             <small class="text-danger" *ngIf="a.get('gender')?.hasError('required') && a.get('gender')?.touched">Required for affiliated authors</small>
                           </div>
@@ -296,11 +303,7 @@
                            <label class="form-label">Population Group</label>
                            <select class="form-select" formControlName="populationGroup">
                              <option [ngValue]="null">Choose...</option>
-                             <option value="African">African</option>
-                             <option value="Coloured">Coloured</option>
-                             <option value="Indian/Asian">Indian/Asian</option>
-                             <option value="White">White</option>
-                             <option value="Other">Other</option>
+                              <option *ngFor="let option of populationGroupOptions" [ngValue]="option.value">{{ option.label }}</option>
                            </select>
                          </div>
                          <div class="col-md-3">
@@ -326,21 +329,17 @@
                          <!-- Row 4: Country of Birth, Residency Status, Disability -->
                          <div class="col-md-3">
                            <label class="form-label">Country of Birth</label>
-                           <input type="text" class="form-control" formControlName="countryOfBirth" autocomplete="off" [ngClass]="{'is-invalid': a.get('countryOfBirth')?.invalid && a.get('countryOfBirth')?.touched}"/>
+                            <select class="form-select" formControlName="countryOfBirth"
+                                    [ngClass]="{'is-invalid': a.get('countryOfBirth')?.invalid && a.get('countryOfBirth')?.touched}">
+                              <option [ngValue]="null">Choose...</option>
+                              <option *ngFor="let country of countryOptions" [ngValue]="country">{{ country }}</option>
+                            </select>
                          </div>
                          <div class="col-md-3">
-                           <label class="form-label">Residency Status</label>
+                            <label class="form-label">SA Residency Status</label>
                            <select class="form-select" formControlName="saResidencyStatus">
                              <option [ngValue]="null">Choose...</option>
-                             <option value="SOUTH_AFRICAN_CITIZEN">South African Citizen</option>
-                             <option value="PERMANENT_RESIDENT">Permanent Resident</option>
-                             <option value="TEMPORARY_RESIDENT">Temporary Resident</option>
-                             <option value="REFUGEE_STATUS">Refugee Status</option>
-                             <option value="ASYLUM_SEEKER">Asylum Seeker</option>
-                             <option value="WORK_PERMIT">Work Permit Holder</option>
-                             <option value="STUDY_PERMIT">Study Permit Holder</option>
-                             <option value="SPOUSAL_RELATIVE_PERMIT">Spousal/Relative Permit</option>
-                             <option value="OTHER">Other</option>
+                              <option *ngFor="let option of saResidencyOptions" [ngValue]="option.value">{{ option.label }}</option>
                            </select>
                          </div>
                          <div class="col-md-3">
@@ -356,28 +355,14 @@
                            <label class="form-label">Highest Qualification</label>
                            <select class="form-select" formControlName="highestQualification">
                              <option [ngValue]="null">Choose...</option>
-                             <option value="HIGHER_CERTIFICATE">Higher Certificate (NQF 5)</option>
-                             <option value="ADVANCED_CERTIFICATE">Advanced Certificate (NQF 6)</option>
-                             <option value="NATIONAL_DIPLOMA">National Diploma (NQF 6)</option>
-                             <option value="ADVANCED_DIPLOMA">Advanced Diploma (NQF 7)</option>
-                             <option value="BACHELORS">Bachelor's Degree (NQF 7)</option>
-                             <option value="POSTGRADUATE_DIPLOMA">Postgraduate Diploma (NQF 8)</option>
-                             <option value="HONOURS">Honours Degree (NQF 8)</option>
-                             <option value="MASTERS">Master's Degree (NQF 9)</option>
-                             <option value="DOCTORATE">Doctoral Degree (NQF 10)</option>
-                             <option value="OTHER">Other</option>
+                              <option *ngFor="let option of highestQualificationOptions" [ngValue]="option.value">{{ option.label }}</option>
                            </select>
                          </div>
                          <div class="col-md-3">
                            <label class="form-label">Employment Status</label>
                            <select class="form-select" formControlName="employmentStatus">
                              <option [ngValue]="null">Choose...</option>
-                             <option value="PERMANENT">Permanent – Full Time</option>
-                             <option value="TEMPORARY">Part Time / Contract</option>
-                             <option value="STUDENT">Student</option>
-                             <option value="RETIRED">Retired</option>
-                             <option value="DECEASED">Deceased</option>
-                             <option value="OTHER">Other</option>
+                              <option *ngFor="let option of employmentStatusOptions" [ngValue]="option.value">{{ option.label }}</option>
                            </select>
                          </div>
                           <div class="col-md-3">
@@ -402,18 +387,7 @@
                             <label class="form-label">Academic Title</label>
                             <select class="form-select" formControlName="academicTitle">
                               <option [ngValue]="null">Choose...</option>
-                              <option value="MR">Mr</option>
-                              <option value="MS">Ms</option>
-                              <option value="MRS">Mrs</option>
-                              <option value="MISS">Miss</option>
-                              <option value="DR">Dr</option>
-                              <option value="PROF">Prof</option>
-                              <option value="ADV">Adv</option>
-                              <option value="REV">Rev</option>
-                              <option value="PASTOR">Pastor</option>
-                              <option value="IMAM">Imam</option>
-                              <option value="RABBI">Rabbi</option>
-                              <option value="OTHER">Other</option>
+                                <option *ngFor="let option of academicTitleOptions" [ngValue]="option.value">{{ option.label }}</option>
                             </select>
                           </div>
                          </div>
@@ -478,13 +452,51 @@
                             <div [formArrayName]="'universityAffiliations'" class="vstack gap-2">
                               <ng-container *ngFor="let univ of getUniversityAffiliations(a)?.controls; let ui = index">
                                 <div [formGroupName]="ui" class="row g-2 align-items-end p-2 border rounded bg-white">
-                                  <div class="col-md-4">
-                                    <label class="form-label small">University Code</label>
-                                    <input type="text" class="form-control form-control-sm" formControlName="universityCode" placeholder="e.g., UNIVEN, UNISA" />
+                                  <div class="col-md-4 position-relative">
+                                    <label class="form-label small">University</label>
+                                    <input type="text"
+                                           class="form-control form-control-sm"
+                                           [value]="getUniversitySearchTerm(i, ui) || getUniversityDisplayValue(i, ui)"
+                                           (focus)="openUniversityDropdown(i, ui)"
+                                           (blur)="closeUniversityDropdown(i, ui)"
+                                           (input)="onUniversitySearchChange(i, ui, $any($event.target).value)"
+                                           placeholder="Search university by name/code" />
+
+                                    <div *ngIf="isUniversityDropdownOpen(i, ui)"
+                                         class="border rounded bg-white shadow-sm mt-1 position-absolute start-0 end-0"
+                                         style="max-height: 220px; overflow-y: auto; z-index: 1050;">
+                                      <button type="button"
+                                              class="dropdown-item small"
+                                              *ngFor="let university of getFilteredUniversityOptions(i, ui)"
+                                              (mousedown)="selectUniversityOption(i, ui, university)">
+                                        {{ university.name }} ({{ university.code }})
+                                      </button>
+
+                                      <button type="button"
+                                              class="dropdown-item small text-primary"
+                                              (mousedown)="selectOtherUniversity(i, ui)">
+                                        Other (Not listed)
+                                      </button>
+
+                                      <div *ngIf="getFilteredUniversityOptions(i, ui).length === 0"
+                                           class="px-3 py-2 small text-muted">
+                                        No university found. Choose "Other (Not listed)".
+                                      </div>
+                                    </div>
                                   </div>
                                   <div class="col-md-5">
                                     <label class="form-label small">University Name</label>
-                                    <input type="text" class="form-control form-control-sm" formControlName="universityName" placeholder="Full university name" />
+                                    <input *ngIf="!isOtherUniversitySelected(i, ui)"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           formControlName="universityName"
+                                           placeholder="Auto-filled from selected university"
+                                           readonly />
+                                    <input *ngIf="isOtherUniversitySelected(i, ui)"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           formControlName="universityName"
+                                           placeholder="Enter university name" />
                                   </div>
                                   <div class="col-md-2">
                                     <div class="form-check">
@@ -883,3 +895,8 @@
     </div>
   </div>
 </div>
+
+<!-- Student Search Modal -->
+<app-student-search-modal></app-student-search-modal>
+
+

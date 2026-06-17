@@ -1,0 +1,129 @@
+.stepper-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.step-item:last-child {
+  flex: 0;
+}
+
+.step-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e9ecef;
+  color: #6c757d;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.step-circle.active {
+  background-color: #4680ff;
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(70, 128, 255, 0.2);
+}
+
+.step-circle.completed {
+  background-color: #2ca87f;
+  color: #fff;
+}
+
+.step-circle.invalid {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background-color: #dee2e6;
+  margin: 0 8px;
+}
+
+.step-line.completed {
+  background-color: #2ca87f;
+}
+
+.step-label {
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+/* Required field indicators */
+.required::after {
+  content: ' *';
+  color: #dc3545;
+  font-weight: bold;
+  margin-left: 2px;
+}
+
+.form-label.required {
+  color: #495057;
+  font-weight: 500;
+}
+
+/* Mark required inputs with a red left border when not pristine */
+.col-md-3:has(.form-label.required) {
+  position: relative;
+}
+
+.col-md-2:has(.form-label.required) {
+  position: relative;
+}
+
+/* Red border for required fields that are empty or invalid */
+.form-control.is-invalid,
+.form-select.is-invalid {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Highlight required inputs on focus */
+.form-label.required + input:focus,
+.form-label.required + select:focus,
+.form-label.required + textarea:focus {
+  border-color: #dc3545;
+  outline: none;
+}
+
+.sticky-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 8;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 768px) {
+  .stepper-container {
+	gap: 0.25rem;
+  }
+
+  .step-label {
+	display: none;
+  }
+
+  .step-circle {
+	width: 34px;
+	height: 34px;
+	font-size: 0.8rem;
+  }
+}
+

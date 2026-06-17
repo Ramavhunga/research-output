@@ -22,6 +22,61 @@
 
     <!-- ===================== STATS CARDS ===================== -->
     <div *ngIf="loading" class="alert alert-info">Loading dashboard data...</div>
+
+    <div class="alert alert-light border overview-scope" *ngIf="!loading">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+          <strong>Overview Scope:</strong> {{dashboardScope}}
+        </div>
+        <span class="badge bg-light-primary text-primary">Everything at a glance</span>
+      </div>
+    </div>
+
+    <div class="row" *ngIf="!loading">
+      <div class="col-xl-2 col-md-4 col-sm-6" *ngFor="let tile of overviewTiles">
+        <div class="card overview-tile h-100">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h4 class="mb-1">{{tile.value}}</h4>
+                <span class="text-muted">{{tile.label}}</span>
+              </div>
+              <i [ngClass]="['ph-duotone', tile.icon, 'text-' + tile.tone]"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" *ngIf="!loading">
+      <div class="col-xl-6 col-md-12">
+        <div class="card">
+          <div class="card-header">
+            <h5>Output Type Breakdown</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between py-2 border-bottom" *ngFor="let item of outputBreakdown">
+              <span>{{item.label}}</span>
+              <strong>{{item.value}}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-xl-6 col-md-12">
+        <div class="card">
+          <div class="card-header">
+            <h5>Workflow Status Overview</h5>
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between py-2 border-bottom" *ngFor="let item of workflowBreakdown">
+              <span>{{item.label}}</span>
+              <span class="badge" [ngClass]="'bg-light-' + item.tone">{{item.value}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="row">
 
       <div class="col-xl-6 col-md-12">
@@ -191,7 +246,7 @@
                   </td>
                 </tr>
                 <tr *ngIf="recentSubmissions.length === 0">
-                  <td colspan="5" class="text-center text-muted">No journal submissions found for your role scope.</td>
+                  <td colspan="5" class="text-center text-muted">No submissions found for your role scope.</td>
                 </tr>
                 </tbody>
               </table>

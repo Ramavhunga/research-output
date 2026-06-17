@@ -12,7 +12,7 @@ export interface Journal {
   title: string;
   publisher: string;
   index: string;
-  comply: boolean;
+  comply: 'N/A' | 'Yes' | 'No';
 
   /** Publication Details */
   volume?: string;

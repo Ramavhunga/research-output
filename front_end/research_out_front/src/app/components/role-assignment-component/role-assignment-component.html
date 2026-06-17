@@ -78,6 +78,17 @@
                   <label class="form-check-label" for="reviewer-level-2">Level 2 Approval (REVIEWER_LEVEL_2)</label>
                 </div>
 
+                <div class="form-check mb-3">
+                  <input
+                    id="admin-role"
+                    class="form-check-input"
+                    type="checkbox"
+                    [checked]="hasRole('ADMIN')"
+                    (change)="toggleRole('ADMIN', $any($event.target).checked)"
+                  />
+                  <label class="form-check-label" for="admin-role">Admin (ADMIN)</label>
+                </div>
+
                 <button class="btn btn-success" type="button" [disabled]="saving" (click)="saveRoles()">
                   {{ saving ? 'Saving...' : 'Save Approval Levels' }}
                 </button>
@@ -104,6 +115,8 @@
                       <th>Email</th>
                       <th>Level 1</th>
                       <th>Level 2</th>
+                          <th>Admin</th>
+                          <th>Actions</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -119,9 +132,44 @@
                         <span class="badge bg-light-primary" *ngIf="user.roles.includes('REVIEWER_LEVEL_2')">Assigned</span>
                         <span class="text-muted" *ngIf="!user.roles.includes('REVIEWER_LEVEL_2')">-</span>
                       </td>
+                          <td>
+                            <span class="badge bg-light-danger" *ngIf="user.roles.includes('ADMIN')">Assigned</span>
+                            <span class="text-muted" *ngIf="!user.roles.includes('ADMIN')">-</span>
+                          </td>
+                          <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                              <button
+                                *ngIf="user.roles.includes('REVIEWER_LEVEL_1')"
+                                type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                [disabled]="deletingUserRole[user.id + ':REVIEWER_LEVEL_1']"
+                                title="Remove Level 1"
+                                (click)="deleteRoleFromUser(user, 'REVIEWER_LEVEL_1')">
+                                <i class="fa fa-trash"></i>
+                              </button>
+                              <button
+                                *ngIf="user.roles.includes('REVIEWER_LEVEL_2')"
+                                type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                [disabled]="deletingUserRole[user.id + ':REVIEWER_LEVEL_2']"
+                                title="Remove Level 2"
+                                (click)="deleteRoleFromUser(user, 'REVIEWER_LEVEL_2')">
+                                <i class="fa fa-trash"></i>
+                              </button>
+                              <button
+                                *ngIf="user.roles.includes('ADMIN')"
+                                type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                [disabled]="deletingUserRole[user.id + ':ADMIN']"
+                                title="Remove Admin"
+                                (click)="deleteRoleFromUser(user, 'ADMIN')">
+                                <i class="fa fa-trash"></i>
+                              </button>
+                            </div>
+                          </td>
                     </tr>
-                    <tr *ngIf="assignedUsers.length === 0">
-                      <td colspan="5" class="text-center text-muted">No users assigned to Level 1 or Level 2 approvals.</td>
+                        <tr *ngIf="assignedUsers.length === 0">
+                          <td colspan="7" class="text-center text-muted">No users assigned to any approval levels or admin role.</td>
                     </tr>
                     </tbody>
                   </table>

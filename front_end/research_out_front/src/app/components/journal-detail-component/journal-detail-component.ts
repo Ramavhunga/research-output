@@ -25,6 +25,20 @@ import {CountriesService} from '../../services/countries.service';
 import Swal from 'sweetalert2';
 import {ResearchfieldService} from '../../services/researchfield.service';
 import {Publisher, PublisherService} from '../../services/publisher.service';
+import {LoginService} from '../../services/login.service';
+import {StudentSearchModalComponent} from '../student-search-modal/student-search-modal.component';
+import {StudentSearchResult} from '../../services/student-search.service';
+import {AuthorLookupService} from '../../services/author-lookup.service';
+import {
+  AUTHOR_ACADEMIC_TITLE_OPTIONS,
+  AUTHOR_EMPLOYMENT_STATUS_OPTIONS,
+  AUTHOR_GENDER_OPTIONS,
+  AUTHOR_HIGHEST_QUALIFICATION_OPTIONS,
+  AUTHOR_POPULATION_GROUP_OPTIONS,
+  AUTHOR_SA_RESIDENCY_OPTIONS,
+  ISO_3166_COUNTRY_OPTIONS,
+  SA_HEI_OPTIONS
+} from '../../constants/author-form-options';
 
 
 // const DOI_REGEX = /^10\.\d{4,9}\/[\-._;()/:A-Z0-9]+$/i;
@@ -34,7 +48,7 @@ import {Publisher, PublisherService} from '../../services/publisher.service';
   selector: 'app-journal-detail-component',
   templateUrl: './journal-detail-component.html',
   styleUrls: ['./journal-detail-component.css'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterLink, StudentSearchModalComponent]
 })
 export class JournalDetailComponent implements OnInit {
   isReadOnlyView = false;
@@ -48,6 +62,10 @@ export class JournalDetailComponent implements OnInit {
   loadingFaculties = false;
   countryOptionsMap: { [index: number]: string[] } = {};
   countrySubs: { [index: number]: Subscription } = {};
+  authorLookupLoading: { [index: number]: boolean } = {};
+  authorLookupErrors: { [index: number]: string } = {};
+  universitySearchTerms: { [rowKey: string]: string } = {};
+  universityDropdownOpen: { [rowKey: string]: boolean } = {};
 
   researchFields: any[] = [];
   filteredResearchFields: any[] = []
@@ -103,6 +121,16 @@ export class JournalDetailComponent implements OnInit {
     authorUnitCalculations: []
   };
 
+  readonly otherUniversityCode = 'OTHER';
+  readonly saUniversityOptions = SA_HEI_OPTIONS;
+  readonly genderOptions = AUTHOR_GENDER_OPTIONS;
+  readonly populationGroupOptions = AUTHOR_POPULATION_GROUP_OPTIONS;
+  readonly saResidencyOptions = AUTHOR_SA_RESIDENCY_OPTIONS;
+  readonly employmentStatusOptions = AUTHOR_EMPLOYMENT_STATUS_OPTIONS;
+  readonly academicTitleOptions = AUTHOR_ACADEMIC_TITLE_OPTIONS;
+  readonly highestQualificationOptions = AUTHOR_HIGHEST_QUALIFICATION_OPTIONS;
+  readonly countryOptions = ISO_3166_COUNTRY_OPTIONS;
+
   constructor(private fb: FormBuilder,
               private router: Router,
               private journalService: JournalService,
@@ -110,6 +138,8 @@ export class JournalDetailComponent implements OnInit {
               private countryService: CountriesService,
               private researchFieldService: ResearchfieldService,
               private publisherService: PublisherService,
+              private loginService: LoginService,
+              private authorLookupService: AuthorLookupService,
               private cdr: ChangeDetectorRef ) {
 
 
@@ -150,7 +180,7 @@ export class JournalDetailComponent implements OnInit {
       ],
       publisher: [journal?.publisher ?? '', Validators.required],
       index: [journal?.index ?? '', Validators.required],
-      comply: [journal?.comply ?? null, Validators.required],
+      comply: [this.normalizeCompliance(journal?.comply), Validators.required],
 
       /** Publication */
       volume: [journal?.volume ?? null],
@@ -211,25 +241,282 @@ export class JournalDetailComponent implements OnInit {
 
       additionalComments: [journal?.additionalComments ?? '']
 
-    },{
-
+    }, {
       asyncValidators: this.isReadOnlyView ? [] : [this.checkTitleIssnUnique(this.journalService)],
       updateOn: 'blur' // ✅ VERY IMPORTANT
-
-
-
-  }
-  );
+    });
 
     this.setupFieldSearch();
     this.setupAutoCalc();
+    this.normalizeAllUniversityAffiliations();
 
     this.authorsFA.controls.forEach((_, i) => this.onCountrySearch(i));
+  }
+
+  isAuthorLookupLoading(index: number): boolean {
+    return this.authorLookupLoading[index] === true;
+  }
+
+  onStudentEmployeeNoBlur(authorIndex: number): void {
+    const authorFG = this.authorsFA.at(authorIndex) as FormGroup;
+    const isAffiliated = authorFG.get('affiliation')?.value === true;
+    if (!isAffiliated) {
+      return;
+    }
+
+    const studentEmployeeNo = String(authorFG.get('studentEmployeeNo')?.value ?? '').trim();
+    if (!studentEmployeeNo) {
+      return;
+    }
+
+    this.authorLookupLoading[authorIndex] = true;
+    delete this.authorLookupErrors[authorIndex];
+
+    this.loginService.getStudentInfo(studentEmployeeNo).subscribe({
+      next: (response) => {
+        debugger
+        const mapped = this.mapLoginApiToAuthorFields(response);
+        if (!mapped) {
+          this.authorLookupErrors[authorIndex] = 'No staff/student details found for this number.';
+          this.authorLookupLoading[authorIndex] = false;
+          return;
+        }
+
+        const patch: Record<string, any> = {};
+        if (mapped.firstName) patch['firstName'] = mapped.firstName;
+        if (mapped.surname) patch['surname'] = mapped.surname;
+        if (mapped.initials) patch['initials'] = mapped.initials;
+        if (mapped.gender) patch['gender'] = mapped.gender;
+        if (mapped.email) patch['email'] = mapped.email;
+        if (mapped.countryOfBirth) patch['countryOfBirth'] = mapped.countryOfBirth;
+        if (mapped.academicTitle) patch['academicTitle'] = mapped.academicTitle;
+        if (mapped.employmentStatus) patch['employmentStatus'] = mapped.employmentStatus;
+        if (mapped.dobYear !== null) patch['dob'] = mapped.dobYear;
+
+        const facultyId = this.findFacultyId(mapped.facultyName);
+        if (facultyId !== null) {
+          patch['facultyId'] = facultyId;
+        }
+
+        authorFG.patchValue(patch, { emitEvent: false });
+
+        if (facultyId !== null) {
+          this.journalService.getDepartmentsByFaculty(facultyId).subscribe({
+            next: (deps) => {
+              this.departmentsMap[authorIndex] = deps ?? [];
+              const departmentId = this.findDepartmentId(this.departmentsMap[authorIndex], mapped.departmentName);
+              if (departmentId !== null) {
+                authorFG.get('departmentId')?.setValue(departmentId);
+              }
+              this.authorLookupLoading[authorIndex] = false;
+              this.cdr.markForCheck();
+            },
+            error: () => {
+              this.authorLookupLoading[authorIndex] = false;
+            }
+          });
+          return;
+        }
+
+        this.authorLookupLoading[authorIndex] = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.authorLookupErrors[authorIndex] = 'Could not fetch staff/student info. Check the number and try again.';
+        this.authorLookupLoading[authorIndex] = false;
+      }
+    });
+  }
+
+  private mapLoginApiToAuthorFields(response: any): {
+    firstName: string | null;
+    surname: string | null;
+    initials: string | null;
+    gender: 'MALE' | 'FEMALE' | null;
+    email: string | null;
+    dobYear: number | null;
+    facultyName: string | null;
+    departmentName: string | null;
+    countryOfBirth: string | null;
+    academicTitle: string | null;
+    employmentStatus: string | null;
+  } | null {
+    const payload = response ?? {};
+    const student = payload.student ?? payload.studentInfo ?? payload;
+    const staff = payload.staff ?? payload;
+    const communication = payload.communication ?? payload.communications ?? payload;
+
+    const firstName = this.firstNonEmpty(student?.firstNames, student?.firstname, staff?.firstNames, staff?.firstname);
+    const surname = this.firstNonEmpty(student?.surname, staff?.surname);
+    const initials = this.firstNonEmpty(student?.initials, staff?.initials);
+    const gender = this.normalizeGender(this.firstNonEmpty(student?.gender, staff?.gender));
+    const email = this.extractEmail(communication);
+    const dobYear = this.extractYear(this.firstNonEmpty(student?.dateOfBirth, staff?.birthDate));
+    const facultyName = this.firstNonEmpty(student?.facultyName, student?.facultyCode, staff?.faculty);
+    const departmentName = this.firstNonEmpty(student?.departmentName, student?.departmentCode, staff?.departmentName);
+    const countryOfBirth = this.firstNonEmpty(student?.countryName, staff?.countryName);
+    const academicTitle = this.normalizeAcademicTitle(this.firstNonEmpty(staff?.title));
+    const employmentStatus = this.normalizeEmploymentStatus(
+      this.firstNonEmpty(staff?.permanentOrTemp, staff?.postType, student?.studentNumber)
+    );
+
+    const hasAnyValue = [
+      firstName,
+      surname,
+      initials,
+      gender,
+      email,
+      dobYear,
+      facultyName,
+      departmentName,
+      countryOfBirth,
+      academicTitle,
+      employmentStatus
+    ].some(v => v !== null && v !== undefined && v !== '');
+
+    if (!hasAnyValue) {
+      return null;
+    }
+
+    return {
+      firstName,
+      surname,
+      initials,
+      gender,
+      email,
+      dobYear,
+      facultyName,
+      departmentName,
+      countryOfBirth,
+      academicTitle,
+      employmentStatus
+    };
+  }
+
+  private firstNonEmpty(...values: any[]): string | null {
+    for (const value of values) {
+      const normalized = String(value ?? '').trim();
+      if (normalized) {
+        return normalized;
+      }
+    }
+    return null;
+  }
+
+  private normalizeGender(raw: string | null): 'MALE' | 'FEMALE' | null {
+    if (!raw) {
+      return null;
+    }
+    const value = raw.toUpperCase();
+    if (value.startsWith('M')) {
+      return 'MALE';
+    }
+    if (value.startsWith('F')) {
+      return 'FEMALE';
+    }
+    return null;
+  }
+
+  private normalizeAcademicTitle(raw: string | null): string | null {
+    if (!raw) {
+      return null;
+    }
+    const value = raw.toUpperCase();
+    const allowed = new Set([
+      'ASSOCIATE_PROFESSOR',
+      'BELOW_JUNIOR_LECTURER',
+      'JUNIOR_LECTURER',
+      'LECTURER',
+      'POSTDOC',
+      'PROFESSOR',
+      'RESEARCH_FELLOW',
+      'SENIOR_LECTURER',
+      'STUDENT',
+      'OTHER'
+    ]);
+    return allowed.has(value) ? value : null;
+  }
+
+  private normalizeEmploymentStatus(raw: string | null): string | null {
+    if (!raw) {
+      return null;
+    }
+    const value = raw.toUpperCase();
+    if (value.includes('STUDENT')) return 'STUDENT';
+    if (value.includes('PERMANENT') || value.includes('FULL')) return 'PERMANENT';
+    if (value.includes('TEMP') || value.includes('PART') || value.includes('CONTRACT')) return 'CONTRACT_TEMPORARY';
+    if (value.includes('VISITING')) return 'VISITING_SCHOLAR';
+    if (value.includes('RETIRED')) return 'RETIRED';
+    return null;
+  }
+
+  private extractYear(rawDate: string | null): number | null {
+    if (!rawDate) {
+      return null;
+    }
+
+    const parsed = new Date(rawDate);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.getFullYear();
+    }
+
+    const yearMatch = rawDate.match(/\d{4}/);
+    return yearMatch ? Number(yearMatch[0]) : null;
+  }
+
+  private extractEmail(communication: any): string | null {
+    if (!communication) {
+      return null;
+    }
+
+    if (Array.isArray(communication)) {
+      const emailItem = communication.find((item: any) =>
+        String(item?.communicationType ?? item?.type ?? '').toUpperCase().includes('EMAIL')
+      ) ?? communication[0];
+      return this.firstNonEmpty(emailItem?.communicationNumber, emailItem?.email, emailItem?.emailAddress);
+    }
+
+    return this.firstNonEmpty(
+      communication?.email,
+      communication?.emailAddress,
+      String(communication?.communicationType ?? '').toUpperCase().includes('EMAIL')
+        ? communication?.communicationNumber
+        : null
+    );
+  }
+
+  private findFacultyId(facultyNameOrCode: string | null): number | null {
+    if (!facultyNameOrCode) {
+      return null;
+    }
+
+    const target = facultyNameOrCode.trim().toUpperCase();
+    const matched = this.faculties.find(f =>
+      String(f.name ?? '').trim().toUpperCase() === target
+      || String((f as any).code ?? '').trim().toUpperCase() === target
+    );
+    return matched?.id ?? null;
+  }
+
+  private findDepartmentId(departments: Department[], departmentNameOrCode: string | null): number | null {
+    if (!departmentNameOrCode) {
+      return null;
+    }
+
+    const target = departmentNameOrCode.trim().toUpperCase();
+    const matched = (departments ?? []).find(d =>
+      String(d.name ?? '').trim().toUpperCase() === target
+      || String((d as any).code ?? '').trim().toUpperCase() === target
+    );
+    return matched?.id ?? null;
   }
 
   ngOnInit() {
     // Load previously saved journal if available
     this.loadSavedJournal();
+
+    // Check if a student was selected from search modal
+    this.checkForSelectedStudent();
 
     // Get the current journal from router state
     const navigationState = this.router.getCurrentNavigation()?.extras.state ?? history.state ?? {};
@@ -260,6 +547,31 @@ export class JournalDetailComponent implements OnInit {
     if (this.isReadOnlyView) {
       this.clearAllValidators(this.form);
       this.form.disable({ emitEvent: false });
+    }
+  }
+
+  private checkForSelectedStudent(): void {
+    try {
+      const selectedStudentJson = sessionStorage.getItem('selectedStudent');
+      if (selectedStudentJson) {
+        const student: StudentSearchResult = JSON.parse(selectedStudentJson);
+        // Clear it so it's only used once
+        sessionStorage.removeItem('selectedStudent');
+
+        // Find the first affiliated author row (usually the one being edited)
+        const authorsFA = this.authorsFA;
+        if (authorsFA.length > 0) {
+          // Populate the first author's field with student number
+          const firstAuthorFG = authorsFA.at(0) as FormGroup;
+          firstAuthorFG.patchValue({ studentEmployeeNo: student.staffNo || student.studentNo });
+          // Trigger the lookup
+          setTimeout(() => {
+            this.onStudentEmployeeNoBlur(0);
+          }, 100);
+        }
+      }
+    } catch (error) {
+      console.error('Error processing selected student:', error);
     }
   }
 
@@ -328,7 +640,7 @@ export class JournalDetailComponent implements OnInit {
     }
 
     if (roles.includes('ADMIN') || roles.includes('ADMINISTRATOR')) {
-      return status !== 'READY_FOR_POSTING';
+      return status !== 'READY_FOR_POSTING' && status !== 'POSTED_TO_DHET';
     }
 
     const isL1 = roles.includes('REVIEWER_LEVEL_1') || roles.includes('LEVEL_1_APPROVER');
@@ -447,6 +759,13 @@ export class JournalDetailComponent implements OnInit {
     }
     if (typeof value === 'number') return value === 1;
     return fallback;
+  }
+
+  private normalizeCompliance(value: unknown): 'N/A' | 'Yes' | 'No' {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (normalized === 'yes' || normalized === 'true' || normalized === '1') return 'Yes';
+    if (normalized === 'no' || normalized === 'false' || normalized === '0') return 'No';
+    return 'N/A';
   }
 
   /**
@@ -960,6 +1279,172 @@ export class JournalDetailComponent implements OnInit {
     return (authorControl?.get('researchAffiliations') as FormArray) ?? this.fb.array([]);
   }
 
+  private findUniversityByCode(code: string): { code: string; name: string } | undefined {
+    return this.saUniversityOptions.find(u => u.code === code);
+  }
+
+  private getUniversityRowKey(authorIndex: number, univIndex: number): string {
+    return `${authorIndex}_${univIndex}`;
+  }
+
+  getUniversitySearchTerm(authorIndex: number, univIndex: number): string {
+    return this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)] ?? '';
+  }
+
+  isUniversityDropdownOpen(authorIndex: number, univIndex: number): boolean {
+    return this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)] === true;
+  }
+
+  openUniversityDropdown(authorIndex: number, univIndex: number): void {
+    this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)] = true;
+  }
+
+  closeUniversityDropdown(authorIndex: number, univIndex: number): void {
+    // Small delay allows option click to complete before closing.
+    setTimeout(() => {
+      this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)] = false;
+      this.cdr.markForCheck();
+    }, 120);
+  }
+
+  onUniversitySearchChange(authorIndex: number, univIndex: number, value: string): void {
+    this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)] = value ?? '';
+    this.openUniversityDropdown(authorIndex, univIndex);
+  }
+
+  getUniversityDisplayValue(authorIndex: number, univIndex: number): string {
+    const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
+    const code = String(row?.get('universityCode')?.value ?? '').trim().toUpperCase();
+    const name = String(row?.get('universityName')?.value ?? '').trim();
+
+    if (!code) return '';
+    if (code === this.otherUniversityCode) return name;
+    const selected = this.findUniversityByCode(code);
+    return selected ? `${selected.name} (${selected.code})` : name;
+  }
+
+  selectUniversityOption(authorIndex: number, univIndex: number, university: { code: string; name: string }): void {
+    const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
+    row.patchValue(
+      {
+        universityCode: university.code,
+        universityName: university.name,
+        isUniven: university.code === 'UNIVEN'
+      },
+      { emitEvent: false }
+    );
+
+    delete this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)];
+    this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)] = false;
+    this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
+  }
+
+  selectOtherUniversity(authorIndex: number, univIndex: number): void {
+    const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
+    row.patchValue(
+      {
+        universityCode: this.otherUniversityCode,
+        universityName: '',
+        isUniven: false
+      },
+      { emitEvent: false }
+    );
+
+    delete this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)];
+    this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)] = false;
+    this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
+  }
+
+  getFilteredUniversityOptions(authorIndex: number, univIndex: number): { code: string; name: string }[] {
+    const term = this.getUniversitySearchTerm(authorIndex, univIndex).trim().toLowerCase();
+    if (!term) {
+      return this.saUniversityOptions;
+    }
+
+    return this.saUniversityOptions.filter(university =>
+      university.name.toLowerCase().includes(term)
+      || university.code.toLowerCase().includes(term)
+    );
+  }
+
+  private normalizeAllUniversityAffiliations(): void {
+    this.authorsFA.controls.forEach((_, authorIndex) => {
+      this.normalizeUniversityAffiliationsForAuthor(authorIndex);
+    });
+  }
+
+  private normalizeUniversityAffiliationsForAuthor(authorIndex: number): void {
+    const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
+    univArray.controls.forEach((ctrl) => {
+      const row = ctrl as FormGroup;
+      const code = String(row.get('universityCode')?.value ?? '').trim().toUpperCase();
+      const name = String(row.get('universityName')?.value ?? '').trim();
+      const selected = this.findUniversityByCode(code);
+
+      if (selected) {
+        row.patchValue(
+          {
+            universityCode: selected.code,
+            universityName: selected.name,
+            isUniven: selected.code === 'UNIVEN'
+          },
+          { emitEvent: false }
+        );
+        return;
+      }
+
+      // Convert legacy or unknown values to OTHER while preserving an existing custom name.
+      if (code || name) {
+        row.patchValue(
+          {
+            universityCode: this.otherUniversityCode,
+            universityName: name,
+            isUniven: false
+          },
+          { emitEvent: false }
+        );
+      }
+    });
+  }
+
+  isOtherUniversitySelected(authorIndex: number, univIndex: number): boolean {
+    const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
+    const code = String(row?.get('universityCode')?.value ?? '').trim().toUpperCase();
+    return code === this.otherUniversityCode;
+  }
+
+  onUniversitySelectionChange(authorIndex: number, univIndex: number): void {
+    const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
+    const selectedCode = String(row?.get('universityCode')?.value ?? '').trim().toUpperCase();
+    const selectedUniversity = this.findUniversityByCode(selectedCode);
+
+    if (selectedUniversity) {
+      row.patchValue(
+        {
+          universityCode: selectedUniversity.code,
+          universityName: selectedUniversity.name,
+          isUniven: selectedUniversity.code === 'UNIVEN'
+        },
+        { emitEvent: false }
+      );
+    } else if (selectedCode === this.otherUniversityCode) {
+      row.patchValue(
+        {
+          universityName: '',
+          isUniven: false
+        },
+        { emitEvent: false }
+      );
+    }
+
+    delete this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)];
+
+    this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
+  }
+
   /**
    * Add a university affiliation to an author
    */
@@ -970,6 +1455,7 @@ export class JournalDetailComponent implements OnInit {
       universityName: ['', Validators.required],
       isUniven: [false]
     }));
+    this.normalizeUniversityAffiliationsForAuthor(authorIndex);
     this.calculateAdvancedUnitBreakdown();
     this.cdr.markForCheck();
   }
@@ -980,6 +1466,8 @@ export class JournalDetailComponent implements OnInit {
   removeUniversityAffiliation(authorIndex: number, univIndex: number) {
     const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     univArray.removeAt(univIndex);
+    delete this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)];
+    delete this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)];
     this.calculateAdvancedUnitBreakdown();
     this.cdr.markForCheck();
   }
@@ -1018,7 +1506,7 @@ export class JournalDetailComponent implements OnInit {
     journalTitle: any;
     publisher: any;
     index: any;
-    comply: boolean;
+    comply: 'N/A' | 'Yes' | 'No';
     volume: any;
     issue: any;
     issn: any;
@@ -1058,7 +1546,7 @@ export class JournalDetailComponent implements OnInit {
       duplicateJournal:raw.duplicateJournal ?? false,
       publisher: raw.publisher,
       index: raw.index,
-      comply: !!raw.comply,
+      comply: this.normalizeCompliance(raw.comply),
 
       /** Publication Details */
       volume: raw.volume ?? null,
@@ -1159,7 +1647,7 @@ export class JournalDetailComponent implements OnInit {
       journalTitle: 'International Journal of Computer Science',
       publisher: 1,
       index: 'Scopus',
-      comply: true,
+      comply: 'Yes',
       duplicateJournal:false,
       volume: 12,
       issue: 3,
@@ -1845,7 +2333,8 @@ export class JournalDetailComponent implements OnInit {
    * Load previously saved journal data
    */
   loadSavedJournal() {
-    const journalIdFromState = this.router.getCurrentNavigation()?.extras.state?.['journal']?.id;
+    const state = this.router.getCurrentNavigation()?.extras.state ?? history.state ?? {};
+    const journalIdFromState = state?.['journal']?.id;
 
     if (journalIdFromState) {
       this.journalService.getById(journalIdFromState).subscribe({

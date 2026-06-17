@@ -3,6 +3,9 @@ import {Authors} from './common.model';
 export interface Chapter {
   id: number;
   dhetNo: string;
+  status?: string;
+  updatedAt?: string;
+  submittedBy?: { username?: string };
   authors: Authors[];
   originalOrPhotocopy: 'Original' | 'O' | 'Photocopy' | 'P';
   evidenceOfPeerReview: 'Yes' | 'Y' | 'No' | 'N';

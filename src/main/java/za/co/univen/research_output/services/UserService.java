@@ -83,21 +83,44 @@ public class UserService {
         String normalizedStaffNo = normalizeStaffNo(staffNo);
         LoginDTO loginDTO = loadLoginByStaffNo(normalizedStaffNo);
 
-        Set<String> requestedReviewerRoles = extractReviewerRoles(roles);
+        Set<String> requestedRoles = extractReviewerRolesAndAdmin(roles);
         za.co.univen.research_output.entities.User localUser = currentUserService.getOrCreateUserByUsername(normalizedStaffNo);
 
         Set<String> mergedRoles = new LinkedHashSet<>(currentUserService.getRoles(localUser));
-        mergedRoles.removeIf(role -> REVIEWER_ROLES.contains(role.toUpperCase(Locale.ROOT)));
-        mergedRoles.addAll(requestedReviewerRoles);
+        mergedRoles.removeIf(role -> {
+          String upperRole = role.toUpperCase(Locale.ROOT);
+          return REVIEWER_ROLES.contains(upperRole) || "ADMIN".equals(upperRole);
+        });
+        mergedRoles.addAll(requestedRoles);
         if (mergedRoles.isEmpty()) {
             mergedRoles.add("REQUESTOR");
         }
 
         currentUserService.assignRoles(normalizedStaffNo, mergedRoles);
-        return StaffRoleView.from(loginDTO, normalizedStaffNo, requestedReviewerRoles);
+        return StaffRoleView.from(loginDTO, normalizedStaffNo, requestedRoles);
     }
 
-    private LoginDTO loadLoginByStaffNo(String staffNo) throws Exception {
+    public LoginDTO loadStudentOrStaffByNumber(String number) throws Exception {
+        String normalized = normalizeStaffNo(number);
+        try {
+            ResponseEntity<LoginDTO> rs = restTemplate.exchange(
+                    "https://univenproduction-integration.azuremicroservices.io/api/user/" + normalized,
+                    HttpMethod.GET,
+                    new HttpEntity<>(buildImpersonationHeaders()),
+                    LoginDTO.class
+            );
+
+            LoginDTO loginDTO = Objects.requireNonNull(rs.getBody());
+            if (loginDTO.getStaff() == null && loginDTO.getStudent() == null) {
+                throw new IllegalArgumentException("Person not found");
+            }
+            return loginDTO;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Person not found");
+        }
+    }
+
+    public LoginDTO loadLoginByStaffNo(String staffNo) throws Exception {
         try {
             ResponseEntity<LoginDTO> rs = restTemplate.exchange(
                     "https://univenproduction-integration.azuremicroservices.io/api/user/" + staffNo,
@@ -138,6 +161,17 @@ public class UserService {
                 .filter(value -> value != null && !value.isBlank())
                 .map(value -> value.trim().toUpperCase(Locale.ROOT))
                 .filter(REVIEWER_ROLES::contains)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private Set<String> extractReviewerRolesAndAdmin(Set<String> roles) {
+        if (roles == null) {
+            return Set.of();
+        }
+        return roles.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .map(value -> value.trim().toUpperCase(Locale.ROOT))
+                .filter(role -> REVIEWER_ROLES.contains(role) || "ADMIN".equals(role))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }

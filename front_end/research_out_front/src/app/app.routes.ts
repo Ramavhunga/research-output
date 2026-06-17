@@ -15,6 +15,7 @@ import {JournalComponent} from './components/journal-component/journal-component
 import {JournalDetailComponent} from './components/journal-detail-component/journal-detail-component';
 import {BooksFieldsComponent} from './components/books-fields-component/books-fields-component';
 import {BooksFieldsDetailComponent} from './components/books-fields-detail-component/books-fields-detail-component';
+import {BookDetailComponent} from './components/book-detail-component/book-detail-component';
 import {ChapterComponent} from './components/chapter-component/chapter-component';
 import {ChapterDetailComponent} from './components/chapter-detail-component/chapter-detail-component';
 import {
@@ -23,11 +24,13 @@ import {
 import {
   ConferenceProceedingsDetailComponent
 } from './components/conference-proceedings-detail-component/conference-proceedings-detail-component';
-import { JournalReviewComponent } from './components/journal-review-component/journal-review-component';
+import { ReviewDashboardComponent } from './components/review-dashboard-component/review-dashboard-component';
 import { RoleAssignmentComponent } from './components/role-assignment-component/role-assignment-component';
+import { DepartmentDeanAssignmentComponent } from './components/department-dean-assignment-component/department-dean-assignment-component';
 
 
 export const routes: Routes = [
+    { path: '', redirectTo: 'login', pathMatch: 'full' },
     { path: 'login', component: LoginComponent },
       {
         path: '',
@@ -43,19 +46,26 @@ export const routes: Routes = [
           { path: 'journal', component: JournalComponent },
           { path: 'journal/details', component: JournalDetailComponent},
           {
-            path: 'journal/review',
-            component: JournalReviewComponent,
+            path: 'review',
+            component: ReviewDashboardComponent,
             canActivate: [AuthGuard],
             data: { roles: ['ADMIN', 'REVIEWER_LEVEL_1', 'REVIEWER_LEVEL_2'] }
           },
-          {
-            path: 'admin/roles',
-            component: RoleAssignmentComponent,
-            canActivate: [AuthGuard],
-            data: { roles: ['ADMIN'] }
-          },
-          { path: 'books', component: BooksFieldsComponent },
-          { path: 'book/details', component: BooksFieldsDetailComponent},
+           {
+             path: 'admin/roles',
+             component: RoleAssignmentComponent,
+             canActivate: [AuthGuard],
+             data: { roles: ['ADMIN'] }
+           },
+           {
+             path: 'admin/department-dean',
+             component: DepartmentDeanAssignmentComponent,
+             canActivate: [AuthGuard],
+             data: { roles: ['ADMIN'] }
+           },
+           { path: 'books', component: BooksFieldsComponent },
+          { path: 'book/details', component: BookDetailComponent},
+          { path: 'book/bookdetails', component: BookDetailComponent},
           { path: 'chapters', component: ChapterComponent },
           { path: 'chapter/chapterdetails', component: ChapterDetailComponent},
           { path: 'proceedings', component: ConferenceProceedingsComponent },

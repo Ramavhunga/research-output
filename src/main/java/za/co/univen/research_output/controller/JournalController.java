@@ -4,7 +4,9 @@ import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
+import za.co.univen.research_output.dto.JournalListItemDto;
 import za.co.univen.research_output.dto.JournalApprovalTimelineDto;
 import za.co.univen.research_output.dto.JournalDecisionRequest;
 import za.co.univen.research_output.dto.JournalStatusUpdateRequest;
@@ -20,7 +22,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping({"/api/journals", "/api/journal"})
-@CrossOrigin("*")
 public class JournalController {
     private final JournalService service;
     private final JournalRepository journalRepository;
@@ -76,11 +77,12 @@ public class JournalController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Journal>> getAll(
+    public ResponseEntity<List<?>> getAll(
             @RequestParam(required = false) String year,
             @RequestParam(required = false) JournalStatus status,
             @RequestParam(required = false) Long facultyId,
             @RequestParam(defaultValue = "false") boolean mine,
+            @RequestParam(defaultValue = "false") boolean summary,
             @RequestParam(required = false) String username,
             @RequestHeader(value = "X-Username", required = false) String usernameHeader
     ) {
@@ -91,8 +93,14 @@ public class JournalController {
             }
             if (resolvedUsername != null && !resolvedUsername.isBlank()) {
                 String user = currentUserService.getOrCreateUserByUsername(resolvedUsername).getUsername();
+                if (summary) {
+                    return ResponseEntity.ok(service.findAllSummaryForUser(user));
+                }
                 return ResponseEntity.ok(service.findAllForUser(user));
             }
+        }
+        if (summary) {
+            return ResponseEntity.ok(service.findAllSummary(year, status, facultyId));
         }
         return ResponseEntity.ok(service.findAll(year, status, facultyId));
     }
@@ -178,6 +186,22 @@ public class JournalController {
     @GetMapping("/{id}/timeline")
     public ResponseEntity<List<JournalApprovalTimelineDto>> getTimeline(@PathVariable Long id) {
         return ResponseEntity.ok(service.getApprovalTimeline(id));
+    }
+
+    @GetMapping("/review-queue")
+    public ResponseEntity<Page<JournalListItemDto>> getReviewQueue(
+            @RequestParam(required = false) JournalStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String username,
+            @RequestHeader(value = "X-Username", required = false) String usernameHeader
+    ) {
+        String resolvedUsername = (username != null && !username.isBlank()) ? username : usernameHeader;
+        if (resolvedUsername == null || resolvedUsername.isBlank()) {
+            throw new IllegalArgumentException("Username is required for review queue");
+        }
+        return ResponseEntity.ok(service.findReviewQueueSummary(resolvedUsername, status, search, page, size));
     }
 
     private String extractRequiredComments(JournalDecisionRequest request, String message) {

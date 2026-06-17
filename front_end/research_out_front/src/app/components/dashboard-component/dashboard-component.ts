@@ -17,8 +17,13 @@ export class DashboardComponent implements OnInit {
   username = '';
   roles: string[] = [];
   loading = false;
+  dashboardScope = 'My submissions';
   recentSubmissions: Array<{ title: string; type: string; status: string; units: number }> = [];
   activityLogs: Array<{ message: string; time: string }> = [];
+  overviewTiles: Array<{ label: string; value: number | string; icon: string; tone: string }> = [];
+  outputBreakdown: Array<{ label: string; value: number }> = [];
+  workflowBreakdown: Array<{ label: string; value: number; tone: string }> = [];
+  approvalRate = 0;
 
   stats = {
     journals: 0,
@@ -92,6 +97,7 @@ export class DashboardComponent implements OnInit {
     // OPTIMIZATION: Use single dashboard stats endpoint instead of loading all journals
     // This reduces N+1 query problems and offloads calculation to the server
     const role = isAdmin ? 'admin' : isReviewer ? 'reviewer' : 'requestor';
+    this.dashboardScope = isAdmin ? 'System-wide overview' : isReviewer ? 'Reviewer overview' : 'Researcher overview';
 
     this.journalService.getDashboardStats(this.username, role).pipe(
       catchError(() => {
@@ -114,6 +120,7 @@ export class DashboardComponent implements OnInit {
         this.populateRecentSubmissions(data);
         this.populateActivityLogs(data, isAdmin ? 'admin' : isReviewer ? 'reviewer' : 'requestor');
       }
+      this.refreshOverviewModels();
       this.loading = false;
     });
   }
@@ -159,7 +166,7 @@ export class DashboardComponent implements OnInit {
 
   private populateStats(journals: Journal[]): void {
     const total = journals.length;
-    const approvedStatuses = new Set(['READY_FOR_POSTING', 'APPROVED']);
+    const approvedStatuses = new Set(['READY_FOR_POSTING', 'POSTED_TO_DHET', 'APPROVED']);
     const pendingStatuses = new Set(['SUBMITTED', 'UNDER_REVIEW_L1', 'UNDER_REVIEW_L2', 'UNDER_REVIEW', 'REVISION_REQUIRED']);
     const rejectedStatuses = new Set(['REJECTED_L1', 'REJECTED_L2', 'REJECTED']);
 
@@ -168,7 +175,7 @@ export class DashboardComponent implements OnInit {
     const rejected = journals.filter(j => rejectedStatuses.has(String(j.status ?? '').toUpperCase())).length;
 
     const totalUnits = journals.reduce((sum, j) => sum + Number(j.units?.totalUnitsClaimed ?? 0), 0);
-    const dhetCompliant = journals.filter(j => j.comply === true).length;
+    const dhetCompliant = journals.filter(j => String(j.comply ?? '').toLowerCase() === 'yes').length;
     const dhetCompliance = total > 0 ? Math.round((dhetCompliant / total) * 100) : 0;
 
     const uniqueResearchers = new Set(
@@ -225,12 +232,40 @@ export class DashboardComponent implements OnInit {
 
   private toDashboardStatus(status?: string): 'APPROVED' | 'PENDING' | 'REJECTED' {
     const value = String(status ?? '').toUpperCase();
-    if (value === 'READY_FOR_POSTING' || value === 'APPROVED') {
+    if (value === 'READY_FOR_POSTING' || value === 'POSTED_TO_DHET' || value === 'APPROVED') {
       return 'APPROVED';
     }
     if (value === 'REJECTED' || value === 'REJECTED_L1' || value === 'REJECTED_L2') {
       return 'REJECTED';
     }
     return 'PENDING';
+  }
+
+  private refreshOverviewModels(): void {
+    this.outputBreakdown = [
+      { label: 'Journals', value: this.stats.journals },
+      { label: 'Books', value: this.stats.books },
+      { label: 'Chapters', value: this.stats.chapters },
+      { label: 'Proceedings', value: this.stats.conferences }
+    ];
+
+    this.workflowBreakdown = [
+      { label: 'Approved', value: this.stats.approved, tone: 'success' },
+      { label: 'Pending', value: this.stats.pending, tone: 'warning' },
+      { label: 'Rejected', value: this.stats.rejected, tone: 'danger' }
+    ];
+
+    this.approvalRate = this.stats.totalSubmissions > 0
+      ? Math.round((this.stats.approved / this.stats.totalSubmissions) * 100)
+      : 0;
+
+    this.overviewTiles = [
+      { label: 'Total Outputs', value: this.stats.totalOutputs, icon: 'ph-stack', tone: 'primary' },
+      { label: 'Total Submissions', value: this.stats.totalSubmissions, icon: 'ph-files', tone: 'info' },
+      { label: 'Total DHET Units', value: this.stats.totalUnits, icon: 'ph-calculator', tone: 'secondary' },
+      { label: 'Active Researchers', value: this.stats.activeResearchers, icon: 'ph-users-three', tone: 'dark' },
+      { label: 'Approval Rate', value: `${this.approvalRate}%`, icon: 'ph-check-circle', tone: 'success' },
+      { label: 'DHET Compliance', value: `${this.stats.dhetCompliance}%`, icon: 'ph-shield-check', tone: 'warning' }
+    ];
   }
 }

@@ -1,41 +1,67 @@
 package za.co.univen.research_output.controller;
 
-import jakarta.transaction.Transactional;
-import org.modelmapper.ModelMapper;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import za.co.univen.research_output.dto.ConferenceProceedingsListItemDto;
+import za.co.univen.research_output.dto.ProceedingsDecisionRequest;
+import za.co.univen.research_output.dto.ProceedingsStatusUpdateRequest;
 import za.co.univen.research_output.entities.ConferenceProceedings;
+import za.co.univen.research_output.entities.ProceedingsStatus;
+import za.co.univen.research_output.entities.SubmissionLog;
 import za.co.univen.research_output.repositories.ConferenceProceedingsRepository;
 import za.co.univen.research_output.services.ConferenceProceedingsService;
+import za.co.univen.research_output.services.CurrentUserService;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/conference-proceedings")
-@CrossOrigin("*")
+@RequestMapping({"/api/conference-proceedings", "/api/proceedings"})
 public class ConferenceProceedingsController {
 
     private final ConferenceProceedingsService service;
     private final ConferenceProceedingsRepository repository;
-    private final ModelMapper modelMapper = new ModelMapper();
+    private final CurrentUserService currentUserService;
 
-    public ConferenceProceedingsController(ConferenceProceedingsService service, ConferenceProceedingsRepository repository) {
+    public ConferenceProceedingsController(
+            ConferenceProceedingsService service,
+            ConferenceProceedingsRepository repository,
+            CurrentUserService currentUserService
+    ) {
         this.service = service;
         this.repository = repository;
+        this.currentUserService = currentUserService;
     }
 
-    @PostMapping()
-    public ResponseEntity<ConferenceProceedings> create(@RequestBody ConferenceProceedings dto) {
+    @PostMapping
+    public ResponseEntity<ConferenceProceedings> create(
+            @Valid @RequestBody ConferenceProceedings dto,
+            @RequestHeader("X-Username") String username
+    ) {
         dto.setId(null);
-        ConferenceProceedings saved = service.createOrUpdate(dto);
+        ConferenceProceedings saved = service.createOrUpdate(dto, username);
         return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ConferenceProceedings> update(@PathVariable Long id, @RequestBody ConferenceProceedings dto) {
+    public ResponseEntity<ConferenceProceedings> update(
+            @PathVariable Long id,
+            @Valid @RequestBody ConferenceProceedings dto,
+            @RequestHeader("X-Username") String username
+    ) {
         dto.setId(id);
-        ConferenceProceedings saved = service.createOrUpdate(dto);
+        ConferenceProceedings saved = service.createOrUpdate(dto, username);
         return ResponseEntity.ok(saved);
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ConferenceProceedings> transitionStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ProceedingsStatusUpdateRequest request,
+            @RequestHeader("X-Username") String username
+    ) {
+        ConferenceProceedings updated = service.transitionStatus(id, request.getStatus(), username);
+        return ResponseEntity.ok(updated);
     }
 
     @GetMapping("/{id}")
@@ -44,8 +70,85 @@ public class ConferenceProceedingsController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ConferenceProceedings>> getAll() {
-        return ResponseEntity.ok(service.findAll());
+    public ResponseEntity<List<?>> getAll(
+            @RequestParam(required = false) Integer yearOfPublication,
+            @RequestParam(required = false) ProceedingsStatus status,
+            @RequestParam(required = false) Long facultyId,
+            @RequestParam(defaultValue = "false") boolean mine,
+            @RequestParam(defaultValue = "false") boolean summary,
+            @RequestParam(required = false) String username,
+            @RequestHeader(value = "X-Username", required = false) String usernameHeader
+    ) {
+        if (mine) {
+            String resolvedUsername = username;
+            if (resolvedUsername == null || resolvedUsername.isBlank()) {
+                resolvedUsername = usernameHeader;
+            }
+            if (resolvedUsername != null && !resolvedUsername.isBlank()) {
+                String user = currentUserService.getOrCreateUserByUsername(resolvedUsername).getUsername();
+                if (summary) {
+                    return ResponseEntity.ok(service.findAllSummaryForUser(user));
+                }
+                return ResponseEntity.ok(service.findAllForUser(user));
+            }
+        }
+        if (summary) {
+            return ResponseEntity.ok(service.findAllSummary(yearOfPublication, status, facultyId));
+        }
+        return ResponseEntity.ok(service.findAll(yearOfPublication, status, facultyId));
+    }
+
+    @GetMapping("/exists")
+    public boolean existsByTitleOfContributionAndIssn(
+            @RequestParam String titleOfContribution,
+            @RequestParam String issn
+    ) {
+        return service.existsByTitleOfContributionAndIssn(titleOfContribution, issn);
+    }
+
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<ConferenceProceedings> submitForReview(
+            @PathVariable Long id,
+            @RequestBody(required = false) ProceedingsDecisionRequest request,
+            @RequestHeader("X-Username") String username
+    ) {
+        ConferenceProceedings updated = service.submitForReview(id, username, request == null ? null : request.getComments());
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<ConferenceProceedings> approve(
+            @PathVariable Long id,
+            @RequestBody(required = false) ProceedingsDecisionRequest request,
+            @RequestHeader("X-Username") String username
+    ) {
+        ConferenceProceedings updated = service.approve(id, username, extractRequiredComments(request, "Approval comments are required"));
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<ConferenceProceedings> reject(
+            @PathVariable Long id,
+            @RequestBody(required = false) ProceedingsDecisionRequest request,
+            @RequestHeader("X-Username") String username
+    ) {
+        ConferenceProceedings updated = service.reject(id, username, extractRequiredComments(request, "Rejection comments are required"));
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{id}/accept-dhet")
+    public ResponseEntity<ConferenceProceedings> acceptByDhet(
+            @PathVariable Long id,
+            @RequestBody(required = false) ProceedingsDecisionRequest request,
+            @RequestHeader("X-Username") String username
+    ) {
+        ConferenceProceedings updated = service.acceptByDhet(id, username, extractRequiredComments(request, "DHET acceptance comments are required"));
+        return ResponseEntity.ok(updated);
+    }
+
+    @GetMapping("/{id}/timeline")
+    public ResponseEntity<List<SubmissionLog>> getTimeline(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getTimeline(id));
     }
 
     @DeleteMapping("/{id}")
@@ -54,15 +157,11 @@ public class ConferenceProceedingsController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/exists")
-    public boolean existsByTitleOfContributionAndIssn(
-            @RequestParam String titleOfContribution,
-            @RequestParam String issn
-    ) {
-        System.out.println("TITLE: " + titleOfContribution);
-        System.out.println("ISSN: " + issn);
-        return repository.existsByTitleOfContributionAndIssn(titleOfContribution, issn);
+    private String extractRequiredComments(ProceedingsDecisionRequest request, String message) {
+        if (request == null || request.getComments() == null || request.getComments().isBlank()) {
+            throw new IllegalArgumentException(message);
+        }
+        return request.getComments().trim();
     }
-
 }
 

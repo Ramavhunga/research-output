@@ -19,8 +19,19 @@ public class SubmissionLog  implements java.io.Serializable {
     private LocalDateTime timestamp;
     private String action;
     private String performedBy;
+    private String fromStatus;
+    private String toStatus;
+    private String comments;
 
     @JsonIgnore
     @ManyToOne
     private ResearchOutput researchOutput;
+
+    @JsonIgnore
+    @ManyToOne
+    private Book book;
+
+    @JsonIgnore
+    @ManyToOne
+    private ConferenceProceedings conferenceProceedings;
 }

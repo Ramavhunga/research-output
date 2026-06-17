@@ -1,6 +1,5 @@
 <div class="pc-container">
   <div class="pc-content">
-    <!-- Breadcrumb -->
     <div class="page-header">
       <div class="page-block">
         <div class="row align-items-center g-0">
@@ -12,7 +11,7 @@
           <div class="col-sm-auto">
             <ul class="breadcrumb">
               <li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li>
-              <li class="breadcrumb-item"><a routerLink="/chapter">Chapters</a></li>
+              <li class="breadcrumb-item"><a routerLink="/chapters">Chapters</a></li>
               <li class="breadcrumb-item" aria-current="page">Chapter Details</li>
             </ul>
           </div>
@@ -24,576 +23,726 @@
       <div class="col-12">
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Chapter Interface</h5>
-            <button class="btn btn-outline-secondary btn-sm" type="button" (click)="preview()">
-              Preview JSON
-            </button>
-            <button class="btn btn-outline-secondary btn-sm" type="button" (click)="autoPopulateForm()">
-              Auto Populate JSON
-            </button>
+            <h5 class="mb-0">Researcher's Chapter Interface</h5>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary btn-sm" type="button" (click)="preview()">Preview JSON</button>
+              <button class="btn btn-outline-secondary btn-sm" type="button" (click)="autoPopulateForm()">Auto Populate</button>
+            </div>
           </div>
 
           <div class="card-body">
+            <div class="stepper-container mb-4">
+              <ng-container *ngFor="let step of steps; let last = last">
+                <div class="step-item">
+                  <div class="step-circle"
+                       [class.active]="currentStep === step.id"
+                       [class.completed]="currentStep > step.id && isStepValid(step.id)"
+                       [class.invalid]="currentStep > step.id && !isStepValid(step.id)"
+                       (click)="goToStep(step.id)">
+                    <span>{{ step.id }}</span>
+                  </div>
+                  <div class="step-label d-none d-md-block">{{ step.label }}</div>
+                  <div *ngIf="!last" class="step-line" [class.completed]="currentStep > step.id && isStepValid(step.id)"></div>
+                </div>
+              </ng-container>
+            </div>
+
             <form [formGroup]="form" (ngSubmit)="onSubmit()">
-              <div class="mb-4">
-                <h6 class="mb-3">Chapter Details</h6>
-                <div class="row g-3">
+              <fieldset>
+                <div *ngIf="currentStep === 1">
+                  <h5 class="mb-3">Chapter Information</h5>
 
-                  <div class="col-md-3">
-                    <label class="form-label">DHET No. <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="dhetNo" readonly />
+                  <div class="alert alert-warning" *ngIf="form.hasError('invalidSubmissionWindow')">
+                    Year of publication must be from the previous year (n-1) or late submission year (n-2).
+                  </div>
+                  <div class="alert alert-warning" *ngIf="form.hasError('motivationRequired')">
+                    Late submission (n-2) requires motivation in Additional Comments.
+                  </div>
+                  <div class="alert alert-warning" *ngIf="form.hasError('invalidPageRange') || form.hasError('claimedPagesMismatch') || form.hasError('endPageExceedsBook')">
+                    Page values are inconsistent. Check Start Page, End Page, Total No. Pages, and Total Pages Claimed.
                   </div>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Year of Publication <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="year"
-                      [ngClass]="{'is-invalid': form.get('year')?.invalid && form.get('year')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('year')?.invalid && form.get('year')?.touched">
-                      Year is required
+                  <div class="row g-3">
+                    <div class="col-md-3">
+                      <label class="form-label required">DHET No.</label>
+                      <input class="form-control" formControlName="dhetNo" readonly />
                     </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Title of Book <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="titleOfBook"
-                      [ngClass]="{'is-invalid': form.get('titleOfBook')?.invalid && form.get('titleOfBook')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('titleOfBook')?.invalid && form.get('titleOfBook')?.touched">
-                      Title of book is required
+                    <div class="col-md-3">
+                      <label class="form-label required">Year of Publication</label>
+                      <input type="number" class="form-control" formControlName="year" [ngClass]="{'is-invalid': form.get('year')?.invalid && form.get('year')?.touched}" />
                     </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Title of Contribution <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="titleOfContribution"
-                      [ngClass]="{'is-invalid': form.get('titleOfContribution')?.invalid && form.get('titleOfContribution')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('titleOfContribution')?.invalid && form.get('titleOfContribution')?.touched">
-                      Title of contribution is required
+                    <div class="col-md-3">
+                      <label class="form-label required">Original / Photocopy</label>
+                      <select class="form-select" formControlName="originalPhotocopy" [ngClass]="{'is-invalid': form.get('originalPhotocopy')?.invalid && form.get('originalPhotocopy')?.touched}">
+                        <option value="">Select</option>
+                        <option value="O">Original (O)</option>
+                        <option value="P">Photocopy (P)</option>
+                      </select>
                     </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Publisher <span class="text-danger">*</span></label>
-                    <select class="form-select"
-                            formControlName="publisher"
-                            [ngClass]="{
-           'is-invalid': form.get('publisher')?.invalid &&
-                         (form.get('publisher')?.touched || form.get('publisher')?.dirty)
-         }">
-                      <option [ngValue]="null" disabled>Choose...</option>
-                      <option *ngFor="let pub of publishers" [ngValue]="pub.id">
-                        {{ pub.name }}
-                      </option>
-                    </select>
-                    <div class="invalid-feedback d-block" *ngIf="form.get('publisher')?.invalid && form.get('publisher')?.touched">
-                      Publisher is required
+                    <div class="col-md-3">
+                      <label class="form-label required">Evidence of Peer Review</label>
+                      <select class="form-select" formControlName="peerReviewEvidence" [ngClass]="{'is-invalid': form.get('peerReviewEvidence')?.invalid && form.get('peerReviewEvidence')?.touched}">
+                        <option value="">Select</option>
+                        <option value="Y">Yes (Y)</option>
+                        <option value="N">No (N)</option>
+                      </select>
                     </div>
-                  </div>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Editors</label>
-                    <input class="form-control" formControlName="editors" />
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">ISBN <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="isbn"
-                      [ngClass]="{'is-invalid': form.get('isbn')?.invalid && form.get('isbn')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('isbn')?.invalid && form.get('isbn')?.touched">
-                      ISBN is required
+                    <div class="col-md-3">
+                      <label class="form-label required">Type of Evidence</label>
+                      <input class="form-control" formControlName="typeOfEvidence" [ngClass]="{'is-invalid': form.get('typeOfEvidence')?.invalid && form.get('typeOfEvidence')?.touched}" />
                     </div>
-                  </div>
+                    <div class="col-md-3">
+                      <label class="form-label required">Title of Book</label>
+                      <input class="form-control" formControlName="titleOfBook" [ngClass]="{'is-invalid': form.get('titleOfBook')?.invalid && form.get('titleOfBook')?.touched}" />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label required">Title of Contribution</label>
+                      <input class="form-control" formControlName="titleOfContribution" [ngClass]="{'is-invalid': form.get('titleOfContribution')?.invalid && form.get('titleOfContribution')?.touched}" />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Editor(s) if applicable</label>
+                      <input class="form-control" formControlName="editors" />
+                    </div>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Field of Research <span class="text-danger">*</span></label>
-                    <div class="position-relative">
-                      <input class="form-control" formControlName="fieldofsearch"
-                        (click)="showResearchFieldDropdown = true"
-                        (blur)="hideResearchFieldDropdown()"
-                        [ngClass]="{'is-invalid': form.get('fieldofsearch')?.invalid && form.get('fieldofsearch')?.touched}"
-                        placeholder="Search or select..." />
-                      <div class="dropdown-menu show position-absolute w-100 start-0" *ngIf="showResearchFieldDropdown && filteredResearchFields.length > 0"
-                        style="z-index: 1000; max-height: 200px; overflow-y: auto;">
-                        <button *ngFor="let field of filteredResearchFields" class="dropdown-item" type="button" (click)="selectResearchField(field)">
-                          {{ field.name }} ({{ field.code }})
+                    <div class="col-md-3">
+                      <label class="form-label required">Publisher</label>
+                      <select class="form-select" formControlName="publisher" [ngClass]="{'is-invalid': form.get('publisher')?.invalid && form.get('publisher')?.touched}">
+                        <option [ngValue]="null" disabled>Choose...</option>
+                        <option *ngFor="let pub of publishers" [ngValue]="pub.id">{{ pub.name }}</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label required">ISBN / e-ISBN</label>
+                      <input class="form-control" formControlName="isbn" [ngClass]="{'is-invalid': form.get('isbn')?.invalid && form.get('isbn')?.touched}" />
+                    </div>
+                    <div class="col-md-3 position-relative">
+                      <label class="form-label required">Field of Research</label>
+                      <input class="form-control"
+                             formControlName="fieldofsearch"
+                             (focus)="showResearchFieldDropdown = true"
+                             (blur)="hideResearchFieldDropdown()"
+                             [ngClass]="{'is-invalid': form.get('fieldofsearch')?.invalid && form.get('fieldofsearch')?.touched}"
+                             placeholder="Search or select..." />
+                      <div class="list-group position-absolute w-100 z-3"
+                           *ngIf="showResearchFieldDropdown && filteredResearchFields.length"
+                           style="max-height: 200px; overflow-y: auto;">
+                        <button type="button" class="list-group-item list-group-item-action"
+                                *ngFor="let field of filteredResearchFields"
+                                (click)="selectResearchField(field)">
+                          {{ field.code }} - {{ field.name }}
                         </button>
                       </div>
                     </div>
-                    <div class="invalid-feedback d-block" *ngIf="form.get('fieldofsearch')?.invalid && form.get('fieldofsearch')?.touched">
-                      Field of research is required
+                    <div class="col-md-3">
+                      <label class="form-label">Funder(s)</label>
+                      <input class="form-control" formControlName="funders" placeholder="NRF (12345); SAMRC (ABC123)" />
+                    </div>
+
+                    <div class="col-md-3"><label class="form-label required">Total No Pages in Book</label><input type="number" class="form-control" formControlName="totalNoPages" [ngClass]="{'is-invalid': form.get('totalNoPages')?.invalid && form.get('totalNoPages')?.touched}" /></div>
+                    <div class="col-md-3"><label class="form-label required">Start Page</label><input type="number" class="form-control" formControlName="startPage" [ngClass]="{'is-invalid': form.get('startPage')?.invalid && form.get('startPage')?.touched}" /></div>
+                    <div class="col-md-3"><label class="form-label required">End Page</label><input type="number" class="form-control" formControlName="endPage" [ngClass]="{'is-invalid': form.get('endPage')?.invalid && form.get('endPage')?.touched}" /></div>
+                    <div class="col-md-3"><label class="form-label required">Total Pages Claimed</label><input type="number" class="form-control" formControlName="totalPagesClaimed"  [ngClass]="{'is-invalid': form.get('totalPagesClaimed')?.invalid && form.get('totalPagesClaimed')?.touched}" /></div>
+                    <div class="col-md-3">
+                      <label class="form-label required">Total Chapters in Book</label>
+                      <input type="number" class="form-control" formControlName="totalChaptersInBook" [ngClass]="{'is-invalid': form.get('totalChaptersInBook')?.invalid && form.get('totalChaptersInBook')?.touched}" />
+                      <small class="text-muted">Rule: <= 10 chapters => 1.0 unit/chapter; >= 11 => 10 / total chapters.</small>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label">Max Units for Publication</label>
+                      <input type="number" class="form-control" formControlName="maxUnitsForPublication" readonly />
+                      <small class="text-muted">Calculated cap so the full book never exceeds 10 units.</small>
+                    </div>
+
+<!--                    <div class="col-md-3"><label class="form-label">Total Units Claimed</label><input type="number" class="form-control" formControlName="totalUnitsClaimed" readonly /></div>-->
+                    <div class="col-12">
+                      <label class="form-label">Additional Comments</label>
+                      <textarea rows="3" class="form-control" formControlName="additionalComments"></textarea>
                     </div>
                   </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Funders</label>
-                    <input class="form-control" formControlName="funders" placeholder="NRF; NWO; NIH" />
-                  </div>
-
                 </div>
-              </div>
 
-              <!-- Publication Details Section -->
-              <div class="mb-4">
-                <h6 class="mb-3">Publication Details</h6>
-                <div class="row g-3">
+                <div *ngIf="currentStep === 2">
+                 <h5 class="mb-4">Affiliated Authors</h5>
+                 <div class="alert alert-info mb-3">
+                   <i class="fa fa-info-circle me-2"></i> Affiliated authors are associated with your institution.
+                 </div>
+                  <div formArrayName="authors" class="vstack gap-3">
+                    <ng-container *ngFor="let a of authorsFA.controls; let i = index; trackBy: trackByIndex">
+                      <div *ngIf="a.get('affiliation')?.value === true" class="author-card border rounded p-3" [formGroupName]="i">
+                        <div class="row g-3 mb-3">
+                          <div class="col-12 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Author {{ i + 1 }}</h6>
+                            <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeAuthor(i)">
+                              <i class="fa fa-trash"></i> Remove
+                            </button>
+                          </div>
+                        </div>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Original/Photocopy <span class="text-danger">*</span></label>
-                    <select class="form-select" formControlName="originalPhotocopy"
-                      [ngClass]="{'is-invalid': form.get('originalPhotocopy')?.invalid && form.get('originalPhotocopy')?.touched}">
-                      <option value="">Select</option>
-                      <option value="O">Original</option>
-                      <option value="P">Photocopy</option>
-                    </select>
-                    <div class="invalid-feedback d-block" *ngIf="form.get('originalPhotocopy')?.invalid && form.get('originalPhotocopy')?.touched">
-                      This field is required
-                    </div>
+                        <div class="row g-3">
+                          <div class="col-md-3">
+                            <label class="form-label required">Student/Employee No.</label>
+                            <input class="form-control" formControlName="studentEmployeeNo"
+                                   [ngClass]="{'is-invalid': a.get('studentEmployeeNo')?.invalid && a.get('studentEmployeeNo')?.touched}"/>
+                            <small class="text-danger" *ngIf="a.get('studentEmployeeNo')?.hasError('required') && a.get('studentEmployeeNo')?.touched">Required for affiliated authors</small>
+                          </div>
+                         <div class="col-md-3">
+                           <label class="form-label required">First-Names</label>
+                           <input class="form-control" formControlName="firstName" [ngClass]="{'is-invalid': a.get('firstName')?.invalid && a.get('firstName')?.touched}"/>
+                         </div>
+                         <div class="col-md-3">
+                           <label class="form-label required">Surname</label>
+                           <input class="form-control" formControlName="surname" [ngClass]="{'is-invalid': a.get('surname')?.invalid && a.get('surname')?.touched}"/>
+                         </div>
+                         <div class="col-md-3">
+                           <label class="form-label">Initials</label>
+                           <input class="form-control" formControlName="initials" />
+                         </div>
+
+                          <div class="col-md-3">
+                            <label class="form-label required">Gender</label>
+                            <select class="form-select" formControlName="gender"
+                                    [ngClass]="{'is-invalid': a.get('gender')?.invalid && a.get('gender')?.touched}">
+                              <option [ngValue]="null" disabled>Choose...</option>
+                                <option *ngFor="let option of genderOptions" [ngValue]="option.value">{{ option.label }}</option>
+                            </select>
+                            <small class="text-danger" *ngIf="a.get('gender')?.hasError('required') && a.get('gender')?.touched">Required for affiliated authors</small>
+                          </div>
+                         <div class="col-md-3">
+                           <label class="form-label">Population Group</label>
+                           <select class="form-select" formControlName="populationGroup">
+                             <option [ngValue]="null">Choose...</option>
+                              <option *ngFor="let option of populationGroupOptions" [ngValue]="option.value">{{ option.label }}</option>
+                           </select>
+                         </div>
+                         <div class="col-md-3">
+                           <label class="form-label">Year of Birth</label>
+                           <input type="number"
+                                  class="form-control"
+                                  formControlName="dob"
+                                  min="1900"
+                                  max="2100"
+                                  placeholder="e.g., 1995" />
+                         </div>
+
+                         <div class="col-md-3">
+                           <label class="form-label required">Email</label>
+                           <input type="email" class="form-control" formControlName="email" placeholder="example@email.com" [ngClass]="{'is-invalid': a.get('email')?.invalid && a.get('email')?.touched}"/>
+                         </div>
+                         <div class="col-md-3">
+                           <label class="form-label">ORCID</label>
+                           <input class="form-control" formControlName="orcid" placeholder="0000-0000-0000-0000" [ngClass]="{'is-invalid': a.get('orcid')?.invalid && a.get('orcid')?.touched}"/>
+                         </div>
+
+                         <div class="col-md-3">
+                           <label class="form-label">Country of Birth</label>
+                            <select class="form-select" formControlName="countryOfBirth"
+                                    [ngClass]="{'is-invalid': a.get('countryOfBirth')?.invalid && a.get('countryOfBirth')?.touched}">
+                              <option [ngValue]="null">Choose...</option>
+                              <option *ngFor="let country of countryOptions" [ngValue]="country">{{ country }}</option>
+                            </select>
+                         </div>
+                         <div class="col-md-3">
+                            <label class="form-label">SA Residency Status</label>
+                           <select class="form-select" formControlName="saResidencyStatus">
+                             <option [ngValue]="null">Choose...</option>
+                              <option *ngFor="let option of saResidencyOptions" [ngValue]="option.value">{{ option.label }}</option>
+                           </select>
+                         </div>
+                         <div class="col-md-3">
+                           <label class="form-label">Disability</label>
+                           <select class="form-select" formControlName="disability">
+                             <option [ngValue]="false">No</option>
+                             <option [ngValue]="true">Yes</option>
+                           </select>
+                         </div>
+
+                         <div class="col-md-3">
+                           <label class="form-label">Highest Qualification</label>
+                           <select class="form-select" formControlName="highestQualification">
+                             <option [ngValue]="null">Choose...</option>
+                              <option *ngFor="let option of highestQualificationOptions" [ngValue]="option.value">{{ option.label }}</option>
+                           </select>
+                         </div>
+                         <div class="col-md-3">
+                           <label class="form-label">Employment Status</label>
+                           <select class="form-select" formControlName="employmentStatus">
+                             <option [ngValue]="null">Choose...</option>
+                              <option *ngFor="let option of employmentStatusOptions" [ngValue]="option.value">{{ option.label }}</option>
+                           </select>
+                         </div>
+                          <div class="col-md-3">
+                            <label class="form-label required">Faculty</label>
+                            <select class="form-select" formControlName="facultyId" (change)="onFacultyChange(i)"
+                                    [ngClass]="{'is-invalid': a.get('facultyId')?.invalid && a.get('facultyId')?.touched}">
+                              <option [ngValue]="null">-- Select Faculty --</option>
+                              <option *ngFor="let f of faculties" [ngValue]="f.id">{{ f.name }}</option>
+                            </select>
+                            <small class="text-danger" *ngIf="a.get('facultyId')?.hasError('required') && a.get('facultyId')?.touched">Required for affiliated authors</small>
+                          </div>
+
+                         <div class="col-md-3">
+                           <label class="form-label">Department</label>
+                           <select class="form-select" formControlName="departmentId">
+                             <option [ngValue]="null">-- Select Department --</option>
+                             <option *ngFor="let d of departmentsMap[i] || []" [ngValue]="d.id">{{ d.name }}</option>
+                           </select>
+                         </div>
+                          <div class="col-md-3">
+                            <label class="form-label">Academic Title</label>
+                            <select class="form-select" formControlName="academicTitle">
+                              <option [ngValue]="null">Choose...</option>
+                                <option *ngFor="let option of academicTitleOptions" [ngValue]="option.value">{{ option.label }}</option>
+                            </select>
+                          </div>
+                         </div>
+
+                         <div class="row g-3 mt-2">
+                           <div class="col-12">
+                             <label class="form-label">Additional Comments (Affiliated Author)</label>
+                             <textarea class="form-control" formControlName="additionalComments"
+                                       rows="3" placeholder="Add any additional comments about this affiliated author..."></textarea>
+                             <small class="text-muted">Optional field for additional context or notes</small>
+                           </div>
+                         </div>
+
+                         <div class="row g-3 mt-4 p-3 bg-light rounded">
+                          <div class="col-12">
+                            <h6 class="mb-3"><i class="fa fa-sitemap me-2"></i>Affiliation & Unit Calculation</h6>
+                          </div>
+
+                          <div class="col-md-4">
+                            <div class="card border-primary h-100">
+                              <div class="card-body">
+                                <small class="text-muted d-block mb-2">Author Share</small>
+                                <h4 class="mb-0 text-primary">{{ a.get('authorShare')?.value | number:'1.3-3' }}</h4>
+                                <small class="text-muted">units per author</small>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="col-md-4">
+                            <div class="card border-success h-100">
+                              <div class="card-body">
+                                <small class="text-muted d-block mb-2">UNIVEN Claim</small>
+                                <h4 class="mb-0 text-success">{{ a.get('totalUnitsClaimed')?.value | number:'1.3-3' }}</h4>
+                                <small class="text-muted">units claimed</small>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="col-md-4">
+                            <div class="card border-info h-100">
+                              <div class="card-body">
+                                <small class="text-muted d-block mb-2">Affiliations</small>
+                                <h4 class="mb-0 text-info">
+                                  {{ getUniversityAffiliations(a).length }}
+                                </h4>
+                                <small class="text-muted">
+                                  univs +
+                                  {{ getResearchAffiliations(a).length }} orgs
+                                </small>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label fw-bold">University Affiliations</label>
+                            <div [formArrayName]="'universityAffiliations'" class="vstack gap-2">
+                              <ng-container *ngFor="let univ of getUniversityAffiliations(a)?.controls; let ui = index">
+                                <div [formGroupName]="ui" class="row g-2 align-items-end p-2 border rounded bg-white">
+                                  <div class="col-md-4 position-relative">
+                                    <label class="form-label small">University</label>
+                                    <input type="text"
+                                           class="form-control form-control-sm"
+                                           [value]="getUniversitySearchTerm(i, ui) || getUniversityDisplayValue(i, ui)"
+                                           (focus)="openUniversityDropdown(i, ui)"
+                                           (blur)="closeUniversityDropdown(i, ui)"
+                                           (input)="onUniversitySearchChange(i, ui, $any($event.target).value)"
+                                           placeholder="Search university by name/code" />
+
+                                    <div *ngIf="isUniversityDropdownOpen(i, ui)"
+                                         class="border rounded bg-white shadow-sm mt-1 position-absolute start-0 end-0"
+                                         style="max-height: 220px; overflow-y: auto; z-index: 1050;">
+                                      <button type="button"
+                                              class="dropdown-item small"
+                                              *ngFor="let university of getFilteredUniversityOptions(i, ui)"
+                                              (mousedown)="selectUniversityOption(i, ui, university)">
+                                        {{ university.name }} ({{ university.code }})
+                                      </button>
+
+                                      <button type="button"
+                                              class="dropdown-item small text-primary"
+                                              (mousedown)="selectOtherUniversity(i, ui)">
+                                        Other (Not listed)
+                                      </button>
+
+                                      <div *ngIf="getFilteredUniversityOptions(i, ui).length === 0"
+                                           class="px-3 py-2 small text-muted">
+                                        No university found. Choose "Other (Not listed)".
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div class="col-md-5">
+                                    <label class="form-label small">University Name</label>
+                                    <input *ngIf="!isOtherUniversitySelected(i, ui)"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           formControlName="universityName"
+                                           placeholder="Auto-filled from selected university"
+                                           readonly />
+                                    <input *ngIf="isOtherUniversitySelected(i, ui)"
+                                           type="text"
+                                           class="form-control form-control-sm"
+                                           formControlName="universityName"
+                                           placeholder="Enter university name" />
+                                  </div>
+                                  <div class="col-md-2">
+                                    <div class="form-check">
+                                      <input type="checkbox" class="form-check-input" formControlName="isUniven" id="univen_{{i}}_{{ui}}" />
+                                      <label class="form-check-label small" for="univen_{{i}}_{{ui}}">Is International?</label>
+                                    </div>
+                                  </div>
+                                  <div class="col-md-1 text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            (click)="removeUniversityAffiliation(i, ui)"
+                                            title="Remove university">
+                                      <i class="fa fa-trash"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                              </ng-container>
+                              <button type="button" class="btn btn-outline-primary btn-sm align-self-start"
+                                      (click)="addUniversityAffiliation(i)">
+                                <i class="fa fa-plus me-1"></i>Add University
+                              </button>
+                            </div>
+                          </div>
+
+                          <div class="col-12">
+                            <label class="form-label fw-bold">Research Company / Other Affiliations</label>
+                            <div [formArrayName]="'researchAffiliations'" class="vstack gap-2">
+                              <ng-container *ngFor="let org of getResearchAffiliations(a)?.controls; let ri = index">
+                                <div [formGroupName]="ri" class="row g-2 align-items-end p-2 border rounded bg-white">
+                                  <div class="col-md-7">
+                                    <label class="form-label small">Company/Organization Name</label>
+                                    <input type="text" class="form-control form-control-sm" formControlName="companyName" placeholder="e.g., ABC Research Company" />
+                                  </div>
+                                  <div class="col-md-4">
+                                    <label class="form-label small">Type</label>
+                                    <select class="form-select form-select-sm" formControlName="companyType">
+                                      <option value="RESEARCH_COMPANY">Research Company</option>
+                                      <option value="OTHER">Other</option>
+                                    </select>
+                                  </div>
+                                  <div class="col-md-1 text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            (click)="removeResearchAffiliation(i, ri)"
+                                            title="Remove organization">
+                                      <i class="fa fa-trash"></i>
+                                    </button>
+                                  </div>
+                                </div>
+                              </ng-container>
+                              <button type="button" class="btn btn-outline-primary btn-sm align-self-start"
+                                      (click)="addResearchAffiliation(i)">
+                                <i class="fa fa-plus me-1"></i>Add Organization
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                       </div>
+                    </ng-container>
                   </div>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Evidence of Peer Review <span class="text-danger">*</span></label>
-                    <select class="form-select" formControlName="peerReviewEvidence"
-                      [ngClass]="{'is-invalid': form.get('peerReviewEvidence')?.invalid && form.get('peerReviewEvidence')?.touched}">
-                      <option value="">Select</option>
-                      <option value="Y">Yes</option>
-                      <option value="N">No</option>
-                    </select>
-                    <div class="invalid-feedback d-block" *ngIf="form.get('peerReviewEvidence')?.invalid && form.get('peerReviewEvidence')?.touched">
-                      This field is required
-                    </div>
-                  </div>
+                  <div *ngIf="unitBreakdown.authorUnitCalculations.length > 0" class="alert alert-success mt-4 p-4">
+                    <h6 class="alert-heading mb-3"><i class="fa fa-chart-pie me-2"></i>Unit Calculation Breakdown</h6>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Type of Evidence <span class="text-danger">*</span></label>
-                    <input class="form-control" formControlName="typeOfEvidence"
-                      [ngClass]="{'is-invalid': form.get('typeOfEvidence')?.invalid && form.get('typeOfEvidence')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('typeOfEvidence')?.invalid && form.get('typeOfEvidence')?.touched">
-                      Type of evidence is required
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-              <!-- Pages Section -->
-              <div class="mb-4">
-                <h6 class="mb-3">Page Information</h6>
-                <div class="row g-3">
-
-                  <div class="col-md-3">
-                    <label class="form-label">Total No. of Pages in Book <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="totalNoPages"
-                      [ngClass]="{'is-invalid': form.get('totalNoPages')?.invalid && form.get('totalNoPages')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('totalNoPages')?.invalid && form.get('totalNoPages')?.touched">
-                      Total pages is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Start Page <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="startPage"
-                      [ngClass]="{'is-invalid': form.get('startPage')?.invalid && form.get('startPage')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('startPage')?.invalid && form.get('startPage')?.touched">
-                      Start page is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">End Page <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="endPage"
-                      [ngClass]="{'is-invalid': form.get('endPage')?.invalid && form.get('endPage')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('endPage')?.invalid && form.get('endPage')?.touched">
-                      End page is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Total Pages Claimed <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="totalPagesClaimed"
-                      [ngClass]="{'is-invalid': form.get('totalPagesClaimed')?.invalid && form.get('totalPagesClaimed')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('totalPagesClaimed')?.invalid && form.get('totalPagesClaimed')?.touched">
-                      Total pages claimed is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-3">
-                    <label class="form-label">Total Chapters in Book <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="totalChaptersInBook"
-                      [ngClass]="{'is-invalid': form.get('totalChaptersInBook')?.invalid && form.get('totalChaptersInBook')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('totalChaptersInBook')?.invalid && form.get('totalChaptersInBook')?.touched">
-                      Total chapters in book is required
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-
-              <div class="mb-4">
-                <h6 class="mb-3">Authors (Chapter)</h6>
-
-                <div formArrayName="authors" class="vstack gap-3">
-                  <div
-                    class="author-card border rounded p-3"
-                    *ngFor="let a of authorsFA.controls; let i = index"
-                    [formGroupName]="i"
-                  >
-
-                    <div class="row g-3 align-items-end">
+                    <div class="row mb-3">
                       <div class="col-md-3">
-
-                        <label class="form-label">Author Type (Affiliated / Non-Affiliated)</label>
-                        <select class="form-select"
-                                formControlName="affiliation"
-                                (change)="recalculateContributions()"
-                                [ngClass]="{
-          'is-invalid':
-            a.get('affiliation')?.invalid &&
-            (a.get('affiliation')?.touched || a.get('affiliation')?.dirty)
-        }">
-
-                          <option value="" disabled>Choose...</option>
-                          <option [ngValue]="true">Affiliated</option>
-                          <option [ngValue]="false">Non-Affiliated</option>
-                        </select>
-
-                      </div>
-
-                    </div>
-
-                    <br>
-                    <div class="row g-3 align-items-end">
-
-                      <div class="col-md-3">
-                        <label class="form-label required">Student/Employee No.</label>
-                        <input
-                          class="form-control"
-                          formControlName="studentEmployeeNo"
-                          [ngClass]="{
-              'is-invalid':
-                a.get('studentEmployeeNo')?.invalid &&
-                (a.get('studentEmployeeNo')?.touched || a.get('studentEmployeeNo')?.dirty)
-            }"
-                        />
-
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label required">First-Names</label>
-                        <input
-                          class="form-control"
-                          formControlName="firstName"
-                          [ngClass]="{
-              'is-invalid':
-                a.get('firstName')?.invalid &&
-                (a.get('firstName')?.touched || a.get('firstName')?.dirty)
-            }"
-                        />
-
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label required">Surname</label>
-                        <input
-                          class="form-control"
-                          formControlName="surname"
-                          [ngClass]="{
-              'is-invalid':
-                a.get('surname')?.invalid &&
-                (a.get('surname')?.touched || a.get('surname')?.dirty)
-            }"
-                        />
-
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">Initials</label>
-                        <input class="form-control" formControlName="initials" />
-                      </div>
-
-
-                      <div class="col-md-3">
-
-                        <label class="form-label">Gender</label>
-                        <select class="form-select" formControlName="gender"  [ngClass]="{
-              'is-invalid':
-                a.get('gender')?.invalid &&
-                (a.get('gender')?.touched || a.get('gender')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option [ngValue]="'MALE'">Male</option>
-                          <option [ngValue]="'FEMALE'">Female</option>
-                        </select>
-
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">Population Group</label>
-                        <select class="form-select" formControlName="populationGroup"  [ngClass]="{
-              'is-invalid':
-                a.get('gender')?.invalid &&
-                (a.get('gender')?.touched || a.get('gender')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option value="African">African</option>
-                          <option value="Coloured">Coloured</option>
-                          <option value="Indian/Asian">Indian/Asian</option>
-                          <option value="White">White</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">DOB (Month/Day)</label>
-                        <div class="input-group">
-                          <select class="form-select" formControlName="dobMonth"
-                                  [ngClass]="{'is-invalid': a.get('dob')?.invalid && (a.get('dob')?.touched || a.get('dob')?.dirty)}">
-                            <option value="">Month</option>
-                            <option value="01">January</option>
-                            <option value="02">February</option>
-                            <option value="03">March</option>
-                            <option value="04">April</option>
-                            <option value="05">May</option>
-                            <option value="06">June</option>
-                            <option value="07">July</option>
-                            <option value="08">August</option>
-                            <option value="09">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                          </select>
-                          <select class="form-select" formControlName="dobDay"
-                                  [ngClass]="{'is-invalid': a.get('dob')?.invalid && (a.get('dob')?.touched || a.get('dob')?.dirty)}">
-                            <option value="">Day</option>
-                            <option *ngFor="let day of getDaysArray()" [value]="day">{{ day }}</option>
-                          </select>
+                        <div class="card bg-light border-0">
+                          <div class="card-body text-center">
+                            <small class="text-muted d-block">Total Authors</small>
+                            <h3 class="mb-0">{{ unitBreakdown.totalAuthorsCount }}</h3>
+                          </div>
                         </div>
                       </div>
-
                       <div class="col-md-3">
-                        <label class="form-label required">Email</label>
-                        <input
-                          type="email"
-                          class="form-control"
-                          formControlName="email"
-                          placeholder="example@email.com"
-                          [ngClass]="{
-              'is-invalid':
-                a.get('email')?.invalid &&
-                (a.get('email')?.touched || a.get('email')?.dirty)
-            }"
-                        />
+                        <div class="card bg-light border-0">
+                          <div class="card-body text-center">
+                            <small class="text-muted d-block">Non-Affiliated Authors</small>
+                            <h3 class="mb-0">{{ unitBreakdown.nonAffiliatedAuthorsCount }}</h3>
+                          </div>
+                        </div>
                       </div>
-
                       <div class="col-md-3">
-                        <label class="form-label">OrcID</label>
-                        <input
-                          class="form-control"
-                          formControlName="orcid"
-                          placeholder="0000-0000-0000-0000"
-                          [ngClass]="{
-              'is-invalid':
-                a.get('orcid')?.invalid &&
-                (a.get('orcid')?.touched || a.get('orcid')?.dirty)
-            }"
-                        />
+                        <div class="card bg-light border-0">
+                          <div class="card-body text-center">
+                            <small class="text-muted d-block">Per Author Share</small>
+                            <h3 class="mb-0">{{ unitBreakdown.authorSharePerAuthor | number:'1.3-3' }}</h3>
+                          </div>
+                        </div>
                       </div>
-
                       <div class="col-md-3">
-                        <label class="form-label">Country of Birth</label>
-                        <input
-                          type="text"
-                          class="form-control"
-                          formControlName="countryOfBirth"
-                          autocomplete="off"
-                          [ngClass]="{
-              'is-invalid':
-                a.get('countryOfBirth')?.invalid &&
-                (a.get('countryOfBirth')?.touched || a.get('countryOfBirth')?.dirty)
-            }"
-                        />
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">Residency Status</label>
-                        <select class="form-select" formControlName="saResidencyStatus"  [ngClass]="{
-              'is-invalid':
-                a.get('saResidencyStatus')?.invalid &&
-                (a.get('saResidencyStatus')?.touched || a.get('saResidencyStatus')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option value="SOUTH_AFRICAN_CITIZEN">South African Citizen</option>
-                          <option value="PERMANENT_RESIDENT">Permanent Resident</option>
-                          <option value="TEMPORARY_RESIDENT">Temporary Resident</option>
-                          <option value="REFUGEE_STATUS">Refugee Status</option>
-                          <option value="ASYLUM_SEEKER">Asylum Seeker</option>
-                          <option value="WORK_PERMIT">Work Permit Holder</option>
-                          <option value="STUDY_PERMIT">Study Permit Holder</option>
-                          <option value="SPOUSAL_RELATIVE_PERMIT">Spousal/Relative Permit</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">Disability</label>
-                        <select class="form-select" formControlName="disability">
-                          <option [ngValue]="false">No</option>
-                          <option [ngValue]="true">Yes</option>
-                        </select>
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">Highest Qualification</label>
-                        <select class="form-select" formControlName="highestQualification"  [ngClass]="{
-              'is-invalid':
-                a.get('highestQualification')?.invalid &&
-                (a.get('highestQualification')?.touched || a.get('highestQualification')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option value="HIGHER_CERTIFICATE">Higher Certificate (NQF 5)</option>
-                          <option value="ADVANCED_CERTIFICATE">Advanced Certificate (NQF 6)</option>
-                          <option value="NATIONAL_DIPLOMA">National Diploma (NQF 6)</option>
-                          <option value="ADVANCED_DIPLOMA">Advanced Diploma (NQF 7)</option>
-                          <option value="BACHELORS">Bachelor's Degree (NQF 7)</option>
-                          <option value="POSTGRADUATE_DIPLOMA">Postgraduate Diploma (NQF 8)</option>
-                          <option value="HONOURS">Honours Degree (NQF 8)</option>
-                          <option value="MASTERS">Master's Degree (NQF 9)</option>
-                          <option value="DOCTORATE">Doctoral Degree (NQF 10)</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">Employment Status</label>
-                        <select class="form-select" formControlName="employmentStatus"  [ngClass]="{
-              'is-invalid':
-                a.get('employmentStatus')?.invalid &&
-                (a.get('employmentStatus')?.touched || a.get('employmentStatus')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option value="EMPLOYED_FULL_TIME">Employed – Full Time</option>
-                          <option value="EMPLOYED_PART_TIME">Employed – Part Time</option>
-                          <option value="SELF_EMPLOYED">Self-Employed</option>
-                          <option value="UNEMPLOYED">Unemployed</option>
-                          <option value="STUDENT">Student</option>
-                          <option value="INTERN">Intern / Learnership / Apprentice</option>
-                          <option value="RETIRED">Retired</option>
-                          <option value="DISABLED">Unable to Work / Disabled</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">Faculty</label>
-                        <select class="form-select" formControlName="facultyId"  [ngClass]="{
-              'is-invalid':
-                a.get('facultyId')?.invalid &&
-                (a.get('facultyId')?.touched || a.get('facultyId')?.dirty)
-            }"
-                                (change)="onFacultyChange(i)">
-                          <option [ngValue]="null">-- Select Faculty --</option>
-                          <option *ngFor="let f of faculties" [ngValue]="f.id">
-                            {{ f.name }}
-                          </option>
-                        </select>
-                      </div>
-
-                      <div class="col-md-3">
-                        <label class="form-label">Academic Title</label>
-                        <select class="form-select" formControlName="academicTitle"  [ngClass]="{
-              'is-invalid':
-                a.get('academicTitle')?.invalid &&
-                (a.get('academicTitle')?.touched || a.get('academicTitle')?.dirty)
-            }">
-                          <option [ngValue]="null" disabled>Choose...</option>
-                          <option value="MR">Mr</option>
-                          <option value="MS">Ms</option>
-                          <option value="MRS">Mrs</option>
-                          <option value="MISS">Miss</option>
-                          <option value="DR">Dr</option>
-                          <option value="PROF">Prof</option>
-                          <option value="ADV">Adv</option>
-                          <option value="REV">Rev</option>
-                          <option value="PASTOR">Pastor</option>
-                          <option value="IMAM">Imam</option>
-                          <option value="RABBI">Rabbi</option>
-                          <option value="OTHER">Other</option>
-                        </select>
-                      </div>
-
-                      <!-- Remove button -->
-                      <div class="col-12 d-flex justify-content-end">
-                        <button
-                          type="button"
-                          class="btn btn-outline-danger btn-sm"
-                          (click)="removeAuthor(i)"
-                          *ngIf="authorsFA.length > 1"
-                        >
-                          Remove Author
-                        </button>
+                        <div class="card bg-success text-white border-0">
+                          <div class="card-body text-center">
+                            <small class="d-block">UNIVEN Total Claim</small>
+                            <h3 class="mb-0">{{ unitBreakdown.univenTotalClaimed | number:'1.3-3' }}</h3>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                <button type="button" class="btn btn-outline-primary mt-2" (click)="addAuthor()">
-                  + Add Author
+                    <div class="table-responsive">
+                      <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                          <tr>
+                            <th>Author</th>
+                            <th>Affiliation</th>
+                            <th>Author Share</th>
+                            <th>University Count</th>
+                            <th>Research/Other Count</th>
+                            <th>UNIVEN Claim</th>
+                            <th>Split Details</th>
+                            <th>Rule Applied</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let calc of unitBreakdown.authorUnitCalculations">
+                            <td class="fw-bold">{{ calc.authorName }}</td>
+                            <td>
+                              <span *ngIf="calc.isAffiliated" class="badge bg-success">Affiliated</span>
+                              <span *ngIf="!calc.isAffiliated" class="badge bg-secondary">Non-Affiliated</span>
+                            </td>
+                            <td>{{ calc.authorShare | number:'1.3-3' }}</td>
+                            <td>{{ calc.universityCount }}</td>
+                            <td>{{ calc.researchAffiliationsCount }}</td>
+                            <td class="fw-bold text-success">{{ calc.univenClaim | number:'1.3-3' }}</td>
+                            <td>
+                              <small class="text-muted" *ngFor="let split of calc.splitDetails">
+                                <div>
+                                  <i *ngIf="split.type === 'UNIVERSITY'" class="fa fa-check text-success me-1"></i>
+                                  <i *ngIf="split.type !== 'UNIVERSITY'" class="fa fa-building text-info me-1"></i>
+                                  <span class="me-1">{{ split.type === 'UNIVERSITY' ? 'University' : 'Research Company / Other' }}</span>
+                                  <strong>{{ split.label }}</strong>:
+                                  {{ split.units | number:'1.3-3' }}
+                                  <span *ngIf="split.claimedByUniven" class="badge bg-success ms-1">UNIVEN</span>
+                                </div>
+                              </small>
+                              <small *ngIf="calc.splitDetails.length === 0" class="text-muted">No split available</small>
+                            </td>
+                            <td><small>{{ calc.ruleApplied }}</small></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div class="mt-3 pt-3 border-top">
+                      <p class="mb-1"><small><strong>Rules Applied:</strong></small></p>
+                      <ul class="small mb-0">
+                        <li>Total units split equally among {{ unitBreakdown.totalAuthorsCount }} author(s)</li>
+                        <li>Only affiliated authors can contribute to UNIVEN claim</li>
+                        <li>Multiple university affiliations split equally per author share</li>
+                        <li>UNIVEN receives only its university split portion (or full share when UNIVEN is the only university)</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-primary mt-3" (click)="addAuthor(true)">
+                    + Add Affiliated Author
+                  </button>
+               </div>
+
+              <div *ngIf="currentStep === 3">
+                <h5 class="mb-4">Non-Affiliated Authors</h5>
+                <div class="alert alert-info mb-3">
+                  <i class="fa fa-info-circle me-2"></i> Non-affiliated authors are not associated with your institution.
+                </div>
+                <div class="vstack gap-3">
+                  <ng-container *ngFor="let author of authorsFA.controls; let i = index; trackBy: trackByIndex">
+                    <div *ngIf="author.get('affiliation')?.value !== true" [formGroup]="$any(author)" class="author-card border rounded p-3">
+                      <div class="row g-3">
+                        <div class="col-12 d-flex justify-content-between">
+                          <h6>Non-Affiliated Author</h6>
+                          <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeAuthor(i)">
+                            <i class="fa fa-trash"></i>
+                          </button>
+                        </div>
+                        <div class="row g-3">
+                          <div class="col-md-3">
+                            <label class="form-label required">First-Names</label>
+                            <input class="form-control" formControlName="firstName" />
+                          </div>
+
+                          <div class="col-md-3">
+                            <label class="form-label required">Surname</label>
+                            <input class="form-control" formControlName="surname" />
+                          </div>
+
+                          <div class="col-md-3">
+                            <label class="form-label">Initials</label>
+                            <input class="form-control" formControlName="initials" />
+                          </div>
+
+                          <div class="col-md-3">
+                            <label class="form-label required">Email</label>
+                            <input type="email" class="form-control" formControlName="email" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </ng-container>
+                </div>
+                <button type="button" class="btn btn-outline-primary mt-3" (click)="addAuthor(false)">
+                  + Add Non-Affiliated Author
                 </button>
               </div>
 
-              <!-- Units Section -->
-              <div class="mb-4">
-                <h6 class="mb-3">Units & Contributions</h6>
-                <div class="row g-3">
+              <div *ngIf="currentStep === 4">
+                <h5 class="mb-4">Results & Attachments</h5>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Max Units for Publication</label>
-                    <input type="number" class="form-control" formControlName="maxUnitsForPublication" [disabled]="true" />
-                  </div>
+                <div *ngIf="unitBreakdown.authorUnitCalculations.length > 0" class="alert alert-success mt-4 p-4">
+                  <h6 class="alert-heading mb-3"><i class="fa fa-chart-pie me-2"></i>Unit Calculation Breakdown</h6>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Total Proportion of Authors <span class="text-danger">*</span></label>
-                    <input type="number" step="0.01" class="form-control" formControlName="totalProportionOfAuthors"
-                      [ngClass]="{'is-invalid': form.get('totalProportionOfAuthors')?.invalid && form.get('totalProportionOfAuthors')?.touched}" />
-                    <div class="invalid-feedback d-block" *ngIf="form.get('totalProportionOfAuthors')?.invalid && form.get('totalProportionOfAuthors')?.touched">
-                      Total proportion is required
+                  <div class="row mb-3">
+                    <div class="col-md-3">
+                      <div class="card bg-light border-0">
+                        <div class="card-body text-center">
+                          <small class="text-muted d-block">Total Authors</small>
+                          <h3 class="mb-0">{{ unitBreakdown.totalAuthorsCount }}</h3>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="card bg-light border-0">
+                        <div class="card-body text-center">
+                          <small class="text-muted d-block">Non-Affiliated Authors</small>
+                          <h3 class="mb-0">{{ unitBreakdown.nonAffiliatedAuthorsCount }}</h3>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="card bg-light border-0">
+                        <div class="card-body text-center">
+                          <small class="text-muted d-block">Per Author Share</small>
+                          <h3 class="mb-0">{{ unitBreakdown.authorSharePerAuthor | number:'1.3-3' }}</h3>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3">
+                      <div class="card bg-success text-white border-0">
+                        <div class="card-body text-center">
+                          <small class="d-block">UNIVEN Total Claim</small>
+                          <h3 class="mb-0">{{ unitBreakdown.univenTotalClaimed | number:'1.3-3' }}</h3>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Author Count <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="authorCount" [disabled]="true" />
+                  <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                      <thead class="table-light">
+                      <tr>
+                        <th>Author</th>
+                        <th>Affiliation</th>
+                        <th>Author Share</th>
+                        <th>University Count</th>
+                        <th>Research/Other Count</th>
+                        <th>UNIVEN Claim</th>
+                        <th>Split Details</th>
+                        <th>Rule Applied</th>
+                      </tr>
+                      </thead>
+                      <tbody>
+                      <tr *ngFor="let calc of unitBreakdown.authorUnitCalculations">
+                        <td class="fw-bold">{{ calc.authorName }}</td>
+                        <td>
+                          <span *ngIf="calc.isAffiliated" class="badge bg-success">Affiliated</span>
+                          <span *ngIf="!calc.isAffiliated" class="badge bg-secondary">Non-Affiliated</span>
+                        </td>
+                        <td>{{ calc.authorShare | number:'1.3-3' }}</td>
+                        <td>{{ calc.universityCount }}</td>
+                        <td>{{ calc.researchAffiliationsCount }}</td>
+                        <td class="fw-bold text-success">{{ calc.univenClaim | number:'1.3-3' }}</td>
+                        <td>
+                          <small class="text-muted" *ngFor="let split of calc.splitDetails">
+                            <div>
+                              <i *ngIf="split.type === 'UNIVERSITY'" class="fa fa-check text-success me-1"></i>
+                              <i *ngIf="split.type !== 'UNIVERSITY'" class="fa fa-building text-info me-1"></i>
+                              <span class="me-1">{{ split.type === 'UNIVERSITY' ? 'University' : 'Research Company / Other' }}</span>
+                              <strong>{{ split.label }}</strong>:
+                              {{ split.units | number:'1.3-3' }}
+                              <span *ngIf="split.claimedByUniven" class="badge bg-success ms-1">UNIVEN</span>
+                            </div>
+                          </small>
+                          <small *ngIf="calc.splitDetails.length === 0" class="text-muted">No split available</small>
+                        </td>
+                        <td><small>{{ calc.ruleApplied }}</small></td>
+                      </tr>
+                      </tbody>
+                    </table>
                   </div>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Non Affiliated Authors Count <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="otherAuthorsNonAffiliated" [disabled]="true" />
+                  <div class="mt-3 pt-3 border-top">
+                    <p class="mb-1"><small><strong>Rules Applied:</strong></small></p>
+                    <ul class="small mb-0">
+                      <li>Total units split equally among {{ unitBreakdown.totalAuthorsCount }} author(s)</li>
+                      <li>Only affiliated authors can contribute to UNIVEN claim</li>
+                      <li>Multiple university affiliations split equally per author share</li>
+                      <li>UNIVEN + Research Company/Other gives full author share to UNIVEN</li>
+                    </ul>
                   </div>
+                </div>
 
-                  <div class="col-md-3">
-                    <label class="form-label">Total Units Claimed <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" formControlName="totalUnitsClaimed" [disabled]="true" />
+                <div class="mb-4">
+                  <h6 class="mb-3">Attachments</h6>
+                  <div class="card mb-3" *ngIf="!isReadOnlyView">
+                    <div class="card-body">
+                      <div class="row g-3 align-items-center">
+                        <div class="col-md-5">
+                          <label class="form-label">Attachment (PDF Only)</label>
+                          <input type="file" class="form-control form-control-sm" (change)="onFileSelected($event)" accept=".pdf" />
+                          <small class="text-danger" *ngIf="fileError">{{ fileError }}</small>
+                        </div>
+                        <div class="col-md-5">
+                          <label class="form-label">Description</label>
+                          <input type="text" class="form-control form-control-sm" [(ngModel)]="newAttachmentDescription" [ngModelOptions]="{standalone: true}" />
+                        </div>
+                        <div class="col-md-2 pt-4">
+                          <button type="button" class="btn btn-outline-primary btn-sm w-100" (click)="addAttachment()">Add</button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-
+                  <div *ngIf="attachments.length === 0" class="alert alert-info text-center">No attachments added yet.</div>
+                  <div *ngFor="let att of attachments; let i = index" class="card mb-3 shadow-sm">
+                    <div class="card-body py-2">
+                      <div class="row align-items-center">
+                        <div class="col-md-8"><strong>{{ att.fileName }}</strong> - {{ att.description }}</div>
+                        <div class="col-md-4 text-end">
+                          <button type="button" class="btn btn-outline-success btn-sm me-2" (click)="viewAttachment(i)"><i class="fa fa-eye"></i></button>
+                          <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-danger btn-sm" (click)="removeAttachmentRow(i)"><i class="fa fa-trash"></i></button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Actions -->
-              <div class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white">
-                <button type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>
-                <button type="submit" class="btn btn-primary">Submit</button>
-              </div>
+                <div class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white mt-4">
+                  <button type="button" class="btn btn-outline-secondary" [disabled]="currentStep === 1" (click)="prevStep()">Previous</button>
+                  <button type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>
+                  <button *ngIf="currentStep < totalSteps" type="button" class="btn btn-outline-primary" (click)="goToNextStep()">Next</button>
+                  <button *ngIf="currentStep === totalSteps" type="submit" class="btn btn-primary">Submit Final</button>
+                </div>
+              </fieldset>
             </form>
 
-            <!-- Preview JSON -->
             <div class="mt-4" *ngIf="showPreview">
               <h6>Preview JSON</h6>
-              <pre class="bg-light p-3 border rounded small" style="max-height: 400px; overflow:auto;">
-{{ previewJson }}
-              </pre>
-              <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closePreview()">
-                Close Preview
-              </button>
+              <pre class="bg-light p-3 border rounded small" style="max-height: 400px; overflow:auto;">{{ previewJson }}</pre>
+              <button class="btn btn-sm btn-outline-secondary" type="button" (click)="closePreview()">Close Preview</button>
             </div>
-
           </div>
         </div>
       </div>
@@ -601,3 +750,4 @@
 
   </div>
 </div>
+

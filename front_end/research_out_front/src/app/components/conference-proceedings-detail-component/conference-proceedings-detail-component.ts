@@ -1,17 +1,20 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import {
   AbstractControl,
   FormArray,
   FormBuilder,
   FormControl,
   FormGroup,
+  FormsModule,
   ReactiveFormsModule,
+  ValidatorFn,
   Validators
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import {
   Authors,
+  Attachment,
   Department, Faculty
 } from '../../models/common.model';
 import {ConferenceProceedingsService} from '../../services/conference-proceedings.service';
@@ -21,10 +24,21 @@ import Swal from 'sweetalert2';
 import {ResearchfieldService} from '../../services/researchfield.service';
 import {Publisher, PublisherService} from '../../services/publisher.service';
 import {ConferenceProceedings} from '../../models/ConfrenceProceedings';
+import {
+  AUTHOR_ACADEMIC_TITLE_OPTIONS,
+  AUTHOR_EMPLOYMENT_STATUS_OPTIONS,
+  AUTHOR_GENDER_OPTIONS,
+  AUTHOR_HIGHEST_QUALIFICATION_OPTIONS,
+  AUTHOR_POPULATION_GROUP_OPTIONS,
+  AUTHOR_SA_RESIDENCY_OPTIONS,
+  ISO_3166_COUNTRY_OPTIONS,
+  SA_HEI_OPTIONS
+} from '../../constants/author-form-options';
 
 @Component({
   selector: 'app-conference-proceedings-detail-component',
   imports: [
+    FormsModule,
     ReactiveFormsModule,
     CommonModule,
     RouterModule
@@ -33,9 +47,20 @@ import {ConferenceProceedings} from '../../models/ConfrenceProceedings';
   standalone: true,
   styleUrl: './conference-proceedings-detail-component.css'
 })
-export class ConferenceProceedingsDetailComponent {
+export class ConferenceProceedingsDetailComponent implements OnInit {
+   private readonly currentReportingYear = new Date().getFullYear();
+   isReadOnlyView = false;
+   isSaving = false;
+   saveMessage: string = '';
+   showSaveMessage = false;
+   lastSavedProceedingsId: number | null = null;
   showPreview = false;
   previewJson = '';
+  attachments: Attachment[] = [];
+  fileErrors: string[] = [];
+  newAttachmentDescription = '';
+  fileError = '';
+  selectedFile: File | null = null;
   form: FormGroup;
   currentStep = 1;
   totalSteps = 4;
@@ -51,6 +76,18 @@ export class ConferenceProceedingsDetailComponent {
   loadingFaculties = false;
   countryOptionsMap: { [index: number]: string[] } = {};
   countrySubs: { [index: number]: Subscription } = {};
+  universitySearchTerms: { [rowKey: string]: string } = {};
+  universityDropdownOpen: { [rowKey: string]: boolean } = {};
+
+  readonly otherUniversityCode = 'OTHER';
+  readonly saUniversityOptions = SA_HEI_OPTIONS;
+  readonly genderOptions = AUTHOR_GENDER_OPTIONS;
+  readonly populationGroupOptions = AUTHOR_POPULATION_GROUP_OPTIONS;
+  readonly saResidencyOptions = AUTHOR_SA_RESIDENCY_OPTIONS;
+  readonly employmentStatusOptions = AUTHOR_EMPLOYMENT_STATUS_OPTIONS;
+  readonly academicTitleOptions = AUTHOR_ACADEMIC_TITLE_OPTIONS;
+  readonly highestQualificationOptions = AUTHOR_HIGHEST_QUALIFICATION_OPTIONS;
+  readonly countryOptions = ISO_3166_COUNTRY_OPTIONS;
 
   researchFields: any[] = [];
   filteredResearchFields: any[] = []
@@ -110,16 +147,22 @@ export class ConferenceProceedingsDetailComponent {
     });
 
     this.loadFaculties(); // ✅ add this
-    const proceedings = this.router.getCurrentNavigation()?.extras.state?.['proceedings'] as ConferenceProceedings | undefined;
+    const navigationState = this.router.getCurrentNavigation()?.extras.state ?? history.state ?? {};
+    const proceedings = navigationState['proceedings'] as ConferenceProceedings | undefined;
+    this.isReadOnlyView = !!(navigationState['reviewMode'] || navigationState['viewMode'] || navigationState['readOnly']);
+    this.attachments = this.normalizeAttachments((proceedings as any)?.attachments);
 
 
     this.form = this.fb.group({
       id: [proceedings?.id ?? null],
       dhetNo: [
-        {value: proceedings?.dhetNo ?? '', disabled: true},
-        [Validators.required, Validators.pattern(/^CP\d+/)]
+        proceedings?.dhetNo ?? 'P001',
+        [Validators.required, Validators.pattern(/^P\d+(?:\.\d+)*$/)]
       ],
-      year: [proceedings?.yearOfPublication ?? '', Validators.required],
+      year: [
+        proceedings?.yearOfPublication ?? '',
+        Validators.required
+      ],
       titleOfConferenceProceedings: [proceedings?.titleOfConferenceProceedings ?? '', Validators.required],
       titleOfContribution: [proceedings?.titleOfContribution ?? '', Validators.required],
       totalChaptersInBook: [null],
@@ -130,14 +173,16 @@ export class ConferenceProceedingsDetailComponent {
         [Validators.required]
       ],
       fieldofsearch: [proceedings?.fieldOfResearch ?? '', Validators.required],
-      originalPhotocopy: [proceedings?.originalOrPhotocopy ?? '', Validators.required],
-      peerReviewEvidence: [proceedings?.evidenceOfPeerReview ?? '', Validators.required],
+      originalPhotocopy: [
+        proceedings?.originalOrPhotocopy ?? '',
+        [Validators.required, Validators.pattern(/^[OP]$/)]
+      ],
+      peerReviewEvidence: [
+        this.toYesNo(proceedings?.evidenceOfPeerReview, 'N'),
+        [Validators.required, Validators.pattern(/^[YN]$/)]
+      ],
       typeOfEvidence: [proceedings?.typeOfEvidence ?? '', Validators.required],
-      totalNoPages: [proceedings?.totalNoPages ?? null, Validators.required],
-      startPage: [proceedings?.startPage ?? null, Validators.required],
-      endPage: [proceedings?.endPage ?? null, Validators.required],
-      totalPagesClaimed: [proceedings?.totalPagesClaimed ?? null, Validators.required],
-      maxUnitsForPublication: [proceedings?.maxUnitsForPublication ?? 1],
+      maxUnitsForPublication: [proceedings?.maxUnitsForPublication ?? 0.5],
       totalProportionOfAuthors: [proceedings?.totalProportionOfAuthors ?? 1, Validators.required],
       authorCount: [{value: proceedings?.authorCount ?? 1, disabled: true}, Validators.required],
       otherAuthorsNonAffiliated: [{value: 0, disabled: true}],
@@ -161,9 +206,132 @@ export class ConferenceProceedingsDetailComponent {
 
     this.setupFieldSearch();
     this.setupAutoCalc();
+    this.normalizeAllUniversityAffiliations();
 
     this.authorsFA.controls.forEach((_, i) => this.onCountrySearch(i));
     this.authorsFA.controls.forEach(ctrl => this.initAuthorAffiliationHandling(ctrl as FormGroup));
+
+     if (this.isReadOnlyView) {
+       this.form.disable({ emitEvent: false });
+     }
+   }
+
+  /**
+   * Angular lifecycle hook: Initialize component
+   */
+  ngOnInit() {
+    // Load previously saved proceedings if available
+    this.loadSavedProceedings();
+  }
+
+  /**
+   * Load previously saved proceedings data
+   */
+  private loadSavedProceedings() {
+    const state = this.router.getCurrentNavigation()?.extras.state ?? history.state ?? {};
+    const proceedingsIdFromState = state?.['proceedings']?.id;
+
+    if (proceedingsIdFromState) {
+      this.conferenceProceedingsService.getById(proceedingsIdFromState).subscribe({
+        next: (proceedings) => {
+          this.lastSavedProceedingsId = proceedings.id;
+          this.populateFormWithProceedings(proceedings);
+        },
+        error: (err) => {
+          console.error('Error loading proceedings', err);
+        }
+      });
+    }
+  }
+
+  /**
+   * Reload proceedings from saved ID (for Resume Draft button)
+   */
+  public reloadSavedProceedings() {
+    if (!this.lastSavedProceedingsId) {
+      Swal.fire({
+        title: 'No Draft',
+        text: 'No saved draft found. Please create one first.',
+        icon: 'info'
+      });
+      return;
+    }
+
+    this.conferenceProceedingsService.getById(this.lastSavedProceedingsId).subscribe({
+      next: (proceedings) => {
+        this.populateFormWithProceedings(proceedings);
+        Swal.fire({
+          title: 'Draft Loaded',
+          text: 'Your previously saved draft has been loaded.',
+          icon: 'success',
+          timer: 2000
+        });
+      },
+      error: (err) => {
+        console.error('Error loading proceedings', err);
+        Swal.fire({
+          title: 'Error',
+          text: 'Could not load draft. Please try again.',
+          icon: 'error'
+        });
+      }
+    });
+  }
+
+  /**
+   * Populate form with proceedings data
+   */
+  private populateFormWithProceedings(proceedings: ConferenceProceedings) {
+    this.form.patchValue({
+      id: proceedings.id,
+      dhetNo: proceedings.dhetNo,
+      year: proceedings.yearOfPublication,
+      titleOfConferenceProceedings: proceedings.titleOfConferenceProceedings,
+      titleOfContribution: proceedings.titleOfContribution,
+      editors: proceedings.editors,
+      publisher: proceedings.publisher,
+      isbn: proceedings.isbn,
+      fieldofsearch: proceedings.fieldOfResearch,
+      originalPhotocopy: proceedings.originalOrPhotocopy,
+      peerReviewEvidence: this.toYesNo(proceedings.evidenceOfPeerReview, 'N'),
+      typeOfEvidence: proceedings.typeOfEvidence,
+      maxUnitsForPublication: proceedings.maxUnitsForPublication ?? 0.5,
+      totalProportionOfAuthors: proceedings.totalProportionOfAuthors ?? 1,
+      funders: proceedings.funders,
+      additionalComments: proceedings.additionalComments,
+      compliesWith60Rule: proceedings.compliesWith60Rule,
+      startDate: proceedings.startDate,
+      endDate: proceedings.endDate,
+      city: proceedings.city,
+      country: proceedings.country
+    });
+
+    // Populate authors
+    if (proceedings.authors && proceedings.authors.length > 0) {
+      this.authorsFA.clear();
+      proceedings.authors.forEach(author => {
+        const affiliationFlag = this.asBoolean(author.affiliation, true);
+        const authorFG = this.newAuthor(author, affiliationFlag);
+        this.authorsFA.push(authorFG);
+        this.initAuthorAffiliationHandling(authorFG);
+      });
+    } else {
+      this.authorsFA.clear();
+      const authorFG = this.newAuthor();
+      this.authorsFA.push(authorFG);
+      this.initAuthorAffiliationHandling(authorFG);
+    }
+
+    this.recalculateContributions();
+    this.calculateAdvancedUnitBreakdown();
+
+    if (this.isReadOnlyView) {
+      this.form.disable({ emitEvent: false });
+    }
+
+    // ✅ Force change detection to refresh template immediately
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   private asBoolean(value: unknown, fallback = false): boolean {
@@ -177,14 +345,68 @@ export class ConferenceProceedingsDetailComponent {
     return fallback;
   }
 
+  private toYesNo(value: unknown, fallback: 'Y' | 'N' = 'N'): 'Y' | 'N' {
+    if (value === true) return 'Y';
+    if (value === false) return 'N';
+    const normalized = String(value ?? '').trim().toUpperCase();
+    if (normalized === 'Y' || normalized === 'YES' || normalized === 'TRUE') return 'Y';
+    if (normalized === 'N' || normalized === 'NO' || normalized === 'FALSE') return 'N';
+    return fallback;
+  }
+
+  private yesNoToBoolean(value: unknown, fallback = false): boolean {
+    const normalized = String(value ?? '').trim().toUpperCase();
+    if (normalized === 'Y' || normalized === 'YES' || normalized === 'TRUE') return true;
+    if (normalized === 'N' || normalized === 'NO' || normalized === 'FALSE') return false;
+    return this.asBoolean(value, fallback);
+  }
+
+  private normalizeAttachments(rawAttachments: unknown): Attachment[] {
+    let list: unknown[] = [];
+
+    if (Array.isArray(rawAttachments)) {
+      list = rawAttachments;
+    } else if (typeof rawAttachments === 'string') {
+      try {
+        const parsed = JSON.parse(rawAttachments);
+        list = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        list = [];
+      }
+    }
+
+    return list
+      .map((item: any) => ({
+        id: item?.id ?? null,
+        formguid: item?.formguid ?? item?.formGuid ?? undefined,
+        fileName: item?.fileName ?? item?.filename ?? item?.name ?? '',
+        fileType: item?.fileType ?? item?.filetype ?? item?.mimeType ?? item?.contentType ?? 'application/pdf',
+        fileSize: Number(item?.fileSize ?? item?.filesize ?? item?.size ?? 0) || 0,
+        fileData: item?.fileData ?? item?.data ?? item?.base64 ?? undefined,
+        filePath: item?.filePath ?? item?.filepath ?? null,
+        url: item?.url ?? item?.fileUrl ?? item?.downloadUrl ?? undefined,
+        description: item?.description ?? item?.desc ?? ''
+      } as Attachment))
+      .filter(att => !!att.fileName);
+  }
+
+
   checkTitleIsbnUnique(conferenceProceedingsService: ConferenceProceedingsService) {
     return (group: AbstractControl) => {
       const title = group.get('titleOfConferenceProceedings')?.value;
       const isbn = group.get('isbn')?.value;
+      const currentIdRaw = group.get('id')?.value;
+      const currentId = currentIdRaw === null || currentIdRaw === undefined || currentIdRaw === ''
+        ? undefined
+        : Number(currentIdRaw);
 
       if (!title || !isbn) return of(null);
 
-      return conferenceProceedingsService.exists(title, isbn).pipe(
+      return conferenceProceedingsService.exists(
+        title,
+        isbn,
+        Number.isFinite(currentId as number) ? currentId : undefined
+      ).pipe(
         debounceTime(300),
         map((exists: boolean) => {
           return exists ? { duplicateProceedings: true } : null;
@@ -280,6 +502,7 @@ export class ConferenceProceedingsDetailComponent {
       authorUnitsClaimed: [null],
       authorShare: [a?.authorShare ?? 0],
       totalUnitsClaimed: [a?.totalUnitsClaimed ?? 0],
+      additionalComments: [a?.additionalComments || ''],
       universityAffiliations: univArray,
       researchAffiliations: researchArray
     });
@@ -297,7 +520,8 @@ export class ConferenceProceedingsDetailComponent {
       if (isAffiliated) {
         ctrl.setValidators([Validators.required]);
       } else {
-        ctrl.clearValidators();
+        ctrl.setValidators([]);
+        ctrl.setValue(null);
       }
       ctrl.updateValueAndValidity({ emitEvent: false });
     });
@@ -357,6 +581,7 @@ export class ConferenceProceedingsDetailComponent {
       this.calculateAdvancedUnitBreakdown();
       this.cdr.markForCheck();
     });
+
     this.form.get('maxUnitsForPublication')?.valueChanges.subscribe(() => {
       this.recalculateContributions();
       this.calculateAdvancedUnitBreakdown();
@@ -365,42 +590,45 @@ export class ConferenceProceedingsDetailComponent {
 
     this.recalculateContributions();
     this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
   }
 
   recalculateContributions() {
-    const allAuthors = this.authorsFA.controls;
-    const nonAffiliatedAuthors = allAuthors.filter(ctrl => !this.asBoolean(ctrl.get('affiliation')?.value, false));
-    const totalAuthorCount = allAuthors.length;
-    const nonAffiliatedCount = nonAffiliatedAuthors.length;
+    const maxUnits = Number(this.form.get('maxUnitsForPublication')?.value || 0);
 
-    this.form.get('authorCount')?.setValue(totalAuthorCount || 1, { emitEvent: false });
-    this.form.get('otherAuthorsNonAffiliated')?.setValue(nonAffiliatedCount, { emitEvent: false });
+    const nonAffiliatedAuthors = this.authorsFA.controls.filter(ctrl =>
+      !this.asBoolean((ctrl as FormGroup).get('affiliation')?.value, false)
+    );
 
-    const maxUnits = Number(this.form.get('maxUnitsForPublication')?.value ?? 1) || 1;
-    const userDefinedProportion = this.form.get('totalProportionOfAuthors')?.value || 1;
+    const totalAuthorsCount = this.authorsFA.length;
+    const divisor = totalAuthorsCount > 0 ? totalAuthorsCount : 1;
+    const otherAuthorsNonAffiliated = nonAffiliatedAuthors.length;
 
-    const totalUnitsClaimed = maxUnits * userDefinedProportion;
-    this.form.get('totalUnitsClaimed')?.setValue(totalUnitsClaimed, { emitEvent: false });
+    this.form.get('authorCount')?.setValue(totalAuthorsCount, { emitEvent: false });
+    this.form.get('otherAuthorsNonAffiliated')?.setValue(otherAuthorsNonAffiliated, { emitEvent: false });
 
-    const divisor = totalAuthorCount > 0 ? totalAuthorCount : 1;
-    const proportion = totalAuthorCount > 0 ? (1 / divisor) : 0;
-    allAuthors.forEach(ctrl => {
-      const isAffiliated = this.asBoolean(ctrl.get('affiliation')?.value, false);
-      const authorShare = totalUnitsClaimed * proportion;
+    const totalProp = Number(this.form.get('totalProportionOfAuthors')?.value || 1);
+    const totalUnits = maxUnits * totalProp;
+    this.form.get('totalUnitsClaimed')?.setValue(totalUnits, { emitEvent: false });
+
+    const proportion = totalAuthorsCount > 0 ? (1 / divisor) : 0;
+
+    this.authorsFA.controls.forEach(ctrl => {
+      const fg = ctrl as FormGroup;
+      const isAffiliated = this.asBoolean(fg.get('affiliation')?.value, false);
+
       if (isAffiliated) {
-        ctrl.get('proportionOfAuthors')?.setValue(proportion, { emitEvent: false });
-        ctrl.get('authorUnitsClaimed')?.setValue(authorShare, { emitEvent: false });
-        ctrl.get('authorShare')?.setValue(authorShare, { emitEvent: false });
+        fg.get('proportionOfAuthors')?.setValue(proportion, { emitEvent: false });
+        fg.get('authorUnitsClaimed')?.setValue(maxUnits * proportion, { emitEvent: false });
       } else {
-        ctrl.get('proportionOfAuthors')?.setValue(null, { emitEvent: false });
-        ctrl.get('authorUnitsClaimed')?.setValue(null, { emitEvent: false });
-        ctrl.get('authorShare')?.setValue(0, { emitEvent: false });
+        fg.get('proportionOfAuthors')?.setValue(null, { emitEvent: false });
+        fg.get('authorUnitsClaimed')?.setValue(null, { emitEvent: false });
       }
     });
   }
 
   calculateAdvancedUnitBreakdown() {
-    const maxUnits = Number(this.form.get('maxUnitsForPublication')?.value ?? 1) || 1;
+    const maxUnits = Number(this.form.get('maxUnitsForPublication')?.value ?? 0.5) || 0.5;
     const totalProp = Number(this.form.get('totalProportionOfAuthors')?.value ?? 1) || 1;
     const totalUnits = maxUnits * totalProp;
 
@@ -446,13 +674,19 @@ export class ConferenceProceedingsDetailComponent {
         ruleApplied = 'Non-affiliated author: excluded from UNIVEN claim.';
       } else {
         const universityCount = univAffiliations.length;
+
         const hasUniven = univAffiliations.some((u: any) => u.isUniven === true);
         const hasInternational = univAffiliations.some((u: any) => u.isInternationalUniversity === true);
         const hasResearch = researchAffiliations.length > 0;
 
         if (hasInternational) {
           univenClaim = authorShare;
-          splitDetails.push({ label: 'UNIVEN (International Rule)', type: 'UNIVERSITY', units: authorShare, claimedByUniven: true });
+          splitDetails.push({
+            label: 'UNIVEN (International Rule)',
+            type: 'UNIVERSITY',
+            units: authorShare,
+            claimedByUniven: true
+          });
           ruleApplied = 'International university affiliation: full share assigned to UNIVEN.';
         } else if (hasUniven && hasResearch && universityCount === 1) {
           univenClaim = authorShare;
@@ -481,7 +715,7 @@ export class ConferenceProceedingsDetailComponent {
           splitDetails.push({ label: 'UNIVEN', type: 'UNIVERSITY', units: authorShare, claimedByUniven: true });
           ruleApplied = 'Single UNIVEN affiliation: full share claimed by UNIVEN.';
         } else {
-          const unitPerUniv = universityCount > 0 ? authorShare / universityCount : 0;
+          const unitPerUniv = authorShare / universityCount;
           univAffiliations.forEach((u: any) => {
             splitDetails.push({
               label: u.universityName || 'University',
@@ -509,8 +743,7 @@ export class ConferenceProceedingsDetailComponent {
 
       fg.patchValue({
         authorShare,
-        totalUnitsClaimed: univenClaim,
-        authorUnitsClaimed: isAffiliated ? univenClaim : null
+        totalUnitsClaimed: univenClaim
       }, { emitEvent: false });
     });
   }
@@ -523,6 +756,136 @@ export class ConferenceProceedingsDetailComponent {
     return (authorControl?.get('researchAffiliations') as FormArray) ?? this.fb.array([]);
   }
 
+  private findUniversityByCode(code: string): { code: string; name: string } | undefined {
+    return this.saUniversityOptions.find(u => u.code === code);
+  }
+
+  private getUniversityRowKey(authorIndex: number, univIndex: number): string {
+    return `${authorIndex}_${univIndex}`;
+  }
+
+  getUniversitySearchTerm(authorIndex: number, univIndex: number): string {
+    return this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)] ?? '';
+  }
+
+  isUniversityDropdownOpen(authorIndex: number, univIndex: number): boolean {
+    return this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)] === true;
+  }
+
+  openUniversityDropdown(authorIndex: number, univIndex: number): void {
+    this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)] = true;
+  }
+
+  closeUniversityDropdown(authorIndex: number, univIndex: number): void {
+    setTimeout(() => {
+      this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)] = false;
+      this.cdr.markForCheck();
+    }, 120);
+  }
+
+  onUniversitySearchChange(authorIndex: number, univIndex: number, value: string): void {
+    this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)] = value ?? '';
+    this.openUniversityDropdown(authorIndex, univIndex);
+  }
+
+  getFilteredUniversityOptions(authorIndex: number, univIndex: number): { code: string; name: string }[] {
+    const term = this.getUniversitySearchTerm(authorIndex, univIndex).trim().toLowerCase();
+    if (!term) return this.saUniversityOptions;
+
+    return this.saUniversityOptions.filter(university =>
+      university.name.toLowerCase().includes(term)
+      || university.code.toLowerCase().includes(term)
+    );
+  }
+
+  getUniversityDisplayValue(authorIndex: number, univIndex: number): string {
+    const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
+    const code = String(row?.get('universityCode')?.value ?? '').trim().toUpperCase();
+    const name = String(row?.get('universityName')?.value ?? '').trim();
+
+    if (!code) return '';
+    if (code === this.otherUniversityCode) return name;
+    const selected = this.findUniversityByCode(code);
+    return selected ? `${selected.name} (${selected.code})` : name;
+  }
+
+  isOtherUniversitySelected(authorIndex: number, univIndex: number): boolean {
+    const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
+    const code = String(row?.get('universityCode')?.value ?? '').trim().toUpperCase();
+    return code === this.otherUniversityCode;
+  }
+
+  selectUniversityOption(authorIndex: number, univIndex: number, university: { code: string; name: string }): void {
+    const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
+    row.patchValue(
+      {
+        universityCode: university.code,
+        universityName: university.name,
+        isUniven: university.code === 'UNIVEN'
+      },
+      { emitEvent: false }
+    );
+
+    delete this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)];
+    this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)] = false;
+    this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
+  }
+
+  selectOtherUniversity(authorIndex: number, univIndex: number): void {
+    const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
+    row.patchValue(
+      {
+        universityCode: this.otherUniversityCode,
+        universityName: '',
+        isUniven: false
+      },
+      { emitEvent: false }
+    );
+
+    delete this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)];
+    this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)] = false;
+    this.calculateAdvancedUnitBreakdown();
+    this.cdr.markForCheck();
+  }
+
+  private normalizeAllUniversityAffiliations(): void {
+    this.authorsFA.controls.forEach((_, authorIndex) => this.normalizeUniversityAffiliationsForAuthor(authorIndex));
+  }
+
+  private normalizeUniversityAffiliationsForAuthor(authorIndex: number): void {
+    const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
+    univArray.controls.forEach((ctrl) => {
+      const row = ctrl as FormGroup;
+      const code = String(row.get('universityCode')?.value ?? '').trim().toUpperCase();
+      const name = String(row.get('universityName')?.value ?? '').trim();
+      const selected = this.findUniversityByCode(code);
+
+      if (selected) {
+        row.patchValue(
+          {
+            universityCode: selected.code,
+            universityName: selected.name,
+            isUniven: selected.code === 'UNIVEN'
+          },
+          { emitEvent: false }
+        );
+        return;
+      }
+
+      if (code || name) {
+        row.patchValue(
+          {
+            universityCode: this.otherUniversityCode,
+            universityName: name,
+            isUniven: false
+          },
+          { emitEvent: false }
+        );
+      }
+    });
+  }
+
   addUniversityAffiliation(authorIndex: number) {
     const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     univArray.push(this.fb.group({
@@ -531,6 +894,7 @@ export class ConferenceProceedingsDetailComponent {
       isUniven: [false],
       isInternationalUniversity: [false]
     }));
+    this.normalizeUniversityAffiliationsForAuthor(authorIndex);
     this.calculateAdvancedUnitBreakdown();
     this.cdr.markForCheck();
   }
@@ -538,6 +902,8 @@ export class ConferenceProceedingsDetailComponent {
   removeUniversityAffiliation(authorIndex: number, univIndex: number) {
     const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     univArray.removeAt(univIndex);
+    delete this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)];
+    delete this.universityDropdownOpen[this.getUniversityRowKey(authorIndex, univIndex)];
     this.calculateAdvancedUnitBreakdown();
     this.cdr.markForCheck();
   }
@@ -576,6 +942,7 @@ export class ConferenceProceedingsDetailComponent {
 
   private isConferenceInfoValid(): boolean {
     const fields = [
+      'dhetNo',
       'year',
       'titleOfConferenceProceedings',
       'titleOfContribution',
@@ -585,10 +952,6 @@ export class ConferenceProceedingsDetailComponent {
       'originalPhotocopy',
       'peerReviewEvidence',
       'typeOfEvidence',
-      'totalNoPages',
-      'startPage',
-      'endPage',
-      'totalPagesClaimed',
       'startDate',
       'endDate',
       'city',
@@ -624,6 +987,7 @@ export class ConferenceProceedingsDetailComponent {
   markStepAsTouched(step: number) {
     if (step === 1) {
       const fields = [
+        'dhetNo',
         'year',
         'titleOfConferenceProceedings',
         'titleOfContribution',
@@ -633,10 +997,6 @@ export class ConferenceProceedingsDetailComponent {
         'originalPhotocopy',
         'peerReviewEvidence',
         'typeOfEvidence',
-        'totalNoPages',
-        'startPage',
-        'endPage',
-        'totalPagesClaimed',
         'startDate',
         'endDate',
         'city',
@@ -712,11 +1072,110 @@ export class ConferenceProceedingsDetailComponent {
     return this.authorsFA.controls.filter(ctrl => !this.asBoolean((ctrl as FormGroup).get('affiliation')?.value, false));
   }
 
-  trackByIndex(index: number): number {
-    return index;
+   trackByIndex(index: number): number {
+     return index;
+   }
+
+  /**
+   * Save current step data
+   */
+  saveCurrentStep() {
+    this.markStepAsTouched(this.currentStep);
+
+    if (!this.isStepValid(this.currentStep)) {
+      Swal.fire({
+        title: "Incomplete Step",
+        text: `Please complete all required fields in this step before saving.`,
+        icon: "warning"
+      });
+      return;
+    }
+
+    this.isSaving = true;
+    const payload = this.buildPayload();
+
+    this.conferenceProceedingsService.save(payload).subscribe({
+      next: (savedProceedings) => {
+        this.isSaving = false;
+        this.lastSavedProceedingsId = savedProceedings.id;
+        this.form.get('id')?.setValue(savedProceedings.id, { emitEvent: false });
+        this.form.get('dhetNo')?.setValue(savedProceedings.dhetNo, { emitEvent: false });
+
+        this.saveMessage = `Step ${this.currentStep} saved successfully! You can continue editing later.`;
+        this.showSaveMessage = true;
+
+        setTimeout(() => {
+          this.showSaveMessage = false;
+        }, 3000);
+
+        Swal.fire({
+          title: "Saved",
+          text: this.saveMessage,
+          icon: "success",
+          timer: 2000
+        });
+      },
+      error: (err) => {
+        this.isSaving = false;
+        console.error('Error saving step', err);
+        Swal.fire({
+          title: "Error",
+          text: "Failed to save step. Please try again.",
+          icon: "error"
+        });
+      }
+    });
   }
 
-  // === Payload / preview / submit ===
+  /**
+   * Save current step and continue to next step
+   */
+  saveAndContinue() {
+    this.markStepAsTouched(this.currentStep);
+
+    if (!this.isStepValid(this.currentStep)) {
+      Swal.fire({
+        title: "Incomplete Step",
+        text: `Please complete all required fields in this step before continuing.`,
+        icon: "warning"
+      });
+      return;
+    }
+
+    this.isSaving = true;
+    const payload = this.buildPayload();
+
+    this.conferenceProceedingsService.save(payload).subscribe({
+      next: (savedProceedings) => {
+        this.isSaving = false;
+        this.lastSavedProceedingsId = savedProceedings.id;
+        this.form.get('id')?.setValue(savedProceedings.id, { emitEvent: false });
+        this.form.get('dhetNo')?.setValue(savedProceedings.dhetNo, { emitEvent: false });
+
+        this.saveMessage = `Step ${this.currentStep} saved successfully!`;
+        this.showSaveMessage = true;
+
+        // Move to next step
+        if (this.currentStep < this.totalSteps) {
+            setTimeout(() => {
+            this.goToNextStep();
+            this.showSaveMessage = false;
+          }, 500);
+        }
+      },
+      error: (err) => {
+        this.isSaving = false;
+        console.error('Error saving step', err);
+        Swal.fire({
+          title: "Error",
+          text: "Failed to save step. Please try again.",
+          icon: "error"
+        });
+      }
+    });
+  }
+
+   // === Payload / preview / submit ===
   buildPayload(): ConferenceProceedings {
     const raw = this.form.getRawValue();
 
@@ -731,13 +1190,9 @@ export class ConferenceProceedingsDetailComponent {
       isbn: raw.isbn,
       fieldOfResearch: raw.fieldofsearch ?? null,
       originalOrPhotocopy: raw.originalPhotocopy,
-      evidenceOfPeerReview: raw.peerReviewEvidence,
+      evidenceOfPeerReview: this.yesNoToBoolean(raw.peerReviewEvidence, false),
       typeOfEvidence: raw.typeOfEvidence ?? undefined,
-      totalNoPages: raw.totalNoPages ? Number(raw.totalNoPages) : 0,
-      startPage: raw.startPage ? Number(raw.startPage) : 0,
-      endPage: raw.endPage ? Number(raw.endPage) : 0,
-      totalPagesClaimed: raw.totalPagesClaimed ? Number(raw.totalPagesClaimed) : 0,
-      maxUnitsForPublication: raw.maxUnitsForPublication ? Number(raw.maxUnitsForPublication) : undefined,
+      maxUnitsForPublication: raw.maxUnitsForPublication ? Number(raw.maxUnitsForPublication) : 0.5,
       totalProportionOfAuthors: raw.totalProportionOfAuthors ? Number(raw.totalProportionOfAuthors) : 0,
       authorCount: raw.authorCount ? Number(raw.authorCount) : 0,
       totalUnitsClaimed: raw.totalUnitsClaimed ? Number(raw.totalUnitsClaimed) : 0,
@@ -758,7 +1213,7 @@ export class ConferenceProceedingsDetailComponent {
   autoPopulateForm(): void {
     this.form.patchValue({
       id: null,
-      dhetNo: 'CP0001',
+      dhetNo: 'P001',
       year: '2025',
       titleOfConferenceProceedings: 'AI in Modern Conference Proceedings',
       titleOfContribution: 'AI in Modern Conference Proceedings',
@@ -769,11 +1224,7 @@ export class ConferenceProceedingsDetailComponent {
       originalPhotocopy: 'O',
       peerReviewEvidence: 'Y',
       typeOfEvidence: 'Peer Reviewed',
-      totalNoPages: 400,
-      startPage: 150,
-      endPage: 175,
-      totalPagesClaimed: 26,
-      maxUnitsForPublication: 1,
+      maxUnitsForPublication: 0.5,
       totalProportionOfAuthors: 1,
       funders: 'NRF; University Grant',
       additionalComments: 'Sample data',
@@ -831,6 +1282,10 @@ export class ConferenceProceedingsDetailComponent {
   }
 
   onSubmit() {
+    if (this.isSaving) {
+      return;
+    }
+
     this.markStepAsTouched(this.currentStep);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -838,19 +1293,12 @@ export class ConferenceProceedingsDetailComponent {
     }
 
     const payload = this.buildPayload();
+    this.isSaving = true;
 
 
     this.conferenceProceedingsService.save(payload).subscribe({
       next: _ => {
-
-        Swal.fire({
-          title: "Success",
-          text: "Conference Proceedings saved successfully.",
-          icon: "success"
-        });
-        this.router.navigate(['/conference-proceedings']);
-      },
-      error: () => {
+        this.isSaving = false;
 
         Swal.fire({
           title: "Success",
@@ -858,12 +1306,16 @@ export class ConferenceProceedingsDetailComponent {
           icon: "success"
         });
         this.router.navigate(['/proceedings']);
-        // console.error('Error saving conference proceedings', err);
-        // Swal.fire({
-        //   title: "Error",
-        //   text: "Failed to save conference proceedings. Please try again.",
-        //   icon: "error"
-        // });
+      },
+      error: (err) => {
+        this.isSaving = false;
+        console.error('Error saving conference proceedings', err);
+
+        Swal.fire({
+          title: "Error",
+          text: "Failed to save conference proceedings. Please try again.",
+          icon: "error"
+        });
       }
     });
   }
@@ -919,7 +1371,7 @@ export class ConferenceProceedingsDetailComponent {
   reset() {
     this.form.reset();
     this.form.patchValue({
-      maxUnitsForPublication: 1,
+      maxUnitsForPublication: 0.5,
       totalProportionOfAuthors: 1,
       otherAuthorsNonAffiliated: 0
     });
@@ -931,7 +1383,94 @@ export class ConferenceProceedingsDetailComponent {
     this.currentStep = 1;
     this.recalculateContributions();
     this.calculateAdvancedUnitBreakdown();
+    this.attachments = [];
+    this.fileErrors = [];
+    this.newAttachmentDescription = '';
+    this.fileError = '';
+    this.selectedFile = null;
     this.showPreview = false;
     this.previewJson = '';
+  }
+
+  onFileSelected(event: any) {
+    const file = event.target.files[0];
+    if (!file) {
+      this.selectedFile = null;
+      return;
+    }
+
+    if (file.type !== 'application/pdf') {
+      this.fileError = 'Only PDF files are allowed.';
+      this.selectedFile = null;
+      return;
+    }
+
+    this.fileError = '';
+    this.selectedFile = file;
+  }
+
+  addAttachment() {
+    if (!this.selectedFile) {
+      this.fileError = 'Please select a file.';
+      return;
+    }
+
+    if (!this.newAttachmentDescription.trim()) {
+      Swal.fire({
+        title: 'Warning',
+        text: 'Description is recommended.',
+        icon: 'warning'
+      });
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = (e.target?.result as string).split(',')[1];
+      const attachment: Attachment = {
+        fileName: this.selectedFile!.name,
+        fileSize: this.selectedFile!.size,
+        fileType: this.selectedFile!.type,
+        file: this.selectedFile!,
+        fileData: base64,
+        description: this.newAttachmentDescription.trim() || 'No description'
+      };
+      this.attachments.push(attachment);
+
+      this.newAttachmentDescription = '';
+      this.selectedFile = null;
+      this.fileError = '';
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    };
+    reader.readAsDataURL(this.selectedFile);
+  }
+
+  removeAttachmentRow(index: number) {
+    this.attachments.splice(index, 1);
+  }
+
+  viewAttachment(index: number) {
+    const attachment = this.attachments[index];
+    if (attachment.fileData) {
+      const byteCharacters = atob(attachment.fileData);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } else if (attachment.url) {
+      window.open(attachment.url, '_blank');
+    } else if (attachment.filePath) {
+      window.open(attachment.filePath, '_blank');
+    } else {
+      Swal.fire({
+        title: 'Attachment unavailable',
+        text: 'This attachment has no fileData, URL, or filePath to open.',
+        icon: 'warning'
+      });
+    }
   }
 }

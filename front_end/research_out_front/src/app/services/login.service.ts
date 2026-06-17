@@ -20,7 +20,7 @@ export class LoginService {
   login(user: User):Observable<any> {
     const headers = {'Content-Type': 'application/json'};
 
-    return this.http.post<any>(this.urlLogin, user, { headers });
+    return this.http .post<any>(this.urlLogin, user, { headers });
   }
 
   /**
@@ -29,8 +29,7 @@ export class LoginService {
    * @returns Observable with complete student information
    */
   getStudentInfo(studentNo: string): Observable<any> {
-    const headers = {'Content-Type': 'application/json'};
-    return this.http.get<any>(`${this.urlStudentInfo}/${studentNo}`, { headers });
+    return this.http.get<any>(`${this.urlStudentInfo}/${studentNo}`);
   }
 
 }

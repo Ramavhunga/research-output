@@ -14,7 +14,7 @@ public class JournalDto {
     private String publisher;
     private String index;
 
-    private Boolean comply;
+    private String comply;
     private Integer volume;
     private Integer issue;
 

@@ -22,25 +22,47 @@ public class JournalExcelExportService {
             "Article Title",
             "Publisher",
             "Index",
-            "Complies with 75% rule",
-            "Volume / Issue",
-            "ISSN / eISSN",
-            "DOI / URL",
-            "Open Access",
+            "Complies with 75% rule?",
+            "Volume",
+            "Issue",
+            "ISSN",
+            "e-ISSN",
+            "DOI",
+            "Handle / URL",
+            "Open Access Journal?",
             "Field of Research",
-            "Author Type",
+            "Funder(s)",
             "Surname",
             "Initials",
-            "First Name",
-            "SA Universities",
-            "SA Institutions",
-            "International Universities",
-            "Author Share",
+            "First name(s)",
+            "Gender",
+            "Population Group",
+            "DOB",
+            "OrcID",
+            "Country of Birth",
+            "SA Residency Status",
+            "Disability",
+            "Highest Qualification",
+            "Employment status",
+            "Student / employee No.",
+            "Department",
+            "FACULTY",
+            "Academic Title",
+            "Other Affiliations (Only SA HEIs)",
+            "Other Affiliations (Other SA Institutions)",
+            "Other Affiliations (International Institutions)",
+            "Proportion of Author",
             "Author Units Claimed",
-            "Journal Total Units Claimed",
-            "DHET Accepted",
-            "DHET Units Awarded",
-            "DHET Comments"
+            "Additional Comments (Author)",
+            "Max Units for Publication",
+            "Total Proportion of authors",
+            "Author Count",
+            "Total Units claimed",
+            "Other Authors (non-affiliated)",
+            "Additional Comments",
+            "DHET: Accepted",
+            "DHET: Units Awarded",
+            "DHET: Comments"
     );
 
     public ByteArrayInputStream exportToExcel(List<Journal> journals) {
@@ -120,22 +142,44 @@ public class JournalExcelExportService {
                 str(journal.getTitle()),
                 str(journal.getPublisher()),
                 str(journal.getIndex()),
-                bool(journal.getComply()),
-                volumeIssue(journal),
-                issn(journal),
-                doiUrl(journal),
+                str(journal.getComply()),
+                str(journal.getVolume()),
+                str(journal.getIssue()),
+                str(journal.getIssn()),
+                str(journal.getEissn()),
+                str(journal.getDoi()),
+                str(journal.getUrls()),
                 bool(journal.getOpenaccess()),
                 str(journal.getFieldofsearch()),
-                authorType(author),
+                str(journal.getFunders()),
                 str(author == null ? null : author.getSurname()),
                 str(author == null ? null : author.getInitials()),
                 str(author == null ? null : author.getFirstName()),
+                str(author == null ? null : author.getGender()),
+                str(author == null ? null : author.getPopulationGroup()),
+                str(author == null ? null : author.getDob()),
+                str(author == null ? null : author.getOrcid()),
+                str(author == null ? null : author.getCountryOfBirth()),
+                str(author == null ? null : author.getSaResidencyStatus()),
+                bool(author == null ? null : author.getDisability()),
+                str(author == null ? null : author.getHighestQualification()),
+                str(author == null ? null : author.getEmploymentStatus()),
+                str(author == null ? null : author.getStudentEmployeeNo()),
+                str(author == null ? null : author.getDepartment()),
+                str(author == null ? null : author.getFaculty()),
+                str(author == null ? null : author.getAcademicTitle()),
                 saUniversities,
                 saInstitutions,
                 internationalUniversities,
                 num(author == null ? null : author.getAuthorShare()),
                 num(author == null ? null : author.getTotalUnitsClaimed()),
+                str(author == null ? null : author.getAdditionalComments()),
+                num(journal.getUnits() == null ? null : journal.getUnits().getMaxUnitsForPublication()),
+                num(journal.getUnits() == null ? null : journal.getUnits().getTotalProportionOfAuthors()),
+                str(journal.getUnits() == null ? null : journal.getUnits().getAuthorCount()),
                 num(journal.getUnits() == null ? null : journal.getUnits().getTotalUnitsClaimed()),
+                str(journal.getUnits() == null ? null : journal.getUnits().getOtherAuthorsNonAffiliates()),
+                str(journal.getAdditionalComments()),
                 bool(journal.getDhetAccepted()),
                 num(journal.getDhetUnitsAwarded()),
                 str(journal.getDhetComments())
@@ -148,20 +192,6 @@ public class JournalExcelExportService {
         return rowIndex + 1;
     }
 
-    private String volumeIssue(Journal journal) {
-        return (journal.getVolume() == null ? "" : journal.getVolume()) +
-                " / " +
-                (journal.getIssue() == null ? "" : journal.getIssue());
-    }
-
-    private String issn(Journal journal) {
-        return str(journal.getIssn()) + " / " + str(journal.getEissn());
-    }
-
-    private String doiUrl(Journal journal) {
-        return str(journal.getDoi()) + " / " + str(journal.getUrls());
-    }
-
     private String str(Object value) {
         return value == null ? "" : String.valueOf(value);
     }
@@ -170,15 +200,14 @@ public class JournalExcelExportService {
         return value == null ? "" : (value ? "Yes" : "No");
     }
 
-    private String num(Double value) {
-        return value == null ? "" : String.format("%.4f", value);
-    }
-
-    private String authorType(Author author) {
-        if (author == null || author.getAffiliation() == null) {
+    private String num(Number value) {
+        if (value == null) {
             return "";
         }
-        return Boolean.TRUE.equals(author.getAffiliation()) ? "Affiliated" : "Non-Affiliated";
+        if (value instanceof Integer || value instanceof Long) {
+            return String.valueOf(value);
+        }
+        return String.format("%.4f", value.doubleValue());
     }
 }
 

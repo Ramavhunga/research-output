@@ -14,7 +14,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("user")
-@CrossOrigin("*")
 public class UserController {
 
     private final UserService userService;
@@ -55,5 +54,10 @@ public class UserController {
             @Valid @RequestBody UserRoleAssignmentRequest request
     ) throws Exception {
         return userService.assignReviewerRolesByStaffNo(staffNo, request.getRoles());
+    }
+
+    @GetMapping(path = "student-info/{studentNo}")
+    public LoginDTO getStudentInfo(@PathVariable String studentNo) throws Exception {
+        return userService.loadStudentOrStaffByNumber(studentNo);
     }
 }

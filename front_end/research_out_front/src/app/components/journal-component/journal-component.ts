@@ -63,6 +63,11 @@ export class JournalComponent {
     return fallback;
   }
 
+  // Keep list payload light; detail view fetches full record (including attachments) by id.
+  private stripAttachments(journal: Journal): Journal {
+    return { ...journal, attachments: undefined };
+  }
+
   loadJournals(): void {
     this.loading = true;
     this.service.getAllJournals(this.username).pipe(
@@ -73,7 +78,7 @@ export class JournalComponent {
         return of([] as Journal[]);
       })
     ).subscribe(data => {
-      this.journals = data ?? [];
+      this.journals = (data ?? []).map(journal => this.stripAttachments(journal));
       this.loading = false;
     });
   }
@@ -81,7 +86,7 @@ export class JournalComponent {
 
 
   viewJournal(journal: Journal) {
-    this.router.navigate(['journal/details'], { state: { journal, reviewMode: true } });
+    this.router.navigate(['journal/details'], { state: { journal: this.stripAttachments(journal), reviewMode: true } });
   }
 
   canEditJournal(journal: Journal): boolean {
@@ -101,7 +106,7 @@ export class JournalComponent {
       return;
     }
 
-    this.router.navigate(['journal/details'], { state: { journal, reviewMode: false } });
+    this.router.navigate(['journal/details'], { state: { journal: this.stripAttachments(journal), reviewMode: false } });
   }
 
   canSubmit(journal: Journal): boolean {

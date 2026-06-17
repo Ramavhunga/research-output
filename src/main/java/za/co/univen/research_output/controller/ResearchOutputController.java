@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/research-outputs")
-@CrossOrigin("*")
 public class ResearchOutputController {
 
     private final ResearchOutputService service;

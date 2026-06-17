@@ -1,8 +1,14 @@
 package za.co.univen.research_output.services;
 
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import za.co.univen.research_output.dto.JournalApprovalTimelineDto;
+import za.co.univen.research_output.dto.JournalListItemDto;
 import za.co.univen.research_output.entities.Attachment;
 import za.co.univen.research_output.entities.Author;
 import za.co.univen.research_output.entities.Journal;
@@ -14,8 +20,10 @@ import za.co.univen.research_output.repositories.JournalApprovalRepository;
 import za.co.univen.research_output.repositories.JournalRepository;
 
 import java.util.EnumMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class JournalService {
@@ -216,8 +224,50 @@ public class JournalService {
     }
 
     @Transactional
+    public List<JournalListItemDto> findAllSummary(String year, JournalStatus status, Long facultyId) {
+        return repository.searchSummary(year, status, facultyId);
+    }
+
+    @Transactional
     public List<Journal> findAllForUser(String username) {
         return repository.findBySubmittedByUsername(username);
+    }
+
+    @Transactional
+    public List<JournalListItemDto> findAllSummaryForUser(String username) {
+        return repository.findSummaryBySubmittedByUsername(username);
+    }
+
+    @Transactional
+    public Page<JournalListItemDto> findReviewQueueSummary(String username, JournalStatus statusFilter, String search, int page, int size) {
+        currentUserService.getOrCreateUserByUsername(username);
+
+        List<JournalStatus> statuses = new ArrayList<>();
+        statuses.add(JournalStatus.SUBMITTED);
+        statuses.add(JournalStatus.UNDER_REVIEW_L1);
+        statuses.add(JournalStatus.UNDER_REVIEW_L2);
+        statuses.add(JournalStatus.REJECTED_L1);
+        statuses.add(JournalStatus.REJECTED_L2);
+        statuses.add(JournalStatus.READY_FOR_POSTING);
+        statuses.add(JournalStatus.UNDER_REVIEW);
+        statuses.add(JournalStatus.REVISION_REQUIRED);
+        statuses.add(JournalStatus.APPROVED);
+        statuses.add(JournalStatus.REJECTED);
+
+        List<JournalStatus> distinctStatuses = statuses.stream().distinct().toList();
+        if (distinctStatuses.isEmpty()) {
+            Pageable emptyPageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1));
+            return new PageImpl<>(List.of(), emptyPageable, 0);
+        }
+
+        if (statusFilter != null && !distinctStatuses.contains(statusFilter)) {
+            Pageable emptyPageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1));
+            return new PageImpl<>(List.of(), emptyPageable, 0);
+        }
+
+        String searchTerm = (search == null || search.isBlank()) ? null : "%" + search.trim().toLowerCase() + "%";
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1), Sort.by(Sort.Direction.DESC, "id"));
+        return repository.findReviewQueueSummary(distinctStatuses, statusFilter, searchTerm, pageable);
     }
 
     @Transactional

@@ -1,8 +1,11 @@
 package za.co.univen.research_output.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import za.co.univen.research_output.dto.JournalListItemDto;
 import za.co.univen.research_output.entities.Journal;
 import za.co.univen.research_output.entities.JournalStatus;
 
@@ -20,6 +23,24 @@ public interface JournalRepository extends JpaRepository<Journal, Long> {
     List<Journal> findBySubmittedByUsername(String username);
 
     @Query("""
+        SELECT new za.co.univen.research_output.dto.JournalListItemDto(
+            j.id,
+            j.dhetNo,
+            j.year,
+            j.status,
+            j.title,
+            j.publisher,
+            j.doi,
+            j.submittedBy.username,
+            j.updatedAt
+        )
+        FROM Journal j
+        WHERE j.submittedBy.username = :username
+        ORDER BY j.id DESC
+        """)
+    List<JournalListItemDto> findSummaryBySubmittedByUsername(@Param("username") String username);
+
+    @Query("""
         SELECT DISTINCT j
         FROM Journal j
         LEFT JOIN j.authors a
@@ -32,6 +53,68 @@ public interface JournalRepository extends JpaRepository<Journal, Long> {
             @Param("year") String year,
             @Param("status") JournalStatus status,
             @Param("facultyId") Long facultyId
+    );
+
+    @Query("""
+        SELECT new za.co.univen.research_output.dto.JournalListItemDto(
+            j.id,
+            j.dhetNo,
+            j.year,
+            j.status,
+            j.title,
+            j.publisher,
+            j.doi,
+            j.submittedBy.username,
+            j.updatedAt
+        )
+        FROM Journal j
+        WHERE (:year IS NULL OR j.year = :year)
+          AND (:status IS NULL OR j.status = :status)
+          AND (
+            :facultyId IS NULL
+            OR EXISTS (
+              SELECT 1
+              FROM Author a
+              WHERE a.journal = j
+                AND a.facultyId = :facultyId
+            )
+          )
+        ORDER BY j.id DESC
+        """)
+    List<JournalListItemDto> searchSummary(
+            @Param("year") String year,
+            @Param("status") JournalStatus status,
+            @Param("facultyId") Long facultyId
+    );
+
+    @Query("""
+        SELECT new za.co.univen.research_output.dto.JournalListItemDto(
+            j.id,
+            j.dhetNo,
+            j.year,
+            j.status,
+            j.title,
+            j.publisher,
+            j.doi,
+            j.submittedBy.username,
+            j.updatedAt
+        )
+        FROM Journal j
+        WHERE j.status IN :statuses
+          AND (:statusFilter IS NULL OR j.status = :statusFilter)
+          AND (
+            :searchTerm IS NULL
+            OR LOWER(j.title) LIKE :searchTerm
+            OR LOWER(j.dhetNo) LIKE :searchTerm
+            OR LOWER(j.publisher) LIKE :searchTerm
+            OR LOWER(j.submittedBy.username) LIKE :searchTerm
+          )
+        """)
+    Page<JournalListItemDto> findReviewQueueSummary(
+            @Param("statuses") List<JournalStatus> statuses,
+            @Param("statusFilter") JournalStatus statusFilter,
+            @Param("searchTerm") String searchTerm,
+            Pageable pageable
     );
 
     // Optimized query for dashboard - fetches only necessary fields for multiple statuses
@@ -70,7 +153,7 @@ public interface JournalRepository extends JpaRepository<Journal, Long> {
     // Count compliance - journals marked as compliant
     @Query("""
         SELECT COUNT(j) FROM Journal j
-        WHERE j.comply = true
+        WHERE j.comply = 'Yes'
         """)
     long countCompliant();
 

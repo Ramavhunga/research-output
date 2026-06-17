@@ -1,10 +1,18 @@
 import { Injectable } from '@angular/core';
 import {HttpClient, HttpHeaders} from '@angular/common/http';
-import {catchError, forkJoin, map, Observable, of} from 'rxjs';
+import {catchError, map, Observable, of, switchMap} from 'rxjs';
 import {environment} from '../../environment/environment-url';
 import {Journal} from '../models/journal.model';
 import {Department, Faculty} from '../models/common.model';
 import {JournalApproval} from '../models/journal-approval.model';
+
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
 
 
 @Injectable({
@@ -55,7 +63,10 @@ export class JournalService {
 
     try {
       const loginData = JSON.parse(loginRaw);
-      return loginData?.user?.username ?? loginData?.username ?? '';
+      return loginData?.user?.username
+        ?? loginData?.username
+        ?? loginData?.staff?.personNumber
+        ?? '';
     } catch {
       return '';
     }
@@ -107,13 +118,52 @@ export class JournalService {
     return this.http.post<Journal>(`${this.baseurl}journal/${id}/reject`, { comments: comments ?? '' }, { headers });
   }
 
+  markAsPostedToDhet(id: number, username?: string): Observable<Journal> {
+    const resolvedUsername = this.resolveUsername(username);
+    return this.getById(id).pipe(
+      switchMap(journal => this.update(id, { ...journal, status: 'POSTED_TO_DHET' }, resolvedUsername))
+    );
+  }
+
   getTimeline(id: number): Observable<JournalApproval[]> {
     return this.http.get<JournalApproval[]>(`${this.baseurl}journal/${id}/timeline`);
   }
 
   getJournalsByStatus(status: string, username?: string): Observable<Journal[]> {
     const headers = this.buildOptionalUsernameHeaders(username);
-    return this.http.get<Journal[]>(`${this.baseurl}journal?status=${encodeURIComponent(status)}`, { headers });
+    return this.http.get<Journal[]>(`${this.baseurl}journal?status=${encodeURIComponent(status)}&summary=true`, { headers });
+  }
+
+  getReviewQueuePage(
+    username: string,
+    page: number,
+    size: number,
+    status?: string,
+    search?: string
+  ): Observable<PageResponse<Journal>> {
+    const resolvedUsername = this.resolveUsername(username);
+    const headers = resolvedUsername
+      ? new HttpHeaders({ 'X-Username': resolvedUsername })
+      : new HttpHeaders();
+    const params = [
+      `page=${page}`,
+      `size=${size}`
+    ];
+
+    if (resolvedUsername) {
+      params.push(`username=${encodeURIComponent(resolvedUsername)}`);
+    }
+
+    if (status && status.trim() && status.toUpperCase() !== 'ALL') {
+      params.push(`status=${encodeURIComponent(status.trim())}`);
+    }
+
+    if (search && search.trim()) {
+      params.push(`search=${encodeURIComponent(search.trim())}`);
+    }
+
+    return this.http.get<PageResponse<Journal>>(`${this.baseurl}journal/review-queue?${params.join('&')}`, { headers })
+      .pipe(catchError(() => of({ content: [], totalElements: 0, totalPages: 0, number: page, size })));
   }
 
   getReviewQueue(username: string, roles: string[]): Observable<Journal[]> {
@@ -123,35 +173,8 @@ export class JournalService {
       return of([]);
     }
 
-    const statuses = [
-      'SUBMITTED',
-      'UNDER_REVIEW_L1',
-      'UNDER_REVIEW_L2',
-      'REJECTED_L1',
-      'REJECTED_L2',
-      'READY_FOR_POSTING',
-      // Include legacy statuses so older records remain visible in the same queue.
-      'UNDER_REVIEW',
-      'REVISION_REQUIRED',
-      'APPROVED',
-      'REJECTED'
-    ];
-
-    return forkJoin(
-      statuses.map(status =>
-        this.getJournalsByStatus(status, username).pipe(catchError(() => of([] as Journal[])))
-      )
-    ).pipe(
-      map((resultSets) => {
-        const flat = resultSets.flat();
-        const byId = new Map<number, Journal>();
-        flat.forEach(journal => {
-          if (journal?.id != null) {
-            byId.set(journal.id, journal);
-          }
-        });
-        return Array.from(byId.values()).sort((a, b) => Number(b.id ?? 0) - Number(a.id ?? 0));
-      }),
+    return this.getReviewQueuePage(username, 0, 100, 'ALL', '').pipe(
+      map(response => response.content ?? []),
       catchError(() => of([]))
     );
   }
@@ -179,11 +202,11 @@ export class JournalService {
   getAllJournals(username?: string): Observable<Journal[]> {
     const resolvedUsername = this.resolveUsername(username);
     if (!resolvedUsername) {
-      return this.http.get<Journal[]>(this.baseurl + "journal");
+      return this.http.get<Journal[]>(`${this.baseurl}journal?summary=true`);
     }
     const headers = new HttpHeaders({ 'X-Username': resolvedUsername });
-    return this.http.get<Journal[]>(`${this.baseurl}journal?mine=true&username=${encodeURIComponent(resolvedUsername)}`, { headers })
-      .pipe(catchError(() => this.http.get<Journal[]>(this.baseurl + "journal")));
+    return this.http.get<Journal[]>(`${this.baseurl}journal?mine=true&username=${encodeURIComponent(resolvedUsername)}&summary=true`, { headers })
+      .pipe(catchError(() => this.http.get<Journal[]>(`${this.baseurl}journal?summary=true`)));
   }
 
 

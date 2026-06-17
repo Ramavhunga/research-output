@@ -7,7 +7,7 @@ import { Journal } from '../models/journal.model';
  * Rules:
  * - Requestor can edit when status is REJECTED (REJECTED_L1 or REJECTED_L2)
  * - Admin, Reviewer Level 1, and Reviewer Level 2 can edit
- * - No one can edit when status is READY_FOR_POSTING
+ * - No one can edit when status is READY_FOR_POSTING or POSTED_TO_DHET
  */
 @Injectable({
   providedIn: 'root'
@@ -70,7 +70,7 @@ export class JournalPermissionService {
    * Check if status is locked (read-only)
    */
   private isLockedStatus(status: string): boolean {
-    const lockedStatuses = ['READY_FOR_POSTING'];
+    const lockedStatuses = ['READY_FOR_POSTING', 'POSTED_TO_DHET'];
     return lockedStatuses.includes(status);
   }
 
@@ -156,7 +156,7 @@ export class JournalPermissionService {
    * Get all status values that lock journal from editing
    */
   getLockedStatuses(): string[] {
-    return ['READY_FOR_POSTING'];
+    return ['READY_FOR_POSTING', 'POSTED_TO_DHET'];
   }
 
   /**

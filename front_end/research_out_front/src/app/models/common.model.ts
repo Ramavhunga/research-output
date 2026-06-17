@@ -64,7 +64,7 @@ export interface AuthorAffiliation {
   title: string;
   publisher: string;
   index: string;
-  comply: boolean;
+  comply: 'N/A' | 'Yes' | 'No';
   volume: number;
   issue: number;
   issn: string;

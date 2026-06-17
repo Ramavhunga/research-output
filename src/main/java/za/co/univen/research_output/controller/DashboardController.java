@@ -8,7 +8,6 @@ import za.co.univen.research_output.services.DashboardService;
 
 @RestController
 @RequestMapping({"/api/dashboard", "/api/dashboards"})
-@CrossOrigin("*")
 public class DashboardController {
 
     private final DashboardService dashboardService;

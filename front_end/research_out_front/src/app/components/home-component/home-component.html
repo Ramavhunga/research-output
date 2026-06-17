@@ -14,30 +14,69 @@
           <i class="ph-duotone ph-chart-pie"></i>
         </li>
         <li class="pc-item" routerLink="dashboard" routerLinkActive="active">
-          <a  routerLink="dashboard" routerLinkActive="active" class="pc-link">
+          <a routerLink="dashboard" routerLinkActive="active" class="pc-link">
             <span class="pc-micon">
               <i class="ph-duotone ph-gauge"></i>
             </span>
             <span class="pc-mtext" data-i18n="Dashboard">My Dashboard</span>
           </a>
         </li>
-        <li class="pc-item" routerLink="journal" routerLinkActive="active" >
+
+        <li class="pc-item pc-caption">
+          <label data-i18n="Researcher Menu">Researcher Menu</label>
+          <i class="ph-duotone ph-graduation-cap"></i>
+        </li>
+        <li class="pc-item" routerLink="journal" routerLinkActive="active">
           <a routerLink="journal" routerLinkActive="active" class="pc-link">
             <span class="pc-micon">
               <i class="ph-duotone ph-clipboard-text"></i>
             </span>
-            <span class="pc-mtext" data-i18n="Journals / Article" >Journals / Article</span>
+            <span class="pc-mtext" data-i18n="Journals / Article">Journals / Article</span>
           </a>
         </li>
-        <li *ngIf="hasAnyRole('REVIEWER_LEVEL_1', 'REVIEWER_LEVEL_2', 'ADMIN')" class="pc-item" routerLink="journal/review" routerLinkActive="active" >
-          <a routerLink="journal/review" routerLinkActive="active" class="pc-link">
+        <li class="pc-item" routerLink="books" routerLinkActive="active">
+          <a routerLink="books" routerLinkActive="active" class="pc-link">
             <span class="pc-micon">
-              <i class="ph-duotone ph-check-square-offset"></i>
+              <i class="ph-duotone ph-books"></i>
             </span>
-            <span class="pc-mtext" data-i18n="Reviewer Queue">Reviewer Queue</span>
+            <span class="pc-mtext" data-i18n="Books">Books</span>
           </a>
         </li>
-        <li *ngIf="hasAnyRole('ADMIN')" class="pc-item" routerLink="admin/roles" routerLinkActive="active" >
+        <li class="pc-item" routerLink="chapters" routerLinkActive="active">
+          <a routerLink="chapters" routerLinkActive="active" class="pc-link">
+            <span class="pc-micon">
+              <i class="ph-duotone ph-book-open"></i>
+            </span>
+            <span class="pc-mtext" data-i18n="Chapters">Chapters</span>
+          </a>
+        </li>
+        <li class="pc-item" routerLink="proceedings" routerLinkActive="active">
+          <a routerLink="proceedings" routerLinkActive="active" class="pc-link">
+            <span class="pc-micon">
+              <i class="ph-duotone ph-presentation-chart"></i>
+            </span>
+            <span class="pc-mtext" data-i18n="Conference Proceedings">Conference Proceedings</span>
+          </a>
+        </li>
+
+        <li *ngIf="hasAnyRole('REVIEWER_LEVEL_1', 'REVIEWER_LEVEL_2', 'ADMIN')" class="pc-item pc-caption">
+          <label data-i18n="Reviewer Menu">Reviewer Menu</label>
+          <i class="ph-duotone ph-check-square-offset"></i>
+        </li>
+        <li *ngIf="hasAnyRole('REVIEWER_LEVEL_1', 'REVIEWER_LEVEL_2', 'ADMIN')" class="pc-item" routerLink="review" routerLinkActive="active">
+          <a routerLink="review" routerLinkActive="active" class="pc-link">
+            <span class="pc-micon">
+              <i class="ph-duotone ph-layout"></i>
+            </span>
+            <span class="pc-mtext" data-i18n="Unified Review Dashboard">Unified Review Dashboard</span>
+          </a>
+        </li>
+
+        <li *ngIf="hasAnyRole('ADMIN')" class="pc-item pc-caption">
+          <label data-i18n="Admin Menu">Admin Menu</label>
+          <i class="ph-duotone ph-shield-check"></i>
+        </li>
+        <li *ngIf="hasAnyRole('ADMIN')" class="pc-item" routerLink="admin/roles" routerLinkActive="active">
           <a routerLink="admin/roles" routerLinkActive="active" class="pc-link">
             <span class="pc-micon">
               <i class="ph-duotone ph-users-three"></i>
@@ -45,28 +84,12 @@
             <span class="pc-mtext" data-i18n="Role Assignment">Role Assignment</span>
           </a>
         </li>
-        <li class="pc-item" routerLink="books" routerLinkActive="active" >
-          <a routerLink="books" routerLinkActive="active" class="pc-link">
+        <li *ngIf="hasAnyRole('ADMIN')" class="pc-item" routerLink="admin/department-dean" routerLinkActive="active">
+          <a routerLink="admin/department-dean" routerLinkActive="active" class="pc-link">
             <span class="pc-micon">
-              <i class="ph-duotone ph-clipboard-text"></i>
+              <i class="ph-duotone ph-hierarchy"></i>
             </span>
-            <span class="pc-mtext" data-i18n="Books">Books</span>
-          </a>
-        </li>
-        <li class="pc-item" routerLink="chapters" routerLinkActive="active" >
-          <a routerLink="chapters" routerLinkActive="active" class="pc-link">
-            <span class="pc-micon">
-              <i class="ph-duotone ph-clipboard-text"></i>
-            </span>
-            <span class="pc-mtext" data-i18n="Chapters">Chapters</span>
-          </a>
-        </li>
-        <li class="pc-item" routerLink="proceedings" routerLinkActive="active" >
-          <a routerLink="proceedings" routerLinkActive="active" class="pc-link">
-            <span class="pc-micon">
-              <i class="ph-duotone ph-clipboard-text"></i>
-            </span>
-            <span class="pc-mtext" data-i18n=" Confrence Proceedings"> Confrence Proceedings</span>
+            <span class="pc-mtext" data-i18n="Department Dean Assignment">Department Dean Assignment</span>
           </a>
         </li>
 

@@ -23,6 +23,7 @@ export class RoleAssignmentComponent implements OnInit {
   searching = false;
   saving = false;
   loadingAssignedUsers = false;
+  deletingUserRole: { [key: string]: boolean } = {};
   searchStaffNo = '';
   selectedStaff: StaffRoleView | null = null;
   currentRoles: string[] = [];
@@ -161,7 +162,7 @@ export class RoleAssignmentComponent implements OnInit {
             ...user,
             roles: (user.roles ?? []).map(role => String(role).toUpperCase())
           }))
-          .filter(user => user.roles.includes('REVIEWER_LEVEL_1') || user.roles.includes('REVIEWER_LEVEL_2'))
+          .filter(user => user.roles.includes('REVIEWER_LEVEL_1') || user.roles.includes('REVIEWER_LEVEL_2') || user.roles.includes('ADMIN'))
           .sort((a, b) => a.username.localeCompare(b.username));
 
         if (reviewerUsers.length === 0) {
@@ -198,6 +199,41 @@ export class RoleAssignmentComponent implements OnInit {
         this.loadingAssignedUsers = false;
         console.error('Failed to load assigned users', err);
       }
+    });
+  }
+
+  deleteRoleFromUser(user: AssignedUserRow, roleToRemove: string): void {
+    Swal.fire({
+      title: 'Remove Role?',
+      text: `Remove ${roleToRemove} from ${user.username}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, remove it',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (!result.isConfirmed) {
+        return;
+      }
+
+      const userKey = `${user.id}:${roleToRemove}`;
+      this.deletingUserRole[userKey] = true;
+
+      const remainingRoles = (user.roles ?? [])
+        .filter(role => role !== roleToRemove)
+        .map(role => String(role).toUpperCase());
+
+      this.userRoleService.assignReviewerLevelsByStaffNo(user.username, remainingRoles).subscribe({
+        next: (updated) => {
+          this.deletingUserRole[userKey] = false;
+          Swal.fire('Removed', `${roleToRemove} removed from ${user.username}.`, 'success');
+          this.loadAssignedUsers();
+        },
+        error: (err) => {
+          this.deletingUserRole[userKey] = false;
+          console.error('Failed to remove role', err);
+          Swal.fire('Error', `Failed to remove ${roleToRemove} from ${user.username}.`, 'error');
+        }
+      });
     });
   }
 }

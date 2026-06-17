@@ -56,11 +56,18 @@ public class Author {
     @JoinColumn(name = "journal_id")
     @JsonBackReference("journal-authors")
     private Journal journal;
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     @ManyToOne(fetch = FetchType.LAZY)
-   // @JoinColumn(name = "conference_proceedings_id")
+    // @JoinColumn(name = "conference_proceedings_id")
     @JsonBackReference("conference-authors")
     private ConferenceProceedings conferenceProceedings;
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "book_id")
+    @JsonBackReference("book-authors")
+    private Book book;
 
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("author-university-affiliations")
