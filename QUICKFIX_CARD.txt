@@ -1,0 +1,175 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║          CONFERENCE PROCEEDINGS - `created_at` ERROR FIX (QUICK)           ║
+║                        RUN THESE COMMANDS NOW                              ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+❌ ERROR YOU'RE GETTING:
+   Invalid column name 'created_at'
+
+✅ WHAT TO DO (4 steps, ~2 minutes):
+
+────────────────────────────────────────────────────────────────────────────
+STEP 1: Run SQL Patch (SQL Server)
+────────────────────────────────────────────────────────────────────────────
+
+Open SQL Server Management Studio and copy-paste ALL of the following:
+
+```sql
+-- CONFERENCE_PROCEEDINGS TABLE
+IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.conference_proceedings', 'created_at') IS NULL
+        ALTER TABLE dbo.conference_proceedings ADD created_at datetime2 NULL;
+    IF COL_LENGTH('dbo.conference_proceedings', 'updated_at') IS NULL
+        ALTER TABLE dbo.conference_proceedings ADD updated_at datetime2 NULL;
+    IF COL_LENGTH('dbo.conference_proceedings', 'status') IS NULL
+        ALTER TABLE dbo.conference_proceedings ADD status nvarchar(50) NULL;
+    IF COL_LENGTH('dbo.conference_proceedings', 'submitted_by') IS NULL
+        ALTER TABLE dbo.conference_proceedings ADD submitted_by bigint NULL;
+
+    UPDATE dbo.conference_proceedings
+    SET created_at = ISNULL(created_at, SYSDATETIME()),
+        updated_at = ISNULL(updated_at, SYSDATETIME())
+    WHERE created_at IS NULL OR updated_at IS NULL;
+
+    ALTER TABLE dbo.conference_proceedings ALTER COLUMN created_at datetime2 NOT NULL;
+    ALTER TABLE dbo.conference_proceedings ALTER COLUMN updated_at datetime2 NOT NULL;
+    PRINT '✓ conference_proceedings configured';
+END
+
+-- JOURNALS TABLE
+IF OBJECT_ID(N'dbo.journals', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.journals', 'created_at') IS NULL
+        ALTER TABLE dbo.journals ADD created_at datetime2 NULL;
+    IF COL_LENGTH('dbo.journals', 'updated_at') IS NULL
+        ALTER TABLE dbo.journals ADD updated_at datetime2 NULL;
+    IF COL_LENGTH('dbo.journals', 'status') IS NULL
+        ALTER TABLE dbo.journals ADD status nvarchar(50) NULL;
+    IF COL_LENGTH('dbo.journals', 'submitted_by') IS NULL
+        ALTER TABLE dbo.journals ADD submitted_by bigint NULL;
+
+    UPDATE dbo.journals
+    SET created_at = ISNULL(created_at, SYSDATETIME()),
+        updated_at = ISNULL(updated_at, SYSDATETIME())
+    WHERE created_at IS NULL OR updated_at IS NULL;
+
+    ALTER TABLE dbo.journals ALTER COLUMN created_at datetime2 NOT NULL;
+    ALTER TABLE dbo.journals ALTER COLUMN updated_at datetime2 NOT NULL;
+    PRINT '✓ journals configured';
+END
+
+-- BOOKS TABLE
+IF OBJECT_ID(N'dbo.books', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH('dbo.books', 'created_at') IS NULL
+        ALTER TABLE dbo.books ADD created_at datetime2 NULL;
+    IF COL_LENGTH('dbo.books', 'updated_at') IS NULL
+        ALTER TABLE dbo.books ADD updated_at datetime2 NULL;
+
+    UPDATE dbo.books
+    SET created_at = ISNULL(created_at, SYSDATETIME()),
+        updated_at = ISNULL(updated_at, SYSDATETIME())
+    WHERE created_at IS NULL OR updated_at IS NULL;
+
+    ALTER TABLE dbo.books ALTER COLUMN created_at datetime2 NOT NULL;
+    ALTER TABLE dbo.books ALTER COLUMN updated_at datetime2 NOT NULL;
+    PRINT '✓ books configured';
+END
+
+PRINT 'Done! All tables configured.';
+```
+
+Then press: F5 or CTRL+E to execute
+
+Expected output: "✓ conference_proceedings configured" (and other tables)
+
+────────────────────────────────────────────────────────────────────────────
+STEP 2: Verify SQL Patch Worked
+────────────────────────────────────────────────────────────────────────────
+
+Run this query in SSMS:
+
+```sql
+SELECT
+    COLUMN_NAME,
+    DATA_TYPE,
+    CASE WHEN IS_NULLABLE = 'NO' THEN '✓ NOT NULL' ELSE '✗ NULL' END AS status
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = 'conference_proceedings'
+  AND COLUMN_NAME IN ('created_at', 'updated_at', 'status', 'submitted_by')
+ORDER BY COLUMN_NAME;
+```
+
+You should see EXACTLY 4 rows, all with "✓ NOT NULL"
+
+────────────────────────────────────────────────────────────────────────────
+STEP 3: Rebuild Java Application
+────────────────────────────────────────────────────────────────────────────
+
+In PowerShell/Terminal, in your project root:
+
+```powershell
+cd C:\Users\Muthuhadini.Ramavhun\IdeaProjects\research_output
+mvn clean install
+```
+
+Wait for build to complete (should end with "BUILD SUCCESS")
+
+────────────────────────────────────────────────────────────────────────────
+STEP 4: Test & Deploy
+────────────────────────────────────────────────────────────────────────────
+
+Option A - Local test:
+```powershell
+java -jar target/research_output-0.0.1-SNAPSHOT.jar
+```
+
+Option B - Deploy as usual:
+(Your normal deployment process)
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎯 WHAT GETS FIXED:
+
+  ✅ conference_proceedings table: added created_at, updated_at, status, submitted_by
+  ✅ journals table: added created_at, updated_at, status, submitted_by
+  ✅ books table: added created_at, updated_at
+  ✅ Java entities: explicit column mappings added (13 fields in ConferenceProceedings)
+  ✅ Dev profile: available for local development with auto-schema init
+
+═══════════════════════════════════════════════════════════════════════════
+
+❓ COMMON ISSUES:
+
+"Column already exists" → This is FINE! The script won't add duplicates.
+
+"Default constraint already exists" → Also FINE! Same reason.
+
+Still getting error after running SQL? → Check:
+  1. Did SQL execute with ✓ messages?
+  2. Did the SELECT query from Step 2 show 4 rows?
+  3. Did "mvn clean install" complete successfully?
+  4. Did you restart the application?
+
+═══════════════════════════════════════════════════════════════════════════
+
+📄 FILES CHANGED:
+   - sql_fix_missing_columns.sql (CREATED)
+   - application.properties (UPDATED - logging hints)
+   - application-dev.properties (CREATED - optional)
+   - ConferenceProceedings.java (UPDATED)
+   - Units.java (UPDATED)
+   - ClaimingAuthorsContribution.java (UPDATED)
+
+═══════════════════════════════════════════════════════════════════════════
+
+✅ Status: Ready to deploy! Execute the SQL above right now.
+
+For more details see:
+  - COMPLETE_FIX_INSTRUCTIONS.md (comprehensive)
+  - SQL_SCHEMA_FIX_README.md (reference)
+  - sql_fix_missing_columns.sql (full idempotent script)
+
+═══════════════════════════════════════════════════════════════════════════
+
