@@ -30,19 +30,22 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        working-directory: ./front_end/research_out_front
         run: npm ci
 
       - name: Build Angular application
+        working-directory: ./front_end/research_out_front
         run: npm run build
 
       - name: Run tests
+        working-directory: ./front_end/research_out_front
         run: npm test -- --watch=false --code-coverage
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-folder
-          path: dist/research_out_front/
+          path: front_end/research_out_front/dist/research_out_front/
           retention-days: 1
 
   build_and_deploy:
@@ -64,9 +67,11 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        working-directory: ./front_end/research_out_front
         run: npm ci
 
       - name: Build Angular application
+        working-directory: ./front_end/research_out_front
         run: npm run build
 
       - name: Deploy to Azure Static Web Apps
@@ -75,7 +80,7 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_VICTORIOUS_MUSHROOM_00BA63403 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: 'upload'
-          app_location: 'dist/research_out_front'
+          app_location: 'front_end/research_out_front/dist/research_out_front'
           api_location: ''
           output_location: ''
           skip_app_build: true
@@ -91,4 +96,12 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_VICTORIOUS_MUSHROOM_00BA63403 }}
           action: 'close'
+
+
+
+
+
+
+
+
 
