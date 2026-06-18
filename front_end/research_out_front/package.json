@@ -7,7 +7,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "build": "ng build research_out_front",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:research_out_front": "node dist/research_out_front/server/server.mjs"
