@@ -481,7 +481,7 @@ export class BooksFieldsDetailComponent {
     this.filteredResearchFields = [];
     this.showResearchFieldDropdown = false;
   }
-//
+
   hideResearchFieldDropdown() {
     setTimeout(() => {
       this.showResearchFieldDropdown = false;
