@@ -14,7 +14,6 @@ import {
 import {JournalComponent} from './components/journal-component/journal-component';
 import {JournalDetailComponent} from './components/journal-detail-component/journal-detail-component';
 import {BooksFieldsComponent} from './components/books-fields-component/books-fields-component';
-import {BooksFieldsDetailComponent} from './components/books-fields-detail-component/books-fields-detail-component';
 import {BookDetailComponent} from './components/book-detail-component/book-detail-component';
 import {ChapterComponent} from './components/chapter-component/chapter-component';
 import {ChapterDetailComponent} from './components/chapter-detail-component/chapter-detail-component';
