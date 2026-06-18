@@ -1,0 +1,332 @@
+<div class="pc-container">
+  <div class="pc-content">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center g-0">
+          <div class="col-sm-auto">
+            <div class="page-header-title">
+              <h5 class="mb-0">Department Dean Management</h5>
+            </div>
+          </div>
+          <div class="col-sm-auto">
+            <ul class="breadcrumb">
+              <li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li>
+              <li class="breadcrumb-item" aria-current="page">Assign and View Deans</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <ul class="nav nav-tabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              [class.active]="activeTab === 'assign'"
+              (click)="switchTab('assign')"
+              type="button"
+              role="tab">
+              <i class="fa fa-plus-circle"></i> Assign Dean
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              [class.active]="activeTab === 'list'"
+              (click)="switchTab('list')"
+              type="button"
+              role="tab">
+              <i class="fa fa-list"></i> View Assigned Deans
+              <span class="badge bg-primary ms-2">{{ assignedDeans.length }}</span>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row" *ngIf="activeTab === 'assign'">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Assign Dean to Department</h5>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              [disabled]="loadingFaculties"
+              (click)="loadFaculties()">
+              <i class="fa fa-refresh"></i> Refresh Faculties
+            </button>
+          </div>
+          <div class="card-body">
+            <!-- Selection Section -->
+            <div class="row g-3 mb-4">
+              <!-- Faculty Dropdown -->
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <span class="text-danger">*</span> Faculty
+                </label>
+                <div class="d-flex gap-2">
+                  <select
+                    class="form-select"
+                    [(ngModel)]="selectedFacultyId"
+                    (change)="onFacultyChange()"
+                    [disabled]="loadingFaculties">
+                    <option [value]="null" selected>-- Select Faculty --</option>
+                    <option *ngFor="let faculty of faculties" [value]="faculty.id">
+                      {{ faculty.name }} ({{ faculty.code }})
+                    </option>
+                  </select>
+                  <div *ngIf="loadingFaculties" class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Department Dropdown -->
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">
+                  <span class="text-danger">*</span> Department
+                </label>
+                <div class="d-flex gap-2">
+                  <select
+                    class="form-select"
+                    [(ngModel)]="selectedDepartmentId"
+                    (change)="onDepartmentChange()"
+                    [disabled]="!selectedFacultyId || loadingDepartments || departments.length === 0">
+                    <option [value]="null" selected>-- Select Department --</option>
+                    <option *ngFor="let dept of departments" [value]="dept.id">
+                      {{ dept.name }} ({{ dept.code }})
+                    </option>
+                  </select>
+                  <div *ngIf="loadingDepartments" class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Staff Search Section -->
+            <div *ngIf="selectedDepartmentId" class="card border-light mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Search for Dean (Staff Member)</h6>
+              </div>
+              <div class="card-body">
+                <div class="row g-2 align-items-end mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold">
+                      <span class="text-danger">*</span> Staff Number
+                    </label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      [(ngModel)]="searchStaffNo"
+                      (keyup.enter)="searchByStaffNo()"
+                      placeholder="Enter staff number (e.g., 12345)"
+                      [disabled]="searching"
+                    />
+                  </div>
+                  <div class="col-md-auto">
+                    <button
+                      type="button"
+                      class="btn btn-primary"
+                      [disabled]="searching || !searchStaffNo.trim()"
+                      (click)="searchByStaffNo()">
+                      <i [class.fa-spinner]="searching" [class.fa-spin]="searching" class="fa fa-search"></i>
+                      {{ searching ? 'Searching...' : 'Search Employee' }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Selected Staff Details -->
+                <div *ngIf="selectedStaff" class="card border border-success">
+                  <div class="card-header bg-light-success">
+                    <h6 class="mb-0 text-success">
+                      <i class="fa fa-check-circle"></i> Employee Found
+                    </h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label small text-muted">Staff Number</label>
+                          <p class="mb-0"><strong>{{ selectedStaff.staffNo }}</strong></p>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label small text-muted">Title</label>
+                          <p class="mb-0">{{ selectedStaff.title || '-' }}</p>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label small text-muted">Name</label>
+                          <p class="mb-0">
+                            <strong>
+                              {{ selectedStaff.firstname }} {{ selectedStaff.surname }}
+                            </strong>
+                          </p>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label class="form-label small text-muted">Department</label>
+                          <p class="mb-0">{{ selectedStaff.departmentName || '-' }}</p>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label small text-muted">Faculty</label>
+                          <p class="mb-0">{{ selectedStaff.faculty || '-' }}</p>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label small text-muted">Roles</label>
+                          <p class="mb-0">
+                            <span *ngIf="!selectedStaff.roles || selectedStaff.roles.length === 0" class="text-muted">
+                              None assigned
+                            </span>
+                            <span *ngFor="let role of selectedStaff.roles" class="badge bg-info me-1">
+                              {{ role }}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div *ngIf="!selectedStaff && !searching && searchStaffNo" class="alert alert-info mt-3">
+                  <small>Click "Search Employee" to find the staff member.</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Assignment Button -->
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-success"
+                [disabled]="!isFormValid() || saving"
+                (click)="assignDean()">
+                <i [class.fa-spinner]="saving" [class.fa-spin]="saving" class="fa fa-user-plus"></i>
+                {{ saving ? 'Assigning...' : 'Assign as Dean' }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                [disabled]="saving"
+                (click)="resetForm()">
+                <i class="fa fa-times"></i> Clear
+              </button>
+            </div>
+           </div>
+         </div>
+       </div>
+     </div>
+
+    <!-- Assigned Deans List View -->
+    <div class="row" *ngIf="activeTab === 'list'">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Assigned Deans</h5>
+            <button
+              type="button"
+              class="btn btn-outline-primary btn-sm"
+              [disabled]="loadingAssignedDeans"
+              (click)="loadAssignedDeans()">
+              <i class="fa fa-refresh"></i> Refresh
+            </button>
+          </div>
+          <div class="card-body">
+            <!-- Loading Indicator -->
+            <div *ngIf="loadingAssignedDeans" class="text-center py-5">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2 text-muted">Loading assigned deans...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="!loadingAssignedDeans && assignedDeans.length === 0" class="alert alert-info">
+              <i class="fa fa-info-circle"></i> No deans assigned yet.
+            </div>
+
+            <!-- Table -->
+            <div *ngIf="!loadingAssignedDeans && assignedDeans.length > 0" class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Faculty</th>
+                    <th>Department</th>
+                    <th>Dean Name</th>
+                    <th>Staff Number</th>
+                    <th>Assigned Date</th>
+                    <th class="text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let dean of assignedDeans" [class.opacity-50]="deletingDeanId === dean.id">
+                    <td>
+                      <span class="badge bg-info">{{ dean.faculty || '-' }}</span>
+                    </td>
+                    <td>
+                      <strong>{{ dean.departmentName }}</strong>
+                      <br/>
+                      <small class="text-muted">{{ dean.departmentCode }}</small>
+                    </td>
+                    <td>
+                      <strong>{{ dean.firstname }} {{ dean.surname }}</strong>
+                      <br/>
+                      <small class="text-muted">{{ dean.title }}</small>
+                    </td>
+                    <td>
+                      <code>{{ dean.staffNo }}</code>
+                    </td>
+                    <td>
+                      <small class="text-muted">
+                        {{ (dean.createdAt | slice:0:10) }}
+                      </small>
+                    </td>
+                    <td class="text-center">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        [disabled]="deletingDeanId !== null"
+                        (click)="deleteDeanAssignment(dean)"
+                        title="Remove Dean">
+                        <i class="fa fa-trash"></i> Remove
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Information Card -->
+    <div class="row mt-4" *ngIf="activeTab === 'assign'">
+      <div class="col-12">
+        <div class="card border-light">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">
+              <i class="fa fa-info-circle text-info"></i> Instructions
+            </h6>
+          </div>
+          <div class="card-body">
+            <ol class="mb-0">
+              <li>Select a <strong>Faculty</strong> from the dropdown</li>
+              <li>Select a <strong>Department</strong> within that faculty</li>
+              <li>Enter the <strong>Staff Number</strong> of the person to assign as Dean</li>
+              <li>Click <strong>"Search Employee"</strong> to verify the staff member details</li>
+              <li>Click <strong>"Assign as Dean"</strong> to confirm the assignment</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

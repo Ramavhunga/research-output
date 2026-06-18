@@ -1,0 +1,127 @@
+<div class="pc-container">
+  <div class="pc-content">
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center g-0">
+          <div class="col-sm-auto">
+            <div class="page-header-title">
+              <h5 class="mb-0">Unified Review Dashboard</h5>
+            </div>
+          </div>
+          <div class="col-sm-auto">
+            <ul class="breadcrumb">
+              <li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li>
+              <li class="breadcrumb-item" aria-current="page">Review Dashboard</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card table-card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Reviewer Workspace</h5>
+        <button type="button" class="btn btn-outline-primary btn-sm" (click)="loadTabData()">Refresh</button>
+      </div>
+      <div class="card-body">
+        <div class="review-tabs-wrap mb-3">
+          <button type="button" class="review-tab" [class.active]="isActive('journals')" (click)="setActiveTab('journals')">
+            <span class="label">Journals</span>
+            <span class="count-pill" *ngIf="isActive('journals')">{{ filtered.length }}</span>
+          </button>
+          <button type="button" class="review-tab" [class.active]="isActive('books')" (click)="setActiveTab('books')">
+            <span class="label">Books</span>
+            <span class="count-pill" *ngIf="isActive('books')">{{ filtered.length }}</span>
+          </button>
+          <button type="button" class="review-tab" [class.active]="isActive('chapters')" (click)="setActiveTab('chapters')">
+            <span class="label">Chapters</span>
+            <span class="count-pill" *ngIf="isActive('chapters')">{{ filtered.length }}</span>
+          </button>
+          <button type="button" class="review-tab" [class.active]="isActive('proceedings')" (click)="setActiveTab('proceedings')">
+            <span class="label">Proceedings</span>
+            <span class="count-pill" *ngIf="isActive('proceedings')">{{ filtered.length }}</span>
+          </button>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-md-6">
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              placeholder="Search by DHET no, title, requestor..."
+              [(ngModel)]="searchTerm"
+              (keyup.enter)="applyFilters()"
+            />
+          </div>
+          <div class="col-md-3">
+            <select class="form-select form-select-sm" [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
+              <option *ngFor="let status of statusOptions" [value]="status">
+                {{ status === 'ALL' ? 'All Statuses' : status }}
+              </option>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <button type="button" class="btn btn-outline-secondary btn-sm w-100" (click)="applyFilters()">Go</button>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" [(ngModel)]="pageSize" (ngModelChange)="applyFilters()">
+              <option *ngFor="let size of pageSizeOptions" [ngValue]="size">{{ size }} / page</option>
+            </select>
+          </div>
+        </div>
+
+        <div *ngIf="loading" class="text-muted">Loading review queue...</div>
+
+        <div class="table-responsive compact-review-table" *ngIf="!loading">
+          <table class="table table-sm table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>DHET No</th>
+                <th>Title</th>
+                <th>Requestor</th>
+                <th>Status</th>
+                <th class="text-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of pagedRows">
+                <td class="text-nowrap">{{ row.dhetNo }}</td>
+                <td class="text-wrap">{{ row.title }}</td>
+                <td class="text-nowrap">{{ row.requestor }}</td>
+                <td><span class="badge bg-light text-dark">{{ row.status }}</span></td>
+                <td class="text-nowrap">
+                  <button type="button" class="btn btn-outline-primary btn-xs me-1" (click)="open(row)">Open</button>
+                  <button type="button" class="btn btn-outline-success btn-xs me-1" *ngIf="canApprove(row)" (click)="approve(row)">Approve</button>
+                  <button type="button" class="btn btn-outline-danger btn-xs me-1" *ngIf="canApprove(row)" (click)="reject(row)">Reject</button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-dark btn-xs"
+                    *ngIf="row.entity !== 'journals' && canAcceptByDhet(row)"
+                    (click)="acceptByDhet(row)">
+                    Accept DHET
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="pagedRows.length === 0">
+                <td colspan="5" class="text-center text-muted">No rows found for current filters.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3" *ngIf="!loading && filtered.length > 0">
+          <small class="text-muted">Page {{ currentPage }} / {{ totalPages }} ({{ filtered.length }} rows)</small>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-secondary" [disabled]="currentPage <= 1" (click)="prevPage()">Prev</button>
+            <button type="button" class="btn btn-outline-secondary" [disabled]="currentPage >= totalPages" (click)="nextPage()">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
