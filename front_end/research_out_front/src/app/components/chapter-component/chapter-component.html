@@ -106,43 +106,85 @@
         </div>
       </div>
 
-      <div class="card-body">
+      <div class="card-body pt-3">
         <div *ngIf="loading" class="text-muted mb-2">Loading chapters...</div>
-        <table class="table table-hover">
+        <div class="table-responsive">
+        <table class="table table-hover align-middle">
           <thead>
           <tr>
-            <th>Title</th>
-            <th>Publisher</th>
-            <th>ISBN</th>
-            <th>Year</th>
-            <th>Status</th>
-            <th></th>
+            <th style="min-width: 260px;">Title</th>
+            <th style="min-width: 180px;">Publisher</th>
+            <th style="min-width: 120px;">ISBN</th>
+            <th style="min-width: 90px;">Year</th>
+            <th style="min-width: 150px;">Status</th>
+            <th style="min-width: 170px;">Updated</th>
+            <th style="min-width: 190px;"></th>
           </tr>
           </thead>
 
           <tbody>
 
-          <tr *ngFor="let chapter of chapters">
-            <td class="col-4 text-wrap" style="white-space: normal;">
-              <h6 class="mb-0">{{ chapter.titleOfContribution || chapter.titleOfBook }}</h6>
-            </td>
-            <td class="col-3 text-wrap" style="white-space: normal;">{{ chapter.publisher }}</td>
-            <td class="col-2">{{ chapter.isbn }}</td>
-            <td class="col-1">{{ chapter.yearOfPublication }}</td>
-            <td class="col-1">{{ chapterStatus(chapter) }}</td>
-            <td class="col-1">
-              <button type="button" class="btn btn-sm btn-outline-primary" (click)="viewChapter(chapter)">View</button>
-            </td>
-          </tr>
+          <ng-container *ngFor="let chapter of chapters">
+            <tr>
+              <td class="text-wrap" style="white-space: normal;">
+                <h6 class="mb-0">{{ chapter.titleOfContribution || chapter.titleOfBook || '-' }}</h6>
+              </td>
+              <td class="text-wrap" style="white-space: normal;">{{ chapter.publisher || '-' }}</td>
+              <td>{{ chapter.isbn || '-' }}</td>
+              <td>{{ chapter.yearOfPublication || '-' }}</td>
+              <td>
+                <span class="badge" [ngClass]="getStatusBadgeClass(chapter.status)">
+                  {{ getStatusLabel(chapter.status) }}
+                </span>
+              </td>
+              <td>{{ chapter.updatedAt ? (chapter.updatedAt | date:'medium') : '-' }}</td>
+              <td class="text-nowrap">
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="viewChapter(chapter)">View</button>
+                <button type="button" class="btn btn-outline-dark btn-sm ms-2" (click)="toggleTimeline(chapter)">
+                  {{ selectedTimelineChapterId === chapter.id ? 'Hide Log' : 'Submission Log' }}
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="selectedTimelineChapterId === chapter.id">
+              <td colspan="7" class="bg-light">
+                <div *ngIf="timeline.length === 0" class="text-muted">No submission logs found.</div>
+                <div *ngIf="timeline.length > 0" class="table-responsive">
+                  <table class="table table-sm mb-0">
+                    <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Action</th>
+                      <th>From</th>
+                      <th>To</th>
+                      <th>By</th>
+                      <th>Comments</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr *ngFor="let log of timeline">
+                      <td>{{ log.timestamp ? (log.timestamp | date:'medium') : '-' }}</td>
+                      <td>{{ log.action || '-' }}</td>
+                      <td>{{ getStatusLabel(log.fromStatus) }}</td>
+                      <td>{{ getStatusLabel(log.toStatus) }}</td>
+                      <td>{{ log.performedBy || '-' }}</td>
+                      <td>{{ log.comments || '-' }}</td>
+                    </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
 
           <tr *ngIf="!chapters || chapters.length === 0">
-            <td colspan="6" class="text-center text-muted">
+            <td colspan="7" class="text-center text-muted">
               No chapters added yet
             </td>
           </tr>
 
           </tbody>
         </table>
+        </div>
       </div>
 
     </div>

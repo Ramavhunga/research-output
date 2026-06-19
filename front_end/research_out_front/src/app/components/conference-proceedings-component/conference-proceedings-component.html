@@ -65,11 +65,6 @@
                     <td class="col-2">{{ $any(proceeding).updatedAt ? ($any(proceeding).updatedAt | date:'medium') : '-' }}</td>
                     <td class="col-5">
                       <button type="button" class="btn btn-outline-primary btn-sm" (click)="viewProceeding(proceeding)">View</button>
-                      <button type="button" class="btn btn-outline-info btn-sm ms-2" (click)="editProceeding(proceeding)">Edit</button>
-                      <button type="button" class="btn btn-outline-secondary btn-sm ms-2" (click)="submitForReview(proceeding)" [disabled]="!canSubmit(proceeding)">Submit</button>
-                      <button type="button" class="btn btn-outline-success btn-sm ms-2" (click)="approve(proceeding)" [disabled]="!canApprove(proceeding)">Approve</button>
-                      <button type="button" class="btn btn-outline-danger btn-sm ms-2" (click)="reject(proceeding)" [disabled]="!canReject(proceeding)">Reject</button>
-                      <button type="button" class="btn btn-warning btn-sm ms-2" (click)="acceptByDhet(proceeding)" [disabled]="!canAcceptByDhet(proceeding)">DHET</button>
                       <button type="button" class="btn btn-outline-dark btn-sm ms-2" (click)="toggleTimeline(proceeding)">
                         {{ selectedTimelineProceedingId === proceeding.id ? 'Hide Log' : 'Submission Log' }}
                       </button>

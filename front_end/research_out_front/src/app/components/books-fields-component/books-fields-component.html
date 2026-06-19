@@ -66,11 +66,8 @@
                     <td class="col-2">{{ book.updatedAt ? (book.updatedAt | date:'medium') : '-' }}</td>
                     <td class="col-5">
                       <button type="button" class="btn btn-outline-primary btn-sm" (click)="viewBook(book)">View</button>
-                      <button type="button" class="btn btn-outline-info btn-sm ms-2" (click)="editBook(book)">Edit</button>
-                      <button type="button" class="btn btn-outline-secondary btn-sm ms-2" (click)="submitForReview(book)" [disabled]="!canSubmit(book)">Submit</button>
-                      <button type="button" class="btn btn-outline-success btn-sm ms-2" (click)="approve(book)" [disabled]="!canApprove(book)">Approve</button>
-                      <button type="button" class="btn btn-outline-danger btn-sm ms-2" (click)="reject(book)" [disabled]="!canReject(book)">Reject</button>
-                      <button type="button" class="btn btn-warning btn-sm ms-2" (click)="acceptByDhet(book)" [disabled]="!canAcceptByDhet(book)">DHET</button>
+
+
                       <button type="button" class="btn btn-outline-dark btn-sm ms-2" (click)="toggleTimeline(book)">
                         {{ selectedTimelineBookId === book.id ? 'Hide Log' : 'Submission Log' }}
                       </button>
