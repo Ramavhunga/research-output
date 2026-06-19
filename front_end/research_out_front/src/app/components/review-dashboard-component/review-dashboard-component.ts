@@ -153,7 +153,7 @@ export class ReviewDashboardComponent implements OnInit {
     this.loading = true;
 
     if (this.activeTab === 'journals') {
-      this.journalService.getAllJournals().subscribe({
+      this.journalService.getAllJournalsForReview().subscribe({
         next: (items) => {
           this.rows = (items ?? []).map((i) => this.mapJournal(i)).filter((i) => this.isReviewStatus(i.status));
           this.applyFilters();
@@ -169,7 +169,7 @@ export class ReviewDashboardComponent implements OnInit {
     }
 
     if (this.activeTab === 'books') {
-      this.bookService.getAll().subscribe({
+      this.bookService.getAllForReview().subscribe({
         next: (items) => {
           this.rows = (items ?? []).map((i) => this.mapBook(i)).filter((i) => this.isReviewStatus(i.status));
           this.applyFilters();
@@ -185,7 +185,7 @@ export class ReviewDashboardComponent implements OnInit {
     }
 
     if (this.activeTab === 'chapters') {
-      this.chapterService.getAll().subscribe({
+      this.chapterService.getAllForReview().subscribe({
         next: (items) => {
           this.rows = (items ?? []).map((i) => this.mapChapter(i)).filter((i) => this.isReviewStatus(i.status));
           this.applyFilters();
@@ -200,7 +200,7 @@ export class ReviewDashboardComponent implements OnInit {
       return;
     }
 
-    this.proceedingsService.getAll().subscribe({
+    this.proceedingsService.getAllForReview().subscribe({
       next: (items) => {
         this.rows = (items ?? []).map((i) => this.mapProceedings(i)).filter((i) => this.isReviewStatus(i.status));
         this.applyFilters();

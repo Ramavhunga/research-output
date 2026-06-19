@@ -1,8 +1,8 @@
-import {AuthorAffiliation, Authors} from './common.model';
+import {Attachment, AuthorAffiliation, Authors} from './common.model';
 
 export interface ConferenceProceedings {
   titleOfContribution: string;
-  compliesWith60Rule: boolean;
+  compliesWith60Rule: 'Yes' | 'No' | 'N/A';
   editors?: number;
   publisher: string;              // from predefined data
   isbnIssn: string;               // from predefined data
@@ -13,6 +13,7 @@ export interface ConferenceProceedings {
   country: string;
   funders: string;
   authors?: Authors[];
+  attachments?: Attachment[];
   authorAffiliation :AuthorAffiliation[];
 
 }

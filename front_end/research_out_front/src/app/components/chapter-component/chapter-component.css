@@ -1,0 +1,30 @@
+.chapters-table th,
+.chapters-table td {
+  vertical-align: middle;
+}
+
+.chapters-table th {
+  white-space: nowrap;
+}
+
+.chapter-title-cell {
+  min-width: 260px;
+  max-width: 380px;
+  white-space: normal;
+}
+
+.chapter-timeline-row td {
+  border-top: 0;
+}
+
+@media (max-width: 576px) {
+  .chapter-actions-toolbar {
+	width: 100%;
+	flex-direction: column;
+  }
+
+  .chapter-actions-toolbar .btn {
+	width: 100%;
+  }
+}
+

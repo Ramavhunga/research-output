@@ -1823,11 +1823,11 @@ export class JournalDetailComponent implements OnInit {
       return;
     }
 
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      Swal.fire('Incomplete', 'Please complete required fields before approval.', 'warning');
-      return;
-    }
+    // if (this.form.invalid) {
+    //   this.form.markAllAsTouched();
+    //   Swal.fire('Incomplete', 'Please complete required fields before approval.', 'warning');
+    //   return;
+    // }
 
     const username = this.getCurrentUsername();
     const payload = this.buildPayload();

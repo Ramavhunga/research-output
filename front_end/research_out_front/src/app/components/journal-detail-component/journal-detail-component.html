@@ -117,7 +117,7 @@
                       <select class="form-select" formControlName="publisher"
                               [ngClass]="{'is-invalid': form.get('publisher')?.invalid && (form.get('publisher')?.touched || form.get('publisher')?.dirty)}">
                         <option [ngValue]="null" disabled>Choose...</option>
-                        <option *ngFor="let pub of publishers" [ngValue]="pub.id">{{ pub.name }}</option>
+                        <option *ngFor="let pub of publishers" [ngValue]="pub.name">{{ pub.name }}</option>
                       </select>
                     </div>
 

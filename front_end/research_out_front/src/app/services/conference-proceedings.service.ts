@@ -67,6 +67,7 @@ export class ConferenceProceedingsService {
   }
 
   save(proceedings: ConferenceProceedings, username?: string): Observable<ConferenceProceedings> {
+    debugger;
     if (!proceedings.id || proceedings.id === 0) {
       return this.create(proceedings, username);
     }
@@ -96,6 +97,10 @@ export class ConferenceProceedingsService {
     ).pipe(
       catchError(() => this.http.get<ConferenceProceedings[]>(`${this.baseurl}conference-proceedings?summary=true`))
     );
+  }
+
+  getAllForReview(): Observable<ConferenceProceedings[]> {
+    return this.http.get<ConferenceProceedings[]>(`${this.baseurl}conference-proceedings?summary=true`);
   }
 
   submitForReview(id: number, username?: string, comments?: string): Observable<ConferenceProceedings> {

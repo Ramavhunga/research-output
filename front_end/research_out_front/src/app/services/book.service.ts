@@ -92,6 +92,10 @@ export class BookService {
     return this.http.get<Book[]>(`${this.baseurl}books?mine=true&username=${encodeURIComponent(resolvedUsername)}`);
   }
 
+  getAllForReview(): Observable<Book[]> {
+    return this.http.get<Book[]>(this.baseurl + 'books');
+  }
+
   exists(title: string, isbn: string, id?: number): Observable<boolean> {
     let params = `title=${title}&isbn=${isbn}`;
     if (id) {

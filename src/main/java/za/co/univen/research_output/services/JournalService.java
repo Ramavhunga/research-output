@@ -303,6 +303,9 @@ public class JournalService {
         if (journal.getAuthors() != null) {
             journal.getAuthors().forEach(author -> {
                 author.setJournal(journal);
+                author.setConferenceProceedings(null);
+                author.setBook(null);
+                author.setChapter(null);
                 if (author.getUniversityAffiliations() != null) {
                     author.getUniversityAffiliations().forEach(univ -> {
                         if (isBlank(univ.getUniversityName())) {
@@ -320,6 +323,9 @@ public class JournalService {
         if (journal.getAttachments() != null) {
             for (Attachment attachment : journal.getAttachments()) {
                 attachment.setJournal(journal);
+                attachment.setBook(null);
+                attachment.setChapter(null);
+                attachment.setConferenceProceedings(null);
             }
         }
     }

@@ -1,4 +1,4 @@
-import { Authors } from './common.model';
+import { Attachment, Authors } from './common.model';
 
 export interface Book {
   id: number;
@@ -26,6 +26,7 @@ export interface Book {
   otherAuthorsNonAffiliated?: string;
   authorCount: number;
   totalUnitsClaimed: number;
+  attachments?: Attachment[];
   additionalComments?: string;
 }
 

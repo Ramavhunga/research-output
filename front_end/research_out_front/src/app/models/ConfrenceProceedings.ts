@@ -1,4 +1,4 @@
-import {Authors} from './common.model';
+import {Attachment, Authors} from './common.model';
 
 export interface ConferenceProceedings {
   id: number;
@@ -7,6 +7,7 @@ export interface ConferenceProceedings {
   updatedAt?: string;
   submittedBy?: { username?: string };
   authors: Authors[];
+  attachments?:Attachment[];
   originalOrPhotocopy: 'Original' | 'O' | 'Photocopy' | 'P';
   evidenceOfPeerReview: boolean | 'Yes' | 'Y' | 'No' | 'N';
   typeOfEvidence?: string;
@@ -24,7 +25,7 @@ export interface ConferenceProceedings {
   authorCount: number;
   totalUnitsClaimed: number;
   additionalComments?: string;
-  compliesWith60Rule: boolean;
+  compliesWith60Rule: 'Yes' | 'No' | 'N/A';
   startDate: string; // yyyy-mm-dd
   endDate: string; // yyyy-mm-dd
   city: string;

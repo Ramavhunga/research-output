@@ -50,6 +50,9 @@ import {
 export class ConferenceProceedingsDetailComponent implements OnInit {
    private readonly currentReportingYear = new Date().getFullYear();
    isReadOnlyView = false;
+   currentStatus = '';
+   currentRoles: string[] = [];
+   currentUsername = '';
    isSaving = false;
    saveMessage: string = '';
    showSaveMessage = false;
@@ -150,6 +153,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
     const navigationState = this.router.getCurrentNavigation()?.extras.state ?? history.state ?? {};
     const proceedings = navigationState['proceedings'] as ConferenceProceedings | undefined;
     this.isReadOnlyView = !!(navigationState['reviewMode'] || navigationState['viewMode'] || navigationState['readOnly']);
+    this.currentStatus = this.normalizeStatus((proceedings as any)?.status);
+    this.currentRoles = this.getCurrentRoles();
+    this.currentUsername = this.getCurrentUsername();
     this.attachments = this.normalizeAttachments((proceedings as any)?.attachments);
 
 
@@ -189,7 +195,7 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
       totalUnitsClaimed: [{value: proceedings?.totalUnitsClaimed ?? null, disabled: true}, Validators.required],
       funders: [proceedings?.funders ?? ''],
       additionalComments: [proceedings?.additionalComments ?? ''],
-      compliesWith60Rule: [proceedings?.compliesWith60Rule ?? false],
+      compliesWith60Rule: [this.normalizeComplianceValue(proceedings?.compliesWith60Rule), Validators.required],
       startDate: [proceedings?.startDate ?? '', Validators.required],
       endDate: [proceedings?.endDate ?? '', Validators.required],
       city: [proceedings?.city ?? '', Validators.required],
@@ -200,7 +206,7 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
           : [this.newAuthor()]
       ),
     },{
-      asyncValidators: [this.checkTitleIsbnUnique(this.conferenceProceedingsService)],
+      asyncValidators: this.isReadOnlyView ? [] : [this.checkTitleIsbnUnique(this.conferenceProceedingsService)],
       updateOn: 'blur'
     });
 
@@ -212,6 +218,7 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
     this.authorsFA.controls.forEach(ctrl => this.initAuthorAffiliationHandling(ctrl as FormGroup));
 
      if (this.isReadOnlyView) {
+       this.disableValidationForReadOnlyMode();
        this.form.disable({ emitEvent: false });
      }
    }
@@ -222,6 +229,25 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   ngOnInit() {
     // Load previously saved proceedings if available
     this.loadSavedProceedings();
+  }
+
+  private disableValidationForReadOnlyMode(): void {
+    this.clearValidatorsRecursively(this.form);
+  }
+
+  private clearValidatorsRecursively(control: AbstractControl): void {
+    control.clearValidators();
+    control.clearAsyncValidators();
+
+    if (control instanceof FormGroup) {
+      Object.values(control.controls).forEach(child => this.clearValidatorsRecursively(child));
+    }
+
+    if (control instanceof FormArray) {
+      control.controls.forEach(child => this.clearValidatorsRecursively(child));
+    }
+
+    control.updateValueAndValidity({ emitEvent: false });
   }
 
   /**
@@ -282,6 +308,8 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
    * Populate form with proceedings data
    */
   private populateFormWithProceedings(proceedings: ConferenceProceedings) {
+    this.attachments = this.normalizeAttachments((proceedings as any)?.attachments);
+
     this.form.patchValue({
       id: proceedings.id,
       dhetNo: proceedings.dhetNo,
@@ -299,7 +327,7 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
       totalProportionOfAuthors: proceedings.totalProportionOfAuthors ?? 1,
       funders: proceedings.funders,
       additionalComments: proceedings.additionalComments,
-      compliesWith60Rule: proceedings.compliesWith60Rule,
+      compliesWith60Rule: this.normalizeComplianceValue(proceedings.compliesWith60Rule),
       startDate: proceedings.startDate,
       endDate: proceedings.endDate,
       city: proceedings.city,
@@ -345,6 +373,138 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
     return fallback;
   }
 
+  private getCurrentUsername(): string {
+    const loginRaw = sessionStorage.getItem('login');
+    if (!loginRaw) return '';
+
+    try {
+      const loginData = JSON.parse(loginRaw);
+      return (loginData?.user?.username ?? loginData?.username ?? '').toString().trim();
+    } catch {
+      return '';
+    }
+  }
+
+  private getCurrentRoles(): string[] {
+    const loginRaw = sessionStorage.getItem('login');
+    if (!loginRaw) return [];
+
+    try {
+      const loginData = JSON.parse(loginRaw);
+      const roleSource = loginData?.user?.roles ?? loginData?.user?.userType ?? loginData?.userType ?? '';
+      if (Array.isArray(roleSource)) {
+        return roleSource.map((r: any) => String(r).toUpperCase().trim()).filter(Boolean);
+      }
+      return String(roleSource)
+        .split(',')
+        .map((r: string) => r.toUpperCase().trim())
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  private normalizeStatus(status: unknown): string {
+    return String(status ?? '').toUpperCase().trim();
+  }
+
+  private isApproverRole(roles: string[]): boolean {
+    return roles.includes('ADMIN')
+      || roles.includes('ADMINISTRATOR')
+      || roles.includes('REVIEWER_LEVEL_1')
+      || roles.includes('LEVEL_1_APPROVER')
+      || roles.includes('REVIEWER_LEVEL_2')
+      || roles.includes('LEVEL_2_APPROVER');
+  }
+
+  private canCurrentApproverDecideOnStatus(roles: string[], status: string): boolean {
+    if (!status) return false;
+
+    if (roles.includes('ADMIN') || roles.includes('ADMINISTRATOR')) {
+      return status !== 'READY_FOR_POSTING' && status !== 'POSTED_TO_DHET';
+    }
+
+    const isL1 = roles.includes('REVIEWER_LEVEL_1') || roles.includes('LEVEL_1_APPROVER');
+    const isL2 = roles.includes('REVIEWER_LEVEL_2') || roles.includes('LEVEL_2_APPROVER');
+    const l1Stage = status === 'SUBMITTED' || status === 'UNDER_REVIEW_L1';
+    const l2Stage = status === 'UNDER_REVIEW_L2';
+    return (isL1 && l1Stage) || (isL2 && l2Stage);
+  }
+
+  canShowReviewDecisionActions(): boolean {
+    return !this.isReadOnlyView
+      && this.isApproverRole(this.currentRoles)
+      && this.canCurrentApproverDecideOnStatus(this.currentRoles, this.currentStatus);
+  }
+
+  async approveFromReview(): Promise<void> {
+    if (!this.canShowReviewDecisionActions()) return;
+
+    const id = Number(this.form.get('id')?.value ?? 0);
+    if (!id) {
+      Swal.fire('Error', 'Missing proceedings id for approval.', 'error');
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: 'Approve proceedings?',
+      input: 'textarea',
+      inputLabel: 'Comments (required)',
+      showCancelButton: true,
+      confirmButtonText: 'Approve',
+      inputValidator: (value) => !String(value ?? '').trim() ? 'Comments are required' : null
+    });
+
+    if (!result.isConfirmed) return;
+    const comments = String(result.value).trim();
+
+    this.conferenceProceedingsService.approve(id, this.currentUsername, comments).subscribe({
+      next: (updated) => {
+        this.currentStatus = this.normalizeStatus((updated as any)?.status);
+        Swal.fire('Approved', 'Proceedings moved to the next stage.', 'success').then(() => {
+          this.router.navigate(['/review-dashboard']);
+        });
+      },
+      error: (err) => {
+        Swal.fire('Error', err?.error?.message ?? 'Approval failed.', 'error');
+      }
+    });
+  }
+
+  async declineFromReview(): Promise<void> {
+    if (!this.canShowReviewDecisionActions()) return;
+
+    const id = Number(this.form.get('id')?.value ?? 0);
+    if (!id) {
+      Swal.fire('Error', 'Missing proceedings id for decline.', 'error');
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: 'Decline proceedings?',
+      input: 'textarea',
+      inputLabel: 'Comments (required)',
+      showCancelButton: true,
+      confirmButtonText: 'Decline',
+      inputValidator: (value) => !String(value ?? '').trim() ? 'Comments are required' : null
+    });
+
+    if (!result.isConfirmed) return;
+    const comments = String(result.value).trim();
+
+    this.conferenceProceedingsService.reject(id, this.currentUsername, comments).subscribe({
+      next: (updated) => {
+        this.currentStatus = this.normalizeStatus((updated as any)?.status);
+        Swal.fire('Declined', 'Proceedings have been declined.', 'success').then(() => {
+          this.router.navigate(['/review-dashboard']);
+        });
+      },
+      error: (err) => {
+        Swal.fire('Error', err?.error?.message ?? 'Decline failed.', 'error');
+      }
+    });
+  }
+
   private toYesNo(value: unknown, fallback: 'Y' | 'N' = 'N'): 'Y' | 'N' {
     if (value === true) return 'Y';
     if (value === false) return 'N';
@@ -359,6 +519,17 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
     if (normalized === 'Y' || normalized === 'YES' || normalized === 'TRUE') return true;
     if (normalized === 'N' || normalized === 'NO' || normalized === 'FALSE') return false;
     return this.asBoolean(value, fallback);
+  }
+
+  private normalizeComplianceValue(value: unknown): 'Yes' | 'No' | 'N/A' {
+    if (value === true) return 'Yes';
+    if (value === false) return 'No';
+
+    const normalized = String(value ?? '').trim().toLowerCase();
+    if (normalized === 'yes' || normalized === 'y' || normalized === 'true' || normalized === '1') return 'Yes';
+    if (normalized === 'no' || normalized === 'n' || normalized === 'false' || normalized === '0') return 'No';
+    if (normalized === 'n/a' || normalized === 'na' || normalized === 'not applicable' || normalized === 'not_applicable') return 'N/A';
+    return 'N/A';
   }
 
   private normalizeAttachments(rawAttachments: unknown): Attachment[] {
@@ -553,6 +724,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   addAuthor(affiliation = true) {
+    if (this.isReadOnlyView) {
+      return;
+    }
     const newAuthorFG = this.newAuthor(undefined, affiliation);
     this.authorsFA.push(newAuthorFG);
     this.initAuthorAffiliationHandling(newAuthorFG);
@@ -563,6 +737,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   removeAuthor(i: number) {
+    if (this.isReadOnlyView) {
+      return;
+    }
     this.authorsFA.removeAt(i);
     this.recalculateContributions();
     this.calculateAdvancedUnitBreakdown();
@@ -816,6 +993,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   selectUniversityOption(authorIndex: number, univIndex: number, university: { code: string; name: string }): void {
+    if (this.isReadOnlyView) {
+      return;
+    }
     const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
     row.patchValue(
       {
@@ -833,6 +1013,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   selectOtherUniversity(authorIndex: number, univIndex: number): void {
+    if (this.isReadOnlyView) {
+      return;
+    }
     const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
     row.patchValue(
       {
@@ -887,6 +1070,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   addUniversityAffiliation(authorIndex: number) {
+    if (this.isReadOnlyView) {
+      return;
+    }
     const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     univArray.push(this.fb.group({
       universityCode: ['', Validators.required],
@@ -900,6 +1086,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   removeUniversityAffiliation(authorIndex: number, univIndex: number) {
+    if (this.isReadOnlyView) {
+      return;
+    }
     const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     univArray.removeAt(univIndex);
     delete this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)];
@@ -909,6 +1098,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   addResearchAffiliation(authorIndex: number) {
+    if (this.isReadOnlyView) {
+      return;
+    }
     const resArray = this.getResearchAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     resArray.push(this.fb.group({
       companyName: ['', Validators.required],
@@ -919,6 +1111,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   removeResearchAffiliation(authorIndex: number, resIndex: number) {
+    if (this.isReadOnlyView) {
+      return;
+    }
     const resArray = this.getResearchAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     resArray.removeAt(resIndex);
     this.calculateAdvancedUnitBreakdown();
@@ -926,6 +1121,10 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   isStepValid(step: number): boolean {
+    if (this.isReadOnlyView) {
+      return true;
+    }
+
     switch (step) {
       case 1:
         return this.isConferenceInfoValid();
@@ -941,6 +1140,10 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   private isConferenceInfoValid(): boolean {
+    if (this.isReadOnlyView) {
+      return true;
+    }
+
     const fields = [
       'dhetNo',
       'year',
@@ -952,6 +1155,7 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
       'originalPhotocopy',
       'peerReviewEvidence',
       'typeOfEvidence',
+      'compliesWith60Rule',
       'startDate',
       'endDate',
       'city',
@@ -965,6 +1169,10 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   private isAuthorsValid(affiliated: boolean): boolean {
+    if (this.isReadOnlyView) {
+      return true;
+    }
+
     const authors = affiliated ? this.getAffiliatedAuthors() : this.getNonAffiliatedAuthors();
     if (affiliated && authors.length === 0) return false;
 
@@ -976,6 +1184,10 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   private isAffiliatedAuthorsComplete(): boolean {
+    if (this.isReadOnlyView) {
+      return true;
+    }
+
     const authors = this.getAffiliatedAuthors();
     return authors.every(ctrl => {
       return ctrl.get('studentEmployeeNo')?.valid
@@ -985,6 +1197,10 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   markStepAsTouched(step: number) {
+    if (this.isReadOnlyView) {
+      return;
+    }
+
     if (step === 1) {
       const fields = [
         'dhetNo',
@@ -997,6 +1213,7 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
         'originalPhotocopy',
         'peerReviewEvidence',
         'typeOfEvidence',
+        'compliesWith60Rule',
         'startDate',
         'endDate',
         'city',
@@ -1080,6 +1297,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
    * Save current step data
    */
   saveCurrentStep() {
+    if (this.isReadOnlyView) {
+      return;
+    }
     this.markStepAsTouched(this.currentStep);
 
     if (!this.isStepValid(this.currentStep)) {
@@ -1131,6 +1351,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
    * Save current step and continue to next step
    */
   saveAndContinue() {
+    if (this.isReadOnlyView) {
+      return;
+    }
     this.markStepAsTouched(this.currentStep);
 
     if (!this.isStepValid(this.currentStep)) {
@@ -1181,6 +1404,17 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
 
     return {
       id: raw.id ?? 0,
+      attachments: (this.attachments ?? []).map(att => ({
+        id: att.id,
+        formguid: att.formguid,
+        fileName: att.fileName,
+        fileSize: Number(att.fileSize ?? 0),
+        fileType: att.fileType,
+        fileData: att.fileData,
+        filePath: att.filePath ?? null,
+        url: att.url,
+        description: att.description ?? ''
+      })),
       dhetNo: raw.dhetNo,
       yearOfPublication: raw.year ? Number(raw.year) : 0,
       titleOfConferenceProceedings: raw.titleOfConferenceProceedings,
@@ -1202,7 +1436,7 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
         affiliation: this.asBoolean(author.affiliation, true)
       })),
       additionalComments: raw.additionalComments ?? undefined,
-      compliesWith60Rule: raw.compliesWith60Rule,
+      compliesWith60Rule: this.normalizeComplianceValue(raw.compliesWith60Rule),
       startDate: raw.startDate,
       endDate: raw.endDate,
       city: raw.city,
@@ -1211,6 +1445,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   autoPopulateForm(): void {
+    if (this.isReadOnlyView) {
+      return;
+    }
     this.form.patchValue({
       id: null,
       dhetNo: 'P001',
@@ -1228,7 +1465,7 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
       totalProportionOfAuthors: 1,
       funders: 'NRF; University Grant',
       additionalComments: 'Sample data',
-      compliesWith60Rule: true,
+      compliesWith60Rule: 'Yes',
       startDate: '2025-01-01',
       endDate: '2025-01-05',
       city: 'Johannesburg',
@@ -1282,20 +1519,19 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   onSubmit() {
+    if (this.isReadOnlyView) {
+      return;
+    }
     if (this.isSaving) {
       return;
     }
 
-    this.markStepAsTouched(this.currentStep);
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
+
 
     const payload = this.buildPayload();
     this.isSaving = true;
 
-
+debugger;
     this.conferenceProceedingsService.save(payload).subscribe({
       next: _ => {
         this.isSaving = false;
@@ -1369,11 +1605,15 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   reset() {
+    if (this.isReadOnlyView) {
+      return;
+    }
     this.form.reset();
     this.form.patchValue({
       maxUnitsForPublication: 0.5,
       totalProportionOfAuthors: 1,
-      otherAuthorsNonAffiliated: 0
+      otherAuthorsNonAffiliated: 0,
+      compliesWith60Rule: 'N/A'
     });
     this.authorsFA.clear();
     const authorFG = this.newAuthor();
@@ -1393,6 +1633,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   onFileSelected(event: any) {
+    if (this.isReadOnlyView) {
+      return;
+    }
     const file = event.target.files[0];
     if (!file) {
       this.selectedFile = null;
@@ -1410,6 +1653,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   addAttachment() {
+    if (this.isReadOnlyView) {
+      return;
+    }
     if (!this.selectedFile) {
       this.fileError = 'Please select a file.';
       return;
@@ -1446,6 +1692,9 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   removeAttachmentRow(index: number) {
+    if (this.isReadOnlyView) {
+      return;
+    }
     this.attachments.splice(index, 1);
   }
 

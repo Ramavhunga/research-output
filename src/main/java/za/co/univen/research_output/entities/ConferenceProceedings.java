@@ -48,7 +48,10 @@ public class ConferenceProceedings {
 
     // Evidence Details
     @Column(name = "evidence_of_peer_review")
-    private Boolean evidenceOfPeerReview;
+    private String evidenceOfPeerReview;
+
+    @Column(name = "title_of_conference_proceedings")
+    private String titleOfConferenceProceedings;
 
     @Column(name = "type_of_evidence")
     private String typeOfEvidence;
@@ -64,10 +67,10 @@ public class ConferenceProceedings {
     private String titleOfContribution;
 
     @Column(name = "complies_60_rule")
-    private Boolean compliesWith60Rule;
+    private String compliesWith60Rule;
 
-    @Column(name = "editor_if_applicable")
-    private String editorIfApplicable;
+    @Column(name = "editors")
+    private String editors;
 
     private String publisher;
     private String issn;
@@ -97,6 +100,9 @@ public class ConferenceProceedings {
     @OneToMany(mappedBy = "conferenceProceedings", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("conference-authors")
     private List<Author> authors = new ArrayList<>();
+
+    @OneToMany(mappedBy = "conferenceProceedings", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Attachment> attachments = new ArrayList<>();
 
     /* ================= EMBEDDED OBJECTS (UNCHANGED) ================= */
     @Embedded
@@ -130,47 +136,4 @@ public class ConferenceProceedings {
         updatedAt = LocalDateTime.now();
     }
 
-    @JsonSetter("evidenceOfPeerReview")
-    public void setEvidenceOfPeerReviewFromJson(Object evidenceOfPeerReview) {
-        if (evidenceOfPeerReview == null) {
-            this.evidenceOfPeerReview = null;
-            return;
-        }
-        if (evidenceOfPeerReview instanceof Boolean bool) {
-            this.evidenceOfPeerReview = bool;
-            return;
-        }
-        String normalized = String.valueOf(evidenceOfPeerReview).trim().toLowerCase();
-        if (normalized.equals("yes") || normalized.equals("y") || normalized.equals("true") || normalized.equals("1")) {
-            this.evidenceOfPeerReview = Boolean.TRUE;
-            return;
-        }
-        if (normalized.equals("no") || normalized.equals("n") || normalized.equals("false") || normalized.equals("0")) {
-            this.evidenceOfPeerReview = Boolean.FALSE;
-            return;
-        }
-        this.evidenceOfPeerReview = null;
-    }
-
-    @JsonSetter("compliesWith60Rule")
-    public void setCompliesWith60RuleFromJson(Object compliesWith60Rule) {
-        if (compliesWith60Rule == null) {
-            this.compliesWith60Rule = null;
-            return;
-        }
-        if (compliesWith60Rule instanceof Boolean bool) {
-            this.compliesWith60Rule = bool;
-            return;
-        }
-        String normalized = String.valueOf(compliesWith60Rule).trim().toLowerCase();
-        if (normalized.equals("yes") || normalized.equals("y") || normalized.equals("true") || normalized.equals("1")) {
-            this.compliesWith60Rule = Boolean.TRUE;
-            return;
-        }
-        if (normalized.equals("no") || normalized.equals("n") || normalized.equals("false") || normalized.equals("0")) {
-            this.compliesWith60Rule = Boolean.FALSE;
-            return;
-        }
-        this.compliesWith60Rule = null;
-    }
 }

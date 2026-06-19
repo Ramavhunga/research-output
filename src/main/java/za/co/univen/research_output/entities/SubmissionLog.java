@@ -34,4 +34,8 @@ public class SubmissionLog  implements java.io.Serializable {
     @JsonIgnore
     @ManyToOne
     private ConferenceProceedings conferenceProceedings;
+
+    @JsonIgnore
+    @ManyToOne
+    private Chapter chapter;
 }

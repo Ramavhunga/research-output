@@ -321,6 +321,9 @@ export class BooksFieldsDetailComponent {
   buildPayload(): Books {
     const raw = this.form.getRawValue();
 
+    // Convert publisher ID to publisher name
+    const publisherName = this.getPublisherName(raw.publisher);
+
     return {
       id: raw.id ?? 0,
       dhetNo: raw.dhetNo,
@@ -346,6 +349,12 @@ export class BooksFieldsDetailComponent {
        additionalComments: raw.additionalComments ?? undefined
      };
    }
+
+  private getPublisherName(publisherId: number | string): string {
+    if (!publisherId) return '';
+    const publisher = this.publishers.find(p => p.id === publisherId || p.id === Number(publisherId));
+    return publisher?.name ?? '';
+  }
 
   autoPopulateForm(): void {
     this.form.patchValue({

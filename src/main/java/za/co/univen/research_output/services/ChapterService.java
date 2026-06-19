@@ -4,27 +4,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import za.co.univen.research_output.entities.Author;
 import za.co.univen.research_output.entities.Attachment;
-import za.co.univen.research_output.entities.Book;
 import za.co.univen.research_output.entities.BookStatus;
+import za.co.univen.research_output.entities.Chapter;
 import za.co.univen.research_output.entities.ResearchAffiliation;
 import za.co.univen.research_output.entities.SubmissionLog;
 import za.co.univen.research_output.entities.UniversityAffiliation;
 import za.co.univen.research_output.entities.User;
-import za.co.univen.research_output.repositories.BookRepository;
+import za.co.univen.research_output.repositories.ChapterRepository;
 import za.co.univen.research_output.repositories.SubmissionLogRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-public class BookService {
+public class ChapterService {
 
-    private final BookRepository repository;
+    private final ChapterRepository repository;
     private final CurrentUserService currentUserService;
     private final SubmissionLogRepository submissionLogRepository;
 
-    public BookService(
-            BookRepository repository,
+    public ChapterService(
+            ChapterRepository repository,
             CurrentUserService currentUserService,
             SubmissionLogRepository submissionLogRepository
     ) {
@@ -34,44 +34,44 @@ public class BookService {
     }
 
     @Transactional(readOnly = true)
-    public List<Book> findAll() {
+    public List<Chapter> findAll() {
         return repository.findAll();
     }
 
     @Transactional(readOnly = true)
-    public List<Book> findAllForUser(String username) {
+    public List<Chapter> findAllForUser(String username) {
         return repository.findBySubmittedByUsername(username);
     }
 
     @Transactional(readOnly = true)
-    public Book getById(Long id) {
+    public Chapter getById(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Book not found: " + id));
+                .orElseThrow(() -> new RuntimeException("Chapter not found: " + id));
     }
 
     @Transactional
-    public Book createOrUpdate(Book payload, String username) {
+    public Chapter createOrUpdate(Chapter payload, String username) {
         User currentUser = currentUserService.getOrCreateUserByUsername(username);
 
-        Book book = payload;
-        if (book.getId() != null) {
-            Book existing = getById(book.getId());
+        Chapter chapter = payload;
+        if (chapter.getId() != null) {
+            Chapter existing = getById(chapter.getId());
             enforceEditable(existing, currentUser);
-            book.setSubmittedBy(existing.getSubmittedBy());
-            if (book.getStatus() == null) {
-                book.setStatus(existing.getStatus());
+            chapter.setSubmittedBy(existing.getSubmittedBy());
+            if (chapter.getStatus() == null) {
+                chapter.setStatus(existing.getStatus());
             }
         } else {
-            book.setStatus(book.getStatus() == null ? BookStatus.SUBMITTED : book.getStatus());
-            book.setSubmittedBy(currentUser);
+            chapter.setStatus(chapter.getStatus() == null ? BookStatus.SUBMITTED : chapter.getStatus());
+            chapter.setSubmittedBy(currentUser);
         }
 
-        validate(book);
-        linkGraph(book);
+        validate(chapter);
+        linkGraph(chapter);
 
-        Book saved = repository.save(book);
+        Chapter saved = repository.save(chapter);
         if (saved.getId() != null) {
-            String mappedDhetNo = String.format("B%04d", saved.getId());
+            String mappedDhetNo = String.format("C%04d", saved.getId());
             if (!mappedDhetNo.equals(saved.getDhetNo())) {
                 saved.setDhetNo(mappedDhetNo);
                 saved = repository.save(saved);
@@ -81,89 +81,89 @@ public class BookService {
     }
 
     @Transactional
-    public Book submitForReview(Long id, String username, String comments) {
-        Book book = getById(id);
+    public Chapter submitForReview(Long id, String username, String comments) {
+        Chapter chapter = getById(id);
         User currentUser = currentUserService.getOrCreateUserByUsername(username);
 
-        if (!isOwner(book, currentUser)) {
-            throw new SecurityException("Only the requestor can submit this book");
+        if (!isOwner(chapter, currentUser)) {
+            throw new SecurityException("Only the requestor can submit this chapter");
         }
 
-        BookStatus current = book.getStatus();
+        BookStatus current = chapter.getStatus();
         if (current != BookStatus.SUBMITTED
                 && current != BookStatus.REJECTED_L1
                 && current != BookStatus.REJECTED_L2
                 && current != BookStatus.DRAFT) {
-            throw new IllegalStateException("Book cannot be submitted from status " + current);
+            throw new IllegalStateException("Chapter cannot be submitted from status " + current);
         }
 
-        book.setStatus(BookStatus.UNDER_REVIEW_L1);
-        Book saved = repository.save(book);
+        chapter.setStatus(BookStatus.UNDER_REVIEW_L1);
+        Chapter saved = repository.save(chapter);
         addSubmissionLog(saved, currentUser.getUsername(), "SUBMITTED", current, saved.getStatus(), comments);
         return saved;
     }
 
     @Transactional
-    public Book approve(Long id, String username, String comments) {
-        Book book = getById(id);
+    public Chapter approve(Long id, String username, String comments) {
+        Chapter chapter = getById(id);
         User currentUser = currentUserService.getOrCreateUserByUsername(username);
         String normalizedComments = requireComments(comments, "Approval comments are required");
 
-        BookStatus current = book.getStatus();
+        BookStatus current = chapter.getStatus();
         if ((current == BookStatus.SUBMITTED || current == BookStatus.UNDER_REVIEW_L1)
                 && currentUserService.hasAnyRole(currentUser, "REVIEWER_LEVEL_1", "ADMIN")) {
-            book.setStatus(BookStatus.UNDER_REVIEW_L2);
+            chapter.setStatus(BookStatus.UNDER_REVIEW_L2);
         } else if (current == BookStatus.UNDER_REVIEW_L2
                 && currentUserService.hasAnyRole(currentUser, "REVIEWER_LEVEL_2", "ADMIN")) {
-            book.setStatus(BookStatus.READY_FOR_POSTING);
+            chapter.setStatus(BookStatus.READY_FOR_POSTING);
         } else {
-            throw new SecurityException("You are not allowed to approve this book at status " + current);
+            throw new SecurityException("You are not allowed to approve this chapter at status " + current);
         }
 
-        Book saved = repository.save(book);
+        Chapter saved = repository.save(chapter);
         addSubmissionLog(saved, currentUser.getUsername(), "APPROVED", current, saved.getStatus(), normalizedComments);
         return saved;
     }
 
     @Transactional
-    public Book reject(Long id, String username, String comments) {
-        Book book = getById(id);
+    public Chapter reject(Long id, String username, String comments) {
+        Chapter chapter = getById(id);
         User currentUser = currentUserService.getOrCreateUserByUsername(username);
         String normalizedComments = requireComments(comments, "Rejection comments are required");
 
-        BookStatus current = book.getStatus();
+        BookStatus current = chapter.getStatus();
         if ((current == BookStatus.SUBMITTED || current == BookStatus.UNDER_REVIEW_L1)
                 && currentUserService.hasAnyRole(currentUser, "REVIEWER_LEVEL_1", "ADMIN")) {
-            book.setStatus(BookStatus.REJECTED_L1);
+            chapter.setStatus(BookStatus.REJECTED_L1);
         } else if (current == BookStatus.UNDER_REVIEW_L2
                 && currentUserService.hasAnyRole(currentUser, "REVIEWER_LEVEL_2", "ADMIN")) {
-            book.setStatus(BookStatus.REJECTED_L2);
+            chapter.setStatus(BookStatus.REJECTED_L2);
         } else {
-            throw new SecurityException("You are not allowed to reject this book at status " + current);
+            throw new SecurityException("You are not allowed to reject this chapter at status " + current);
         }
 
-        Book saved = repository.save(book);
+        Chapter saved = repository.save(chapter);
         addSubmissionLog(saved, currentUser.getUsername(), "REJECTED", current, saved.getStatus(), normalizedComments);
         return saved;
     }
 
     @Transactional
-    public Book acceptByDhet(Long id, String username, String comments) {
-        Book book = getById(id);
+    public Chapter acceptByDhet(Long id, String username, String comments) {
+        Chapter chapter = getById(id);
         User currentUser = currentUserService.getOrCreateUserByUsername(username);
         String normalizedComments = requireComments(comments, "DHET acceptance comments are required");
 
-        if (book.getStatus() != BookStatus.READY_FOR_POSTING) {
-            throw new IllegalStateException("Book can only be marked as accepted by DHET from READY_FOR_POSTING status");
+        if (chapter.getStatus() != BookStatus.READY_FOR_POSTING) {
+            throw new IllegalStateException("Chapter can only be marked as accepted by DHET from READY_FOR_POSTING status");
         }
 
         if (!currentUserService.hasAnyRole(currentUser, "ADMIN", "REVIEWER_LEVEL_2")) {
-            throw new SecurityException("Only ADMIN or REVIEWER_LEVEL_2 can mark a book as accepted by DHET");
+            throw new SecurityException("Only ADMIN or REVIEWER_LEVEL_2 can mark a chapter as accepted by DHET");
         }
 
-        BookStatus previous = book.getStatus();
-        book.setStatus(BookStatus.ACCEPTED_BY_DHET);
-        Book saved = repository.save(book);
+        BookStatus previous = chapter.getStatus();
+        chapter.setStatus(BookStatus.ACCEPTED_BY_DHET);
+        Chapter saved = repository.save(chapter);
         addSubmissionLog(saved, currentUser.getUsername(), "ACCEPTED_BY_DHET", previous, saved.getStatus(), normalizedComments);
         return saved;
     }
@@ -174,8 +174,8 @@ public class BookService {
     }
 
     @Transactional(readOnly = true)
-    public List<SubmissionLog> getTimeline(Long bookId) {
-        return submissionLogRepository.findByBookIdOrderByTimestampAsc(bookId);
+    public List<SubmissionLog> getTimeline(Long chapterId) {
+        return submissionLogRepository.findByChapterIdOrderByTimestampAsc(chapterId);
     }
 
     @Transactional(readOnly = true)
@@ -186,22 +186,22 @@ public class BookService {
         return repository.existsByTitleOfBookAndIsbn(title, isbn);
     }
 
-    private void validate(Book book) {
-        if (book.getTitleOfBook() == null || book.getTitleOfBook().isBlank()) {
+    private void validate(Chapter chapter) {
+        if (chapter.getTitleOfBook() == null || chapter.getTitleOfBook().isBlank()) {
             throw new IllegalArgumentException("Book title is required");
         }
-        if (book.getIsbn() == null || book.getIsbn().isBlank()) {
+        if (chapter.getIsbn() == null || chapter.getIsbn().isBlank()) {
             throw new IllegalArgumentException("ISBN is required");
         }
-        if (book.getAuthors() == null || book.getAuthors().isEmpty()) {
+        if (chapter.getAuthors() == null || chapter.getAuthors().isEmpty()) {
             throw new IllegalArgumentException("At least one author is required");
         }
     }
 
-    private void enforceEditable(Book existing, User currentUser) {
+    private void enforceEditable(Chapter existing, User currentUser) {
         BookStatus status = existing.getStatus();
         if (status == BookStatus.READY_FOR_POSTING || status == BookStatus.ACCEPTED_BY_DHET) {
-            throw new IllegalStateException("Book is locked and cannot be edited at status " + status);
+            throw new IllegalStateException("Chapter is locked and cannot be edited at status " + status);
         }
 
         if (currentUserService.hasAnyRole(currentUser, "ADMIN")) {
@@ -219,22 +219,22 @@ public class BookService {
                 return;
             }
 
-            throw new SecurityException("You can only edit books assigned to your review level at status " + status);
+            throw new SecurityException("You can only edit chapters assigned to your review level at status " + status);
         }
 
         if (!isOwner(existing, currentUser)) {
-            throw new SecurityException("Only the requestor or assigned approver can edit this book");
+            throw new SecurityException("Only the requestor or assigned approver can edit this chapter");
         }
 
         if (status != BookStatus.REJECTED_L1 && status != BookStatus.REJECTED_L2) {
-            throw new IllegalStateException("Requestor can only edit rejected books. Current status is " + status);
+            throw new IllegalStateException("Requestor can only edit rejected chapters. Current status is " + status);
         }
     }
 
-    private boolean isOwner(Book book, User currentUser) {
-        return book.getSubmittedBy() != null
+    private boolean isOwner(Chapter chapter, User currentUser) {
+        return chapter.getSubmittedBy() != null
                 && currentUser.getUsername() != null
-                && currentUser.getUsername().equalsIgnoreCase(book.getSubmittedBy().getUsername());
+                && currentUser.getUsername().equalsIgnoreCase(chapter.getSubmittedBy().getUsername());
     }
 
     private String requireComments(String comments, String message) {
@@ -245,7 +245,7 @@ public class BookService {
     }
 
     private void addSubmissionLog(
-            Book book,
+            Chapter chapter,
             String performedBy,
             String action,
             BookStatus fromStatus,
@@ -259,18 +259,18 @@ public class BookService {
         log.setFromStatus(fromStatus == null ? null : fromStatus.name());
         log.setToStatus(toStatus == null ? null : toStatus.name());
         log.setComments(comments == null ? null : comments.trim());
-        log.setBook(book);
+        log.setChapter(chapter);
         submissionLogRepository.save(log);
     }
 
-    private void linkGraph(Book book) {
-        if (book.getAuthors() == null) {
+    private void linkGraph(Chapter chapter) {
+        if (chapter.getAuthors() == null) {
             return;
         }
 
-        for (Author author : book.getAuthors()) {
-            author.setBook(book);
-            author.setChapter(null);
+        for (Author author : chapter.getAuthors()) {
+            author.setChapter(chapter);
+            author.setBook(null);
             author.setJournal(null);
             author.setConferenceProceedings(null);
 
@@ -287,10 +287,10 @@ public class BookService {
             }
         }
 
-        if (book.getAttachments() != null) {
-            for (Attachment attachment : book.getAttachments()) {
-                attachment.setBook(book);
-                attachment.setChapter(null);
+        if (chapter.getAttachments() != null) {
+            for (Attachment attachment : chapter.getAttachments()) {
+                attachment.setChapter(chapter);
+                attachment.setBook(null);
                 attachment.setJournal(null);
                 attachment.setConferenceProceedings(null);
             }

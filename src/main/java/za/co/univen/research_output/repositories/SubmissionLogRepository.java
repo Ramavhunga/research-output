@@ -11,4 +11,6 @@ public interface SubmissionLogRepository extends JpaRepository<SubmissionLog, Lo
 	List<SubmissionLog> findByBookIdOrderByTimestampAsc(Long bookId);
 
 	List<SubmissionLog> findByConferenceProceedingsIdOrderByTimestampAsc(Long proceedingsId);
+
+	List<SubmissionLog> findByChapterIdOrderByTimestampAsc(Long chapterId);
 }

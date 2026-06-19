@@ -87,103 +87,114 @@
 <!--</div>-->
 
 <!-- ================= CHAPTERS LIST ================= -->
-<!-- [ Main Content ] start -->
 <div class="pc-container">
   <div class="pc-content">
-
     <div class="page-header">
-      <h5>Chapters</h5>
-    </div>
-
-    <div class="card table-card">
-      <div class="card-header d-flex justify-content-between">
-        <h5>Chapters List</h5>
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-outline-secondary" (click)="loadChapters()" [disabled]="loading">
-            {{ loading ? 'Refreshing...' : 'Refresh' }}
-          </button>
-          <button class="btn btn-primary" (click)="goToChapterDetails()">Add Chapter</button>
+      <div class="page-block">
+        <div class="row align-items-center g-0">
+          <div class="col-sm-auto">
+            <div class="page-header-title">
+              <h5 class="mb-0">Chapters</h5>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
 
-      <div class="card-body pt-3">
-        <div *ngIf="loading" class="text-muted mb-2">Loading chapters...</div>
-        <div class="table-responsive">
-        <table class="table table-hover align-middle">
-          <thead>
-          <tr>
-            <th style="min-width: 260px;">Title</th>
-            <th style="min-width: 180px;">Publisher</th>
-            <th style="min-width: 120px;">ISBN</th>
-            <th style="min-width: 90px;">Year</th>
-            <th style="min-width: 150px;">Status</th>
-            <th style="min-width: 170px;">Updated</th>
-            <th style="min-width: 190px;"></th>
-          </tr>
-          </thead>
-
-          <tbody>
-
-          <ng-container *ngFor="let chapter of chapters">
-            <tr>
-              <td class="text-wrap" style="white-space: normal;">
-                <h6 class="mb-0">{{ chapter.titleOfContribution || chapter.titleOfBook || '-' }}</h6>
-              </td>
-              <td class="text-wrap" style="white-space: normal;">{{ chapter.publisher || '-' }}</td>
-              <td>{{ chapter.isbn || '-' }}</td>
-              <td>{{ chapter.yearOfPublication || '-' }}</td>
-              <td>
-                <span class="badge" [ngClass]="getStatusBadgeClass(chapter.status)">
-                  {{ getStatusLabel(chapter.status) }}
-                </span>
-              </td>
-              <td>{{ chapter.updatedAt ? (chapter.updatedAt | date:'medium') : '-' }}</td>
-              <td class="text-nowrap">
-                <button type="button" class="btn btn-sm btn-outline-primary" (click)="viewChapter(chapter)">View</button>
-                <button type="button" class="btn btn-outline-dark btn-sm ms-2" (click)="toggleTimeline(chapter)">
-                  {{ selectedTimelineChapterId === chapter.id ? 'Hide Log' : 'Submission Log' }}
+    <div class="row">
+      <div class="col-12">
+        <div class="card table-card">
+          <div class="card-header">
+            <div class="d-sm-flex align-items-center justify-content-between gap-2">
+              <h5 class="mb-2 mb-sm-0">Chapters List</h5>
+              <div class="d-flex gap-2 chapter-actions-toolbar">
+                <button type="button" class="btn btn-outline-secondary" (click)="loadChapters()" [disabled]="loading">
+                  {{ loading ? 'Refreshing...' : 'Refresh' }}
                 </button>
-              </td>
-            </tr>
-            <tr *ngIf="selectedTimelineChapterId === chapter.id">
-              <td colspan="7" class="bg-light">
-                <div *ngIf="timeline.length === 0" class="text-muted">No submission logs found.</div>
-                <div *ngIf="timeline.length > 0" class="table-responsive">
-                  <table class="table table-sm mb-0">
-                    <thead>
-                    <tr>
-                      <th>Time</th>
-                      <th>Action</th>
-                      <th>From</th>
-                      <th>To</th>
-                      <th>By</th>
-                      <th>Comments</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr *ngFor="let log of timeline">
-                      <td>{{ log.timestamp ? (log.timestamp | date:'medium') : '-' }}</td>
-                      <td>{{ log.action || '-' }}</td>
-                      <td>{{ getStatusLabel(log.fromStatus) }}</td>
-                      <td>{{ getStatusLabel(log.toStatus) }}</td>
-                      <td>{{ log.performedBy || '-' }}</td>
-                      <td>{{ log.comments || '-' }}</td>
-                    </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </td>
-            </tr>
-          </ng-container>
+                <button type="button" class="btn btn-primary" (click)="goToChapterDetails()">Add Chapter</button>
+              </div>
+            </div>
+          </div>
 
-          <tr *ngIf="!chapters || chapters.length === 0">
-            <td colspan="7" class="text-center text-muted">
-              No chapters added yet
-            </td>
-          </tr>
+          <div class="card-body pt-3">
+            <div *ngIf="loading" class="text-muted mb-2">Loading chapters...</div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle chapters-table">
+                <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Publisher</th>
+                  <th>ISBN</th>
+                  <th>Year</th>
+                  <th>Status</th>
+                  <th>Updated</th>
+                  <th class="text-end">Actions</th>
+                </tr>
+                </thead>
 
-          </tbody>
-        </table>
+                <tbody>
+                <ng-container *ngFor="let chapter of chapters">
+                  <tr>
+                    <td class="chapter-title-cell">
+                      <h6 class="mb-0">{{ chapter.titleOfContribution || chapter.titleOfBook || '-' }}</h6>
+                    </td>
+                    <td>{{ chapter.publisher || '-' }}</td>
+                    <td>{{ chapter.isbn || '-' }}</td>
+                    <td>{{ chapter.yearOfPublication || '-' }}</td>
+                    <td>
+                      <span class="badge" [ngClass]="getStatusBadgeClass(chapter.status)">
+                        {{ getStatusLabel(chapter.status) }}
+                      </span>
+                    </td>
+                    <td>{{ chapter.updatedAt ? (chapter.updatedAt | date:'medium') : '-' }}</td>
+                    <td class="text-end">
+                      <div class="d-inline-flex gap-2 flex-wrap justify-content-end">
+                        <button type="button" class="btn btn-outline-primary btn-sm" (click)="viewChapter(chapter)">View</button>
+                        <button type="button" class="btn btn-outline-dark btn-sm" (click)="toggleTimeline(chapter)">
+                          {{ selectedTimelineChapterId === chapter.id ? 'Hide Log' : 'Submission Log' }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <tr *ngIf="selectedTimelineChapterId === chapter.id" class="chapter-timeline-row">
+                    <td colspan="7" class="bg-light">
+                      <div *ngIf="timeline.length === 0" class="text-muted">No submission logs found.</div>
+                      <div *ngIf="timeline.length > 0" class="table-responsive">
+                        <table class="table table-sm mb-0">
+                          <thead>
+                          <tr>
+                            <th>Time</th>
+                            <th>Action</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>By</th>
+                            <th>Comments</th>
+                          </tr>
+                          </thead>
+                          <tbody>
+                          <tr *ngFor="let log of timeline">
+                            <td>{{ log.timestamp ? (log.timestamp | date:'medium') : '-' }}</td>
+                            <td>{{ log.action || '-' }}</td>
+                            <td>{{ getStatusLabel(log.fromStatus) }}</td>
+                            <td>{{ getStatusLabel(log.toStatus) }}</td>
+                            <td>{{ log.performedBy || '-' }}</td>
+                            <td>{{ log.comments || '-' }}</td>
+                          </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
+
+                <tr *ngIf="!chapters || chapters.length === 0">
+                  <td colspan="7" class="text-center text-muted py-4">No chapters added yet</td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -35,7 +35,7 @@
                  <button class="btn btn-outline-secondary btn-sm" type="button" (click)="preview()">
                    Preview JSON
                  </button>
-                 <button class="btn btn-outline-secondary btn-sm" type="button" (click)="autoPopulateForm()">
+                 <button *ngIf="!isReadOnlyView" class="btn btn-outline-secondary btn-sm" type="button" (click)="autoPopulateForm()">
                    Auto Populate JSON
                  </button>
                </div>
@@ -100,7 +100,7 @@
                       <select class="form-select" formControlName="publisher"
                               [ngClass]="{'is-invalid': form.get('publisher')?.invalid && (form.get('publisher')?.touched || form.get('publisher')?.dirty)}">
                         <option [ngValue]="null" disabled>Choose...</option>
-                        <option *ngFor="let pub of publishers" [ngValue]="pub.id">{{ pub.name }}</option>
+                        <option *ngFor="let pub of publishers" [ngValue]="pub.name">{{ pub.name }}</option>
                       </select>
                     </div>
 
@@ -203,12 +203,14 @@
                   <h6 class="mb-3">Compliance</h6>
                   <div class="row g-3">
                     <div class="col-md-3">
-                      <div class="form-check">
-                        <input type="checkbox" class="form-check-input" formControlName="compliesWith60Rule" id="compliesWith60Rule" />
-                        <label class="form-check-label" for="compliesWith60Rule">
-                          Complies with 60% rule?
-                        </label>
-                      </div>
+                      <label class="form-label">Complies with 60% rule? <span class="text-danger">*</span></label>
+                      <select class="form-select" formControlName="compliesWith60Rule"
+                              [ngClass]="{'is-invalid': form.get('compliesWith60Rule')?.invalid && form.get('compliesWith60Rule')?.touched}">
+                        <option value="">Select</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="N/A">N/A</option>
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -227,7 +229,7 @@
                        <div class="row g-3 mb-3">
                          <div class="col-12 d-flex justify-content-between align-items-center">
                            <h6 class="mb-0">Author {{ i + 1 }}</h6>
-                           <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeAuthor(i)">
+                           <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-danger btn-sm" (click)="removeAuthor(i)">
                              <i class="fa fa-trash"></i> Remove
                            </button>
                          </div>
@@ -419,15 +421,16 @@
                                 <div [formGroupName]="ui" class="row g-2 align-items-end p-2 border rounded bg-white">
                                   <div class="col-md-4 position-relative">
                                     <label class="form-label small">University</label>
-                                    <input type="text"
+                                     <input type="text"
                                            class="form-control form-control-sm"
                                            [value]="getUniversitySearchTerm(i, ui) || getUniversityDisplayValue(i, ui)"
                                            (focus)="openUniversityDropdown(i, ui)"
                                            (blur)="closeUniversityDropdown(i, ui)"
                                            (input)="onUniversitySearchChange(i, ui, $any($event.target).value)"
-                                           placeholder="Search university by name/code" />
+                                            placeholder="Search university by name/code"
+                                            [disabled]="isReadOnlyView" />
 
-                                    <div *ngIf="isUniversityDropdownOpen(i, ui)"
+                                     <div *ngIf="!isReadOnlyView && isUniversityDropdownOpen(i, ui)"
                                          class="border rounded bg-white shadow-sm mt-1 position-absolute start-0 end-0"
                                          style="max-height: 220px; overflow-y: auto; z-index: 1050;">
                                       <button type="button"
@@ -470,7 +473,7 @@
                                     </div>
                                   </div>
                                   <div class="col-md-1 text-end">
-                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                    <button *ngIf="!isReadOnlyView" type="button" class="btn btn-sm btn-outline-danger"
                                             (click)="removeUniversityAffiliation(i, ui)"
                                             title="Remove university">
                                       <i class="fa fa-trash"></i>
@@ -478,7 +481,7 @@
                                   </div>
                                 </div>
                               </ng-container>
-                              <button type="button" class="btn btn-outline-primary btn-sm align-self-start"
+                              <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-primary btn-sm align-self-start"
                                       (click)="addUniversityAffiliation(i)">
                                 <i class="fa fa-plus me-1"></i>Add University
                               </button>
@@ -503,7 +506,7 @@
                                     </select>
                                   </div>
                                   <div class="col-md-1 text-end">
-                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                    <button *ngIf="!isReadOnlyView" type="button" class="btn btn-sm btn-outline-danger"
                                             (click)="removeResearchAffiliation(i, ri)"
                                             title="Remove organization">
                                       <i class="fa fa-trash"></i>
@@ -511,7 +514,7 @@
                                   </div>
                                 </div>
                               </ng-container>
-                              <button type="button" class="btn btn-outline-primary btn-sm align-self-start"
+                              <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-primary btn-sm align-self-start"
                                       (click)="addResearchAffiliation(i)">
                                 <i class="fa fa-plus me-1"></i>Add Organization
                               </button>
@@ -633,7 +636,7 @@
                       <div class="row g-3">
                         <div class="col-12 d-flex justify-content-between">
                           <h6>Non-Affiliated Author</h6>
-                          <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeAuthor(i)">
+                          <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-danger btn-sm" (click)="removeAuthor(i)">
                             <i class="fa fa-trash"></i>
                           </button>
                         </div>
@@ -662,7 +665,7 @@
                     </div>
                   </ng-container>
                 </div>
-                <button type="button" class="btn btn-outline-primary mt-3" (click)="addAuthor(false)">
+                <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-primary mt-3" (click)="addAuthor(false)">
                   + Add Non-Affiliated Author
                 </button>
               </div>
@@ -801,6 +804,8 @@
 
                <div class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white mt-4">
                  <button type="button" class="btn btn-outline-secondary" [disabled]="currentStep === 1" (click)="prevStep()">Previous</button>
+                 <button *ngIf="canShowReviewDecisionActions()" type="button" class="btn btn-outline-danger" (click)="declineFromReview()">Decline</button>
+                 <button *ngIf="canShowReviewDecisionActions()" type="button" class="btn btn-success" (click)="approveFromReview()">Approve</button>
 <!--                 <button type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>-->
 <!--                 <button *ngIf="currentStep < totalSteps && !isReadOnlyView" type="button" class="btn btn-outline-info" [disabled]="isSaving" (click)="saveCurrentStep()">-->
 <!--                   <span *ngIf="!isSaving"><i class="fa fa-save me-2"></i>Save Draft</span>-->
@@ -811,7 +816,7 @@
 <!--                   <span *ngIf="!isSaving"><i class="fa fa-arrow-right me-2"></i>Save & Continue</span>-->
 <!--                   <span *ngIf="isSaving"><i class="fa fa-spinner fa-spin me-2"></i>Saving...</span>-->
 <!--                 </button>-->
-                 <button *ngIf="currentStep === totalSteps" type="submit" class="btn btn-primary">Submit</button>
+                 <button *ngIf="!isReadOnlyView && currentStep === totalSteps" type="submit" class="btn btn-primary">Submit</button>
                </div>
             </form>
 

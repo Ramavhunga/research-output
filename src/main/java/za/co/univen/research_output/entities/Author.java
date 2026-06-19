@@ -69,6 +69,12 @@ public class Author {
     @JsonBackReference("book-authors")
     private Book book;
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chapter_id")
+    @JsonBackReference("chapter-authors")
+    private Chapter chapter;
+
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("author-university-affiliations")
     @Valid

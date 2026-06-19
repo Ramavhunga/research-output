@@ -209,6 +209,10 @@ export class JournalService {
       .pipe(catchError(() => this.http.get<Journal[]>(`${this.baseurl}journal?summary=true`)));
   }
 
+  getAllJournalsForReview(): Observable<Journal[]> {
+    return this.http.get<Journal[]>(`${this.baseurl}journal?summary=true`);
+  }
+
 
 
   exists(title: string, issn: string, id?: number): Observable<boolean> {

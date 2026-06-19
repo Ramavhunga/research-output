@@ -182,6 +182,67 @@ IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL AND COL_LENGTH('db
 IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL AND COL_LENGTH('dbo.conference_proceedings', 'updated_at') IS NULL
     ALTER TABLE dbo.conference_proceedings ADD updated_at datetime2;
 
+IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL AND COL_LENGTH('dbo.conference_proceedings', 'complies_60_rule') IS NULL
+    ALTER TABLE dbo.conference_proceedings ADD complies_60_rule nvarchar(10);
+
+IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL
+   AND COL_LENGTH('dbo.conference_proceedings', 'complies_60_rule') IS NOT NULL
+   AND EXISTS (
+       SELECT 1
+       FROM sys.columns c
+       INNER JOIN sys.types t ON c.user_type_id = t.user_type_id
+       WHERE c.object_id = OBJECT_ID(N'dbo.conference_proceedings')
+         AND c.name = 'complies_60_rule'
+         AND t.name = 'bit'
+   )
+BEGIN
+    IF COL_LENGTH('dbo.conference_proceedings', 'complies_60_rule_temp') IS NULL
+        ALTER TABLE dbo.conference_proceedings ADD complies_60_rule_temp nvarchar(10);
+
+    UPDATE dbo.conference_proceedings
+    SET complies_60_rule_temp = CASE
+        WHEN complies_60_rule = 1 THEN 'Yes'
+        WHEN complies_60_rule = 0 THEN 'No'
+        ELSE 'N/A'
+    END;
+
+    ALTER TABLE dbo.conference_proceedings DROP COLUMN complies_60_rule;
+    EXEC sp_rename 'dbo.conference_proceedings.complies_60_rule_temp', 'complies_60_rule', 'COLUMN';
+END;
+
+IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL
+   AND COL_LENGTH('dbo.conference_proceedings', 'complies_60_rule') IS NOT NULL
+   AND EXISTS (
+       SELECT 1
+       FROM sys.columns c
+       INNER JOIN sys.types t ON c.user_type_id = t.user_type_id
+       WHERE c.object_id = OBJECT_ID(N'dbo.conference_proceedings')
+         AND c.name = 'complies_60_rule'
+         AND t.name <> 'bit'
+   )
+BEGIN
+    UPDATE dbo.conference_proceedings
+    SET complies_60_rule = 'N/A'
+    WHERE complies_60_rule IS NULL OR LTRIM(RTRIM(complies_60_rule)) = '';
+END;
+
+IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL
+   AND EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_conference_proceedings_complies_60_rule' AND parent_object_id = OBJECT_ID('dbo.conference_proceedings'))
+    ALTER TABLE dbo.conference_proceedings DROP CONSTRAINT CK_conference_proceedings_complies_60_rule;
+
+IF OBJECT_ID(N'dbo.conference_proceedings', N'U') IS NOT NULL
+   AND COL_LENGTH('dbo.conference_proceedings', 'complies_60_rule') IS NOT NULL
+   AND EXISTS (
+       SELECT 1
+       FROM sys.columns c
+       INNER JOIN sys.types t ON c.user_type_id = t.user_type_id
+       WHERE c.object_id = OBJECT_ID(N'dbo.conference_proceedings')
+         AND c.name = 'complies_60_rule'
+         AND t.name <> 'bit'
+   )
+    ALTER TABLE dbo.conference_proceedings
+    ADD CONSTRAINT CK_conference_proceedings_complies_60_rule CHECK (complies_60_rule IN ('Yes', 'No', 'N/A'));
+
 -- Create indexes for conference proceedings
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_conference_proceedings_status' AND object_id = OBJECT_ID('dbo.conference_proceedings'))
     CREATE NONCLUSTERED INDEX IX_conference_proceedings_status ON dbo.conference_proceedings(status);

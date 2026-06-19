@@ -81,14 +81,36 @@ export class ConferenceProceedingsComponent implements OnInit {
   }
 
   viewProceeding(proceeding: ConferenceProceedings): void {
-    this.router.navigate(['proceeding/conferenceproceedingsdetails'], {
-      state: { proceedings: { ...proceeding }, reviewMode: true }
+    if (!proceeding?.id) {
+      return;
+    }
+
+    this.conferenceProceedingsService.getById(Number(proceeding.id)).subscribe({
+      next: (fullProceeding) => {
+        this.router.navigate(['proceeding/conferenceproceedingsdetails'], {
+          state: { proceedings: { ...fullProceeding }, reviewMode: true }
+        });
+      },
+      error: (err) => {
+        Swal.fire('Error', this.getBackendMessage(err, 'Could not load proceeding details.'), 'error');
+      }
     });
   }
 
   editProceeding(proceeding: ConferenceProceedings): void {
-    this.router.navigate(['proceeding/conferenceproceedingsdetails'], {
-      state: { proceedings: { ...proceeding }, reviewMode: false }
+    if (!proceeding?.id) {
+      return;
+    }
+
+    this.conferenceProceedingsService.getById(Number(proceeding.id)).subscribe({
+      next: (fullProceeding) => {
+        this.router.navigate(['proceeding/conferenceproceedingsdetails'], {
+          state: { proceedings: { ...fullProceeding }, reviewMode: false }
+        });
+      },
+      error: (err) => {
+        Swal.fire('Error', this.getBackendMessage(err, 'Could not load proceeding details.'), 'error');
+      }
     });
   }
 

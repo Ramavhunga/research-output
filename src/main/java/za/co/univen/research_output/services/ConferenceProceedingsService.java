@@ -3,6 +3,7 @@ package za.co.univen.research_output.services;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import za.co.univen.research_output.dto.ConferenceProceedingsListItemDto;
+import za.co.univen.research_output.entities.Attachment;
 import za.co.univen.research_output.entities.Author;
 import za.co.univen.research_output.entities.ConferenceProceedings;
 import za.co.univen.research_output.entities.ProceedingsStatus;
@@ -273,6 +274,9 @@ public class ConferenceProceedingsService {
         if (proceedings.getAuthors() != null) {
             proceedings.getAuthors().forEach(author -> {
                 author.setConferenceProceedings(proceedings);
+                author.setJournal(null);
+                author.setBook(null);
+                author.setChapter(null);
                 if (author.getUniversityAffiliations() != null) {
                     author.getUniversityAffiliations().forEach(univ -> {
                         if (isBlank(univ.getUniversityName())) {
@@ -285,6 +289,15 @@ public class ConferenceProceedingsService {
                     author.getResearchAffiliations().forEach(affiliation -> affiliation.setAuthor(author));
                 }
             });
+        }
+
+        if (proceedings.getAttachments() != null) {
+            for (Attachment attachment : proceedings.getAttachments()) {
+                attachment.setConferenceProceedings(proceedings);
+                attachment.setJournal(null);
+                attachment.setBook(null);
+                attachment.setChapter(null);
+            }
         }
     }
 
@@ -345,6 +358,10 @@ public class ConferenceProceedingsService {
                     author.getResearchAffiliations().size();
                 }
             });
+        }
+
+        if (proceedings.getAttachments() != null) {
+            proceedings.getAttachments().size();
         }
     }
 

@@ -87,6 +87,10 @@ export class ChapterService {
     );
   }
 
+  getAllForReview(): Observable<Chapter[]> {
+    return this.http.get<Chapter[]>(this.baseurl + 'chapters');
+  }
+
   exists(title: string, isbn: string, id?: number): Observable<boolean> {
     let params = `title=${title}&isbn=${isbn}`;
     if (id) {

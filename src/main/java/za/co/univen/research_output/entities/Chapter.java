@@ -29,9 +29,9 @@ import java.util.List;
 import java.util.Map;
 
 @Entity
-@Table(name = "books")
+@Table(name = "chapters")
 @Data
-public class Book {
+public class Chapter {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -70,6 +70,9 @@ public class Book {
     @Column(nullable = false, name = "title_of_book")
     private String titleOfBook;
 
+    @Column(name = "title_of_contribution")
+    private String titleOfContribution;
+
     private String editors;
     private String publisher;
 
@@ -93,6 +96,9 @@ public class Book {
     @Column(name = "total_pages_claimed")
     private Integer totalPagesClaimed;
 
+    @Column(name = "total_chapters_in_book")
+    private Integer totalChaptersInBook;
+
     @Column(name = "max_units_for_publication")
     private Double maxUnitsForPublication;
 
@@ -111,12 +117,12 @@ public class Book {
     @Column(length = 2000, name = "additional_comments")
     private String additionalComments;
 
-    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
     @Valid
-    @JsonManagedReference("book-authors")
+    @JsonManagedReference("chapter-authors")
     private List<Author> authors = new ArrayList<>();
 
-    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "chapter", cascade = CascadeType.ALL, orphanRemoval = true)
     @Valid
     private List<Attachment> attachments = new ArrayList<>();
 
@@ -145,7 +151,6 @@ public class Book {
             this.evidenceOfPeerReview = "No";
             return;
         }
-        // Keep original value if it's something else
         this.evidenceOfPeerReview = String.valueOf(evidenceOfPeerReview).trim();
     }
 

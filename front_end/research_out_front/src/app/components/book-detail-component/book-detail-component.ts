@@ -49,6 +49,9 @@ export class BookDetailComponent {
   private readonly currentYear = new Date().getFullYear();
 
   isReadOnlyView = false;
+  currentStatus = '';
+  currentRoles: string[] = [];
+  currentUsername = '';
   showPreview = false;
   previewJson = '';
   form: FormGroup;
@@ -140,11 +143,16 @@ export class BookDetailComponent {
     });
 
     this.loadFaculties();
-    const book = this.router.getCurrentNavigation()?.extras.state?.['book'] as Book | undefined;
+    const navigationState = this.router.getCurrentNavigation()?.extras.state ?? history.state ?? {};
+    const book = navigationState['book'] as Book | undefined;
+    this.isReadOnlyView = !!(navigationState['reviewMode'] || navigationState['viewMode'] || navigationState['readOnly']);
+    this.currentStatus = this.normalizeStatus((book as any)?.status);
+    this.currentRoles = this.getCurrentRoles();
+    this.currentUsername = this.getCurrentUsername();
 
     this.form = this.fb.group({
       id: [book?.id ?? null],
-
+      attachments :[book?.attachments??[]],
        /** Core DHET - Required Fields */
        dhetNo: [{value: book?.dhetNo ?? 'B001', disabled: true}, [Validators.required, Validators.pattern(/^B\d+$/)]],
 
@@ -197,8 +205,92 @@ export class BookDetailComponent {
     this.setupAutoCalc();
     this.normalizeAllUniversityAffiliations();
     this.calculateAdvancedUnitBreakdown();
+    this.attachments = this.normalizeAttachments(this.extractRawAttachments(book));
+    this.loadAttachmentsFromBackend(book?.id);
 
     this.authorsFA.controls.forEach((_, i) => this.onCountrySearch(i));
+
+    if (this.isReadOnlyView) {
+      this.disableValidationForReadOnlyMode();
+      this.form.disable({ emitEvent: false });
+    }
+  }
+
+  private loadAttachmentsFromBackend(bookId?: number): void {
+    if (!bookId) return;
+
+    this.bookService.getById(bookId).subscribe({
+      next: (fullBook) => {
+        this.attachments = this.normalizeAttachments(this.extractRawAttachments(fullBook));
+      },
+      error: (err) => {
+        console.warn('Failed to load book attachments for detail view', err);
+      }
+    });
+  }
+
+  private extractRawAttachments(source: unknown): unknown {
+    const record = source as any;
+    if (!record) return [];
+
+    return record.attachments
+      ?? record.attachment
+      ?? record.files
+      ?? record.documents
+      ?? [];
+  }
+
+  private normalizeAttachments(rawAttachments: unknown): Attachment[] {
+    let list: unknown[] = [];
+
+    if (Array.isArray(rawAttachments)) {
+      list = rawAttachments;
+    } else if (typeof rawAttachments === 'string') {
+      try {
+        const parsed = JSON.parse(rawAttachments);
+        list = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        list = [];
+      }
+    } else if (rawAttachments && typeof rawAttachments === 'object') {
+      const wrapper = rawAttachments as any;
+      const candidates = [wrapper.items, wrapper.content, wrapper.data, wrapper.rows];
+      const firstArray = candidates.find(Array.isArray);
+      list = Array.isArray(firstArray) ? firstArray : [];
+    }
+
+    return list
+      .map((item: any) => ({
+        id: item?.id ?? null,
+        formguid: item?.formguid ?? item?.formGuid ?? undefined,
+        fileName: item?.fileName ?? item?.filename ?? item?.name ?? '',
+        fileType: item?.fileType ?? item?.filetype ?? item?.mimeType ?? item?.contentType ?? 'application/pdf',
+        fileSize: Number(item?.fileSize ?? item?.filesize ?? item?.size ?? 0) || 0,
+        fileData: item?.fileData ?? item?.data ?? item?.base64 ?? undefined,
+        filePath: item?.filePath ?? item?.filepath ?? null,
+        url: item?.url ?? item?.fileUrl ?? item?.downloadUrl ?? undefined,
+        description: item?.description ?? item?.desc ?? ''
+      } as Attachment))
+      .filter(att => !!att.fileName);
+  }
+
+  private disableValidationForReadOnlyMode(): void {
+    this.clearValidatorsRecursively(this.form);
+  }
+
+  private clearValidatorsRecursively(control: AbstractControl): void {
+    control.clearValidators();
+    control.clearAsyncValidators();
+
+    if (control instanceof FormGroup) {
+      Object.values(control.controls).forEach(child => this.clearValidatorsRecursively(child));
+    }
+
+    if (control instanceof FormArray) {
+      control.controls.forEach(child => this.clearValidatorsRecursively(child));
+    }
+
+    control.updateValueAndValidity({ emitEvent: false });
   }
 
   private normalizeOriginalPhotocopy(value: string | undefined): 'O' | 'P' | '' {
@@ -280,6 +372,145 @@ export class BookDetailComponent {
         })
       );
     };
+  }
+
+  private getCurrentUsername(): string {
+    const loginRaw = sessionStorage.getItem('login');
+    if (!loginRaw) return '';
+
+    try {
+      const loginData = JSON.parse(loginRaw);
+      return (loginData?.user?.username ?? loginData?.username ?? '').toString().trim();
+    } catch {
+      return '';
+    }
+  }
+
+  private getCurrentRoles(): string[] {
+    const loginRaw = sessionStorage.getItem('login');
+    if (!loginRaw) return [];
+
+    try {
+      const loginData = JSON.parse(loginRaw);
+      const roleSource = loginData?.user?.roles ?? loginData?.user?.userType ?? loginData?.userType ?? '';
+      if (Array.isArray(roleSource)) {
+        return roleSource.map((r: any) => String(r).toUpperCase().trim()).filter(Boolean);
+      }
+      return String(roleSource)
+        .split(',')
+        .map((r: string) => r.toUpperCase().trim())
+        .filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  private normalizeStatus(status: unknown): string {
+    return String(status ?? '').toUpperCase().trim();
+  }
+
+  private isApproverRole(roles: string[]): boolean {
+    return roles.includes('ADMIN')
+      || roles.includes('ADMINISTRATOR')
+      || roles.includes('REVIEWER_LEVEL_1')
+      || roles.includes('LEVEL_1_APPROVER')
+      || roles.includes('REVIEWER_LEVEL_2')
+      || roles.includes('LEVEL_2_APPROVER');
+  }
+
+  private canCurrentApproverDecideOnStatus(roles: string[], status: string): boolean {
+    if (!status) return false;
+
+    if (roles.includes('ADMIN') || roles.includes('ADMINISTRATOR')) {
+      return status !== 'READY_FOR_POSTING' && status !== 'POSTED_TO_DHET';
+    }
+
+    const isL1 = roles.includes('REVIEWER_LEVEL_1') || roles.includes('LEVEL_1_APPROVER');
+    const isL2 = roles.includes('REVIEWER_LEVEL_2') || roles.includes('LEVEL_2_APPROVER');
+    const l1Stage = status === 'SUBMITTED' || status === 'UNDER_REVIEW_L1';
+    const l2Stage = status === 'UNDER_REVIEW_L2';
+    return (isL1 && l1Stage) || (isL2 && l2Stage);
+  }
+
+  canShowReviewDecisionActions(): boolean {
+    return !this.isReadOnlyView
+      && this.isApproverRole(this.currentRoles)
+      && this.canCurrentApproverDecideOnStatus(this.currentRoles, this.currentStatus);
+  }
+
+  shouldHideReviewStepperActions(): boolean {
+    return this.isApproverRole(this.currentRoles) && !!this.currentStatus;
+  }
+
+  async approveFromReview(): Promise<void> {
+    if (!this.canShowReviewDecisionActions()) return;
+
+    const id = Number(this.form.get('id')?.value ?? 0);
+    if (!id) {
+      Swal.fire('Error', 'Missing book id for approval.', 'error');
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: 'Approve book?',
+      input: 'textarea',
+      inputLabel: 'Comments (required)',
+      showCancelButton: true,
+      confirmButtonText: 'Approve',
+      inputValidator: (value) => !String(value ?? '').trim() ? 'Comments are required' : null
+    });
+
+    if (!result.isConfirmed) return;
+    const comments = String(result.value).trim();
+    const payload = this.buildPayload();
+
+    this.bookService.save(payload, this.currentUsername).pipe(
+      switchMap(() => this.bookService.approve(id, this.currentUsername, comments))
+    ).subscribe({
+      next: (updated) => {
+        this.currentStatus = this.normalizeStatus((updated as any)?.status);
+        Swal.fire('Approved', 'Book changes were saved and moved to the next stage.', 'success').then(() => {
+          this.router.navigate(['/review-dashboard']);
+        });
+      },
+      error: (err) => {
+        Swal.fire('Error', err?.error?.message ?? 'Could not save changes and approve the book.', 'error');
+      }
+    });
+  }
+
+  async declineFromReview(): Promise<void> {
+    if (!this.canShowReviewDecisionActions()) return;
+
+    const id = Number(this.form.get('id')?.value ?? 0);
+    if (!id) {
+      Swal.fire('Error', 'Missing book id for decline.', 'error');
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: 'Decline book?',
+      input: 'textarea',
+      inputLabel: 'Comments (required)',
+      showCancelButton: true,
+      confirmButtonText: 'Decline',
+      inputValidator: (value) => !String(value ?? '').trim() ? 'Comments are required' : null
+    });
+
+    if (!result.isConfirmed) return;
+    const comments = String(result.value).trim();
+
+    this.bookService.reject(id, this.currentUsername, comments).subscribe({
+      next: (updated) => {
+        this.currentStatus = this.normalizeStatus((updated as any)?.status);
+        Swal.fire('Declined', 'Book has been declined.', 'success').then(() => {
+          this.router.navigate(['/review-dashboard']);
+        });
+      },
+      error: (err) => {
+        Swal.fire('Error', err?.error?.message ?? 'Decline failed.', 'error');
+      }
+    });
   }
 
   setupFieldSearch() {
@@ -427,6 +658,7 @@ export class BookDetailComponent {
   }
 
   addAuthor(affiliation: boolean = true) {
+    if (this.isReadOnlyView) return;
     const authorFG = this.newAuthor(undefined, affiliation);
     this.updateAffiliatedValidators(authorFG, affiliation);
     this.authorsFA.push(authorFG);
@@ -437,6 +669,7 @@ export class BookDetailComponent {
   }
 
   removeAuthor(i: number) {
+    if (this.isReadOnlyView) return;
     this.authorsFA.removeAt(i);
     this.recalculateContributions();
     this.calculateAdvancedUnitBreakdown();
@@ -713,6 +946,7 @@ export class BookDetailComponent {
   }
 
   selectUniversityOption(authorIndex: number, univIndex: number, university: { code: string; name: string }): void {
+    if (this.isReadOnlyView) return;
     const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
     row.patchValue(
       {
@@ -729,6 +963,7 @@ export class BookDetailComponent {
   }
 
   selectOtherUniversity(authorIndex: number, univIndex: number): void {
+    if (this.isReadOnlyView) return;
     const row = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup).at(univIndex) as FormGroup;
     row.patchValue(
       {
@@ -782,6 +1017,7 @@ export class BookDetailComponent {
   }
 
   addUniversityAffiliation(authorIndex: number) {
+    if (this.isReadOnlyView) return;
     const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     univArray.push(this.fb.group({
       universityCode: ['', Validators.required],
@@ -794,6 +1030,7 @@ export class BookDetailComponent {
   }
 
   removeUniversityAffiliation(authorIndex: number, univIndex: number) {
+    if (this.isReadOnlyView) return;
     const univArray = this.getUniversityAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     univArray.removeAt(univIndex);
     delete this.universitySearchTerms[this.getUniversityRowKey(authorIndex, univIndex)];
@@ -802,6 +1039,7 @@ export class BookDetailComponent {
   }
 
   addResearchAffiliation(authorIndex: number) {
+    if (this.isReadOnlyView) return;
     const resArray = this.getResearchAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     resArray.push(this.fb.group({
       companyName: ['', Validators.required],
@@ -811,6 +1049,7 @@ export class BookDetailComponent {
   }
 
   removeResearchAffiliation(authorIndex: number, resIndex: number) {
+    if (this.isReadOnlyView) return;
     const resArray = this.getResearchAffiliations(this.authorsFA.at(authorIndex) as FormGroup);
     resArray.removeAt(resIndex);
     this.calculateAdvancedUnitBreakdown();
@@ -837,6 +1076,10 @@ export class BookDetailComponent {
   }
 
   isStepValid(stepId: number): boolean {
+    if (this.isReadOnlyView) {
+      return true;
+    }
+
     switch (stepId) {
       case 1:
         return this.isBookInfoValid();
@@ -852,6 +1095,10 @@ export class BookDetailComponent {
   }
 
   private isBookInfoValid(): boolean {
+    if (this.isReadOnlyView) {
+      return true;
+    }
+
     const fields = [
       'year', 'titleOfBook', 'publisher',
       'isbn', 'fieldofsearch', 'originalPhotocopy', 'peerReviewEvidence',
@@ -866,6 +1113,10 @@ export class BookDetailComponent {
   }
 
   private isAuthorsValid(affiliated: boolean): boolean {
+    if (this.isReadOnlyView) {
+      return true;
+    }
+
     const authors = affiliated ? this.getAffiliatedAuthors() : this.getNonAffiliatedAuthors();
     if (affiliated && authors.length === 0) return false;
 
@@ -877,6 +1128,10 @@ export class BookDetailComponent {
   }
 
   private isAffiliatedAuthorsComplete(): boolean {
+    if (this.isReadOnlyView) {
+      return true;
+    }
+
     return this.getAffiliatedAuthors().every(ctrl =>
       ctrl.get('studentEmployeeNo')?.valid
       && ctrl.get('gender')?.valid
@@ -885,6 +1140,10 @@ export class BookDetailComponent {
   }
 
   private markStepAsTouched(stepId: number): void {
+    if (this.isReadOnlyView) {
+      return;
+    }
+
     if (stepId === 1) {
       const fields = [
         'year', 'titleOfBook', 'publisher', 'isbn',
@@ -971,36 +1230,57 @@ export class BookDetailComponent {
   }
 
   buildPayload(): Book {
-    const raw = this.form.getRawValue();
+     const raw = this.form.getRawValue();
 
-    return {
-      id: raw.id ?? 0,
-      dhetNo: raw.dhetNo,
-      yearOfPublication: raw.year ? Number(raw.year) : 0,
-      titleOfBook: raw.titleOfBook,
-      editors: raw.editors ?? undefined,
-      publisher: raw.publisher,
-      isbn: raw.isbn,
-      fieldOfResearch: raw.fieldofsearch ?? null,
-      originalOrPhotocopy: raw.originalPhotocopy,
-      evidenceOfPeerReview: raw.peerReviewEvidence,
-      typeOfEvidence: raw.typeOfEvidence ?? undefined,
-      totalNoPages: raw.totalNoPages ? Number(raw.totalNoPages) : 0,
-      startPage: raw.startPage ? Number(raw.startPage) : 0,
-      endPage: raw.endPage ? Number(raw.endPage) : 0,
-      totalPagesClaimed: raw.totalPagesClaimed ? Number(raw.totalPagesClaimed) : 0,
-      maxUnitsForPublication: raw.maxUnitsForPublication ? Number(raw.maxUnitsForPublication) : undefined,
-      totalProportionOfAuthors: raw.totalProportionOfAuthors ? Number(raw.totalProportionOfAuthors) : 0,
-      authorCount: raw.authorCount ? Number(raw.authorCount) : 0,
-      totalUnitsClaimed: raw.totalUnitsClaimed ? Number(raw.totalUnitsClaimed) : 0,
-      otherAuthorsNonAffiliated: raw.otherAuthorsNonAffiliatedList ?? undefined,
-      funders: raw.funders ?? undefined,
-      authors: raw.authors as Authors[],
-      additionalComments: raw.additionalComments ?? undefined
-    };
-  }
+     // Convert publisher ID to publisher name
+     const publisherName = this.getPublisherName(raw.publisher);
+
+     return {
+       id: raw.id ?? 0,
+       dhetNo: raw.dhetNo,
+       yearOfPublication: raw.year ? Number(raw.year) : 0,
+       titleOfBook: raw.titleOfBook,
+       editors: raw.editors ?? undefined,
+       publisher: publisherName,
+       isbn: raw.isbn,
+       fieldOfResearch: raw.fieldofsearch ?? null,
+       originalOrPhotocopy: raw.originalPhotocopy,
+       evidenceOfPeerReview: raw.peerReviewEvidence,
+       typeOfEvidence: raw.typeOfEvidence ?? undefined,
+       totalNoPages: raw.totalNoPages ? Number(raw.totalNoPages) : 0,
+       startPage: raw.startPage ? Number(raw.startPage) : 0,
+       endPage: raw.endPage ? Number(raw.endPage) : 0,
+       totalPagesClaimed: raw.totalPagesClaimed ? Number(raw.totalPagesClaimed) : 0,
+       maxUnitsForPublication: raw.maxUnitsForPublication ? Number(raw.maxUnitsForPublication) : undefined,
+       totalProportionOfAuthors: raw.totalProportionOfAuthors ? Number(raw.totalProportionOfAuthors) : 0,
+       authorCount: raw.authorCount ? Number(raw.authorCount) : 0,
+       totalUnitsClaimed: raw.totalUnitsClaimed ? Number(raw.totalUnitsClaimed) : 0,
+       otherAuthorsNonAffiliated: raw.otherAuthorsNonAffiliatedList ?? undefined,
+       funders: raw.funders ?? undefined,
+       authors: raw.authors as Authors[],
+       attachments: (this.attachments ?? []).map(att => ({
+         id: att.id,
+         formguid: att.formguid,
+         fileName: att.fileName,
+         fileSize: Number(att.fileSize ?? 0),
+         fileType: att.fileType,
+         fileData: att.fileData,
+         filePath: att.filePath ?? null,
+         url: att.url,
+         description: att.description ?? ''
+       })),
+       additionalComments: raw.additionalComments ?? undefined
+     };
+   }
+
+   private getPublisherName(publisherId: number | string): string {
+     if (!publisherId) return '';
+     const publisher = this.publishers.find(p => p.id === publisherId || p.id === Number(publisherId));
+     return publisher?.name ?? '';
+   }
 
   autoPopulateForm(): void {
+    if (this.isReadOnlyView) return;
     this.form.patchValue({
       id: null,
       dhetNo: 'B001',
@@ -1084,6 +1364,7 @@ export class BookDetailComponent {
   }
 
   onSubmit() {
+    if (this.isReadOnlyView) return;
 
     const payload = this.buildPayload();
 
@@ -1153,6 +1434,7 @@ export class BookDetailComponent {
   }
 
   onFileSelected(event: any) {
+    if (this.isReadOnlyView) return;
     const file = event.target.files[0];
     if (!file) {
       this.selectedFile = null;
@@ -1170,6 +1452,7 @@ export class BookDetailComponent {
   }
 
   addAttachment() {
+    if (this.isReadOnlyView) return;
     if (!this.selectedFile) {
       this.fileError = 'Please select a file.';
       return;
@@ -1207,6 +1490,7 @@ export class BookDetailComponent {
   }
 
   removeAttachmentRow(index: number) {
+    if (this.isReadOnlyView) return;
     this.attachments.splice(index, 1);
   }
 
@@ -1236,6 +1520,7 @@ export class BookDetailComponent {
   }
 
   reset() {
+    if (this.isReadOnlyView) return;
     this.form.reset();
     this.authorsFA.clear();
     this.authorsFA.push(this.newAuthor());

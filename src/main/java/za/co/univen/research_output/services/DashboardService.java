@@ -3,12 +3,17 @@ package za.co.univen.research_output.services;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import za.co.univen.research_output.dto.DashboardStatsDto;
+import za.co.univen.research_output.entities.Book;
+import za.co.univen.research_output.entities.BookStatus;
+import za.co.univen.research_output.entities.Chapter;
 import za.co.univen.research_output.entities.ConferenceProceedings;
 import za.co.univen.research_output.entities.Journal;
 import za.co.univen.research_output.entities.JournalStatus;
 import za.co.univen.research_output.entities.OutputStatus;
 import za.co.univen.research_output.entities.ProceedingsStatus;
 import za.co.univen.research_output.entities.ResearchOutput;
+import za.co.univen.research_output.repositories.BookRepository;
+import za.co.univen.research_output.repositories.ChapterRepository;
 import za.co.univen.research_output.repositories.ConferenceProceedingsRepository;
 import za.co.univen.research_output.repositories.JournalRepository;
 import za.co.univen.research_output.repositories.ResearchOutputRepository;
@@ -25,15 +30,21 @@ import java.util.stream.Stream;
 public class DashboardService {
 
     private final JournalRepository journalRepository;
+    private final BookRepository bookRepository;
+    private final ChapterRepository chapterRepository;
     private final ConferenceProceedingsRepository conferenceProceedingsRepository;
     private final ResearchOutputRepository researchOutputRepository;
 
     public DashboardService(
             JournalRepository journalRepository,
+            BookRepository bookRepository,
+            ChapterRepository chapterRepository,
             ConferenceProceedingsRepository conferenceProceedingsRepository,
             ResearchOutputRepository researchOutputRepository
     ) {
         this.journalRepository = journalRepository;
+        this.bookRepository = bookRepository;
+        this.chapterRepository = chapterRepository;
         this.conferenceProceedingsRepository = conferenceProceedingsRepository;
         this.researchOutputRepository = researchOutputRepository;
     }
@@ -44,9 +55,11 @@ public class DashboardService {
     @Transactional
     public DashboardStatsDto getDashboardStatsForAdmin() {
         List<Journal> allJournals = journalRepository.findAll();
+        List<Book> allBooks = bookRepository.findAll();
+        List<Chapter> allChapters = chapterRepository.findAll();
         List<ConferenceProceedings> allProceedings = conferenceProceedingsRepository.findAll();
         List<ResearchOutput> allResearchOutputs = researchOutputRepository.findAll();
-        return buildDashboardStats(allJournals, allProceedings, allResearchOutputs);
+        return buildDashboardStats(allJournals, allBooks, allChapters, allProceedings, allResearchOutputs);
     }
 
     /**
@@ -55,9 +68,11 @@ public class DashboardService {
     @Transactional
     public DashboardStatsDto getDashboardStatsForUser(String username) {
         List<Journal> userJournals = journalRepository.findBySubmittedByUsername(username);
+        List<Book> userBooks = bookRepository.findBySubmittedByUsername(username);
+        List<Chapter> userChapters = chapterRepository.findBySubmittedByUsername(username);
         List<ConferenceProceedings> userProceedings = conferenceProceedingsRepository.findBySubmittedByUsername(username);
         List<ResearchOutput> userResearchOutputs = researchOutputRepository.findAllByCreatedBy(username);
-        return buildDashboardStats(userJournals, userProceedings, userResearchOutputs);
+        return buildDashboardStats(userJournals, userBooks, userChapters, userProceedings, userResearchOutputs);
     }
 
     /**
@@ -87,6 +102,23 @@ public class DashboardService {
             .distinct()
             .toList();
 
+        List<BookStatus> reviewBookStatuses = Arrays.asList(
+            BookStatus.SUBMITTED,
+            BookStatus.UNDER_REVIEW_L1,
+            BookStatus.UNDER_REVIEW_L2,
+            BookStatus.REJECTED_L1,
+            BookStatus.REJECTED_L2,
+            BookStatus.READY_FOR_POSTING
+        );
+
+        List<Book> reviewerBooks = bookRepository.findAll().stream()
+            .filter(book -> book.getStatus() != null && reviewBookStatuses.contains(book.getStatus()))
+            .toList();
+
+        List<Chapter> reviewerChapters = chapterRepository.findAll().stream()
+            .filter(chapter -> chapter.getStatus() != null && reviewBookStatuses.contains(chapter.getStatus()))
+            .toList();
+
         List<ProceedingsStatus> reviewProceedingsStatuses = Arrays.asList(
             ProceedingsStatus.SUBMITTED,
             ProceedingsStatus.UNDER_REVIEW_L1,
@@ -106,7 +138,7 @@ public class DashboardService {
 
         List<ResearchOutput> reviewerResearchOutputs = researchOutputRepository.findAllByStatus(OutputStatus.SUBMITTED);
 
-        return buildDashboardStats(deduplicated, reviewerProceedings, reviewerResearchOutputs);
+        return buildDashboardStats(deduplicated, reviewerBooks, reviewerChapters, reviewerProceedings, reviewerResearchOutputs);
     }
 
     /**
@@ -114,14 +146,18 @@ public class DashboardService {
      */
     private DashboardStatsDto buildDashboardStats(
             List<Journal> journals,
+            List<Book> books,
+            List<Chapter> chapters,
             List<ConferenceProceedings> proceedings,
             List<ResearchOutput> researchOutputs
     ) {
         List<Journal> safeJournals = journals == null ? List.of() : journals;
+        List<Book> safeBooks = books == null ? List.of() : books;
+        List<Chapter> safeChapters = chapters == null ? List.of() : chapters;
         List<ConferenceProceedings> safeProceedings = proceedings == null ? List.of() : proceedings;
         List<ResearchOutput> safeOutputs = researchOutputs == null ? List.of() : researchOutputs;
 
-        if (safeJournals.isEmpty() && safeProceedings.isEmpty() && safeOutputs.isEmpty()) {
+        if (safeJournals.isEmpty() && safeBooks.isEmpty() && safeChapters.isEmpty() && safeProceedings.isEmpty() && safeOutputs.isEmpty()) {
             return DashboardStatsDto.builder()
                 .totalJournals(0)
                 .totalBooks(0)
@@ -179,6 +215,32 @@ public class DashboardService {
             }
         }
 
+        for (Book book : safeBooks) {
+            totalUnits += book.getTotalUnitsClaimed() != null ? book.getTotalUnitsClaimed() : 0;
+
+            String status = toDashboardStatus(book.getStatus());
+            if ("APPROVED".equals(status)) {
+                approvedCount++;
+            } else if ("REJECTED".equals(status)) {
+                rejectedCount++;
+            } else {
+                pendingCount++;
+            }
+        }
+
+        for (Chapter chapter : safeChapters) {
+            totalUnits += chapter.getTotalUnitsClaimed() != null ? chapter.getTotalUnitsClaimed() : 0;
+
+            String status = toDashboardStatus(chapter.getStatus());
+            if ("APPROVED".equals(status)) {
+                approvedCount++;
+            } else if ("REJECTED".equals(status)) {
+                rejectedCount++;
+            } else {
+                pendingCount++;
+            }
+        }
+
         for (ResearchOutput researchOutput : safeOutputs) {
             String status = toDashboardStatus(researchOutput.getStatus());
             if ("APPROVED".equals(status)) {
@@ -190,25 +252,26 @@ public class DashboardService {
             }
         }
 
-        long booksCount = safeOutputs.stream()
+        long booksCount = safeBooks.size() + safeOutputs.stream()
             .filter(output -> "BOOK".equals(normalizeOutputType(output.getOutputType())))
             .count();
-        long chaptersCount = safeOutputs.stream()
+        long chaptersCount = safeChapters.size() + safeOutputs.stream()
             .filter(output -> "CHAPTER".equals(normalizeOutputType(output.getOutputType())))
             .count();
         long proceedingsCount = safeProceedings.size() + safeOutputs.stream()
             .filter(output -> "PROCEEDING".equals(normalizeOutputType(output.getOutputType())))
             .count();
 
-        long totalSubmissions = safeJournals.size() + safeProceedings.size() + safeOutputs.size();
+        long totalSubmissions = safeJournals.size() + safeBooks.size() + safeChapters.size() + safeProceedings.size() + safeOutputs.size();
 
-        long activeResearchers = Stream.concat(
-                Stream.concat(
-                    safeJournals.stream().map(j -> j.getSubmittedBy() != null ? j.getSubmittedBy().getUsername() : null),
-                    safeProceedings.stream().map(p -> p.getSubmittedBy() != null ? p.getSubmittedBy().getUsername() : null)
-                ),
+        long activeResearchers = Stream.of(
+                safeJournals.stream().map(j -> j.getSubmittedBy() != null ? j.getSubmittedBy().getUsername() : null),
+                safeBooks.stream().map(b -> b.getSubmittedBy() != null ? b.getSubmittedBy().getUsername() : null),
+                safeChapters.stream().map(c -> c.getSubmittedBy() != null ? c.getSubmittedBy().getUsername() : null),
+                safeProceedings.stream().map(p -> p.getSubmittedBy() != null ? p.getSubmittedBy().getUsername() : null),
                 safeOutputs.stream().map(ResearchOutput::getCreatedBy)
             )
+            .flatMap(stream -> stream)
             .filter(username -> username != null && !username.isBlank())
             .distinct()
             .count();
@@ -246,6 +309,32 @@ public class DashboardService {
                         : 0)
                     .build(),
                 toEpochMillis(cp.getUpdatedAt(), cp.getCreatedAt())
+            ));
+        }
+
+        for (Book b : safeBooks) {
+            candidates.add(new SubmissionCandidate(
+                DashboardStatsDto.RecentSubmissionDto.builder()
+                    .journalId(b.getId())
+                    .title(b.getTitleOfBook() != null ? b.getTitleOfBook() : "-")
+                    .type("Book")
+                    .status(toDashboardStatus(b.getStatus()))
+                    .units(b.getTotalUnitsClaimed() != null ? b.getTotalUnitsClaimed() : 0)
+                    .build(),
+                toEpochMillis(b.getUpdatedAt(), b.getCreatedAt())
+            ));
+        }
+
+        for (Chapter c : safeChapters) {
+            candidates.add(new SubmissionCandidate(
+                DashboardStatsDto.RecentSubmissionDto.builder()
+                    .journalId(c.getId())
+                    .title(c.getTitleOfContribution() != null ? c.getTitleOfContribution() : (c.getTitleOfBook() != null ? c.getTitleOfBook() : "-"))
+                    .type("Chapter")
+                    .status(toDashboardStatus(c.getStatus()))
+                    .units(c.getTotalUnitsClaimed() != null ? c.getTotalUnitsClaimed() : 0)
+                    .build(),
+                toEpochMillis(c.getUpdatedAt(), c.getCreatedAt())
             ));
         }
 
@@ -308,6 +397,16 @@ public class DashboardService {
             return "APPROVED";
         }
         if (status == ProceedingsStatus.REJECTED || status == ProceedingsStatus.REJECTED_L1 || status == ProceedingsStatus.REJECTED_L2) {
+            return "REJECTED";
+        }
+        return "PENDING";
+    }
+
+    private String toDashboardStatus(BookStatus status) {
+        if (status == BookStatus.READY_FOR_POSTING || status == BookStatus.ACCEPTED_BY_DHET) {
+            return "APPROVED";
+        }
+        if (status == BookStatus.REJECTED_L1 || status == BookStatus.REJECTED_L2) {
             return "REJECTED";
         }
         return "PENDING";
