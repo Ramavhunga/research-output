@@ -58,6 +58,8 @@ public class CurrentUserService {
             roles.add("ADMIN");
         }
 
+        expandRoleAliases(roles);
+
         return roles;
     }
 
@@ -113,5 +115,17 @@ public class CurrentUserService {
         user.setEmail(username + "@local");
         user.setRole("REQUESTOR");
         return userRepository.save(user);
+    }
+
+    private void expandRoleAliases(Set<String> roles) {
+        if (roles.contains("ADMINISTRATOR")) {
+            roles.add("ADMIN");
+        }
+        if (roles.contains("LEVEL_1_APPROVER")) {
+            roles.add("REVIEWER_LEVEL_1");
+        }
+        if (roles.contains("LEVEL_2_APPROVER")) {
+            roles.add("REVIEWER_LEVEL_2");
+        }
     }
 }

@@ -71,7 +71,7 @@ public class JournalController {
         return ResponseEntity.ok(updated);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public ResponseEntity<Journal> getOne(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
@@ -106,37 +106,13 @@ public class JournalController {
     }
 
     @GetMapping("/export")
-    public ResponseEntity<byte[]> exportExcel(
-            @RequestParam(defaultValue = "false") boolean mine,
-            @RequestHeader(value = "X-Username", required = false) String username
-    ) {
-        List<Journal> journals;
-        if (mine) {
-            String resolvedUsername = currentUserService.getOrCreateUserByUsername(username).getUsername();
-            journals = service.findAllForUser(resolvedUsername);
-        } else {
-            journals = service.findAll(null, null, null);
-        }
+    public ResponseEntity<byte[]> exportExcel() {
+        List<Journal> journals = service.findAll(null, JournalStatus.READY_FOR_POSTING, null);
 
         ByteArrayInputStream in = excelExportService.exportToExcel(journals);
         byte[] bytes = in.readAllBytes();
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=dhet-journals.xlsx")
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .body(bytes);
-    }
-
-    @GetMapping({"/{id}/export", "/export/{id}"})
-    public ResponseEntity<byte[]> exportSingleJournalExcel(@PathVariable Long id) {
-        Journal journal = service.getByIdForExport(id);
-        ByteArrayInputStream in = excelExportService.exportToExcel(List.of(journal));
-        byte[] bytes = in.readAllBytes();
-        String fileName = (journal.getDhetNo() == null || journal.getDhetNo().isBlank())
-                ? "journal-" + id + ".xlsx"
-                : "journal-" + journal.getDhetNo() + ".xlsx";
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName)
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(bytes);
     }

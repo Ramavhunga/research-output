@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import {HttpClient, HttpHeaders} from '@angular/common/http';
+import {HttpClient, HttpHeaders, HttpResponse} from '@angular/common/http';
 import {catchError, Observable} from 'rxjs';
 import {environment} from '../../environment/environment-url';
 import {Department, Faculty} from '../models/common.model';
@@ -67,7 +67,6 @@ export class ConferenceProceedingsService {
   }
 
   save(proceedings: ConferenceProceedings, username?: string): Observable<ConferenceProceedings> {
-    debugger;
     if (!proceedings.id || proceedings.id === 0) {
       return this.create(proceedings, username);
     }
@@ -103,6 +102,19 @@ export class ConferenceProceedingsService {
     return this.http.get<ConferenceProceedings[]>(`${this.baseurl}conference-proceedings?summary=true`);
   }
 
+  exportReadyForPostingProceedings(): Observable<HttpResponse<Blob>> {
+    // Prefer canonical backend path; keep legacy alias as fallback for compatibility.
+    return this.http.get(`${this.baseurl}conference-proceedings/export`, {
+      observe: 'response',
+      responseType: 'blob'
+    }).pipe(
+      catchError(() => this.http.get(`${this.baseurl}proceedings/export`, {
+        observe: 'response',
+        responseType: 'blob'
+      }))
+    );
+  }
+
   submitForReview(id: number, username?: string, comments?: string): Observable<ConferenceProceedings> {
     const headers = this.buildRequiredUsernameHeaders(username);
     return this.http.post<ConferenceProceedings>(
@@ -126,6 +138,15 @@ export class ConferenceProceedingsService {
     return this.http.post<ConferenceProceedings>(
       `${this.baseurl}conference-proceedings/${id}/reject`,
       { comments: comments ?? '' },
+      { headers }
+    );
+  }
+
+  transitionStatus(id: number, status: string, username?: string): Observable<ConferenceProceedings> {
+    const headers = this.buildRequiredUsernameHeaders(username);
+    return this.http.patch<ConferenceProceedings>(
+      `${this.baseurl}conference-proceedings/${id}/status`,
+      { status },
       { headers }
     );
   }

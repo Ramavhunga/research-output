@@ -1,6 +1,8 @@
 package za.co.univen.research_output.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import za.co.univen.research_output.dto.ConferenceProceedingsListItemDto;
@@ -10,9 +12,11 @@ import za.co.univen.research_output.entities.ConferenceProceedings;
 import za.co.univen.research_output.entities.ProceedingsStatus;
 import za.co.univen.research_output.entities.SubmissionLog;
 import za.co.univen.research_output.repositories.ConferenceProceedingsRepository;
+import za.co.univen.research_output.services.ConferenceProceedingsExcelExportService;
 import za.co.univen.research_output.services.ConferenceProceedingsService;
 import za.co.univen.research_output.services.CurrentUserService;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
 
 @RestController
@@ -21,15 +25,18 @@ public class ConferenceProceedingsController {
 
     private final ConferenceProceedingsService service;
     private final ConferenceProceedingsRepository repository;
+    private final ConferenceProceedingsExcelExportService excelExportService;
     private final CurrentUserService currentUserService;
 
     public ConferenceProceedingsController(
             ConferenceProceedingsService service,
             ConferenceProceedingsRepository repository,
+            ConferenceProceedingsExcelExportService excelExportService,
             CurrentUserService currentUserService
     ) {
         this.service = service;
         this.repository = repository;
+        this.excelExportService = excelExportService;
         this.currentUserService = currentUserService;
     }
 
@@ -43,30 +50,23 @@ public class ConferenceProceedingsController {
         return ResponseEntity.ok(saved);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<ConferenceProceedings> update(
-            @PathVariable Long id,
-            @Valid @RequestBody ConferenceProceedings dto,
-            @RequestHeader("X-Username") String username
-    ) {
-        dto.setId(id);
-        ConferenceProceedings saved = service.createOrUpdate(dto, username);
-        return ResponseEntity.ok(saved);
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportExcel() {
+        List<ConferenceProceedings> proceedings = service.findAll(null, ProceedingsStatus.READY_FOR_POSTING, null);
+        ByteArrayInputStream in = excelExportService.exportToExcel(proceedings);
+        byte[] bytes = in.readAllBytes();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=dhet-conference-proceedings.xlsx")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(bytes);
     }
 
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<ConferenceProceedings> transitionStatus(
-            @PathVariable Long id,
-            @Valid @RequestBody ProceedingsStatusUpdateRequest request,
-            @RequestHeader("X-Username") String username
+    @GetMapping("/exists")
+    public boolean existsByTitleOfContributionAndIssn(
+            @RequestParam String titleOfContribution,
+            @RequestParam String issn
     ) {
-        ConferenceProceedings updated = service.transitionStatus(id, request.getStatus(), username);
-        return ResponseEntity.ok(updated);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<ConferenceProceedings> getOne(@PathVariable Long id) {
-        return ResponseEntity.ok(service.getById(id));
+        return service.existsByTitleOfContributionAndIssn(titleOfContribution, issn);
     }
 
     @GetMapping
@@ -98,15 +98,33 @@ public class ConferenceProceedingsController {
         return ResponseEntity.ok(service.findAll(yearOfPublication, status, facultyId));
     }
 
-    @GetMapping("/exists")
-    public boolean existsByTitleOfContributionAndIssn(
-            @RequestParam String titleOfContribution,
-            @RequestParam String issn
-    ) {
-        return service.existsByTitleOfContributionAndIssn(titleOfContribution, issn);
+    @GetMapping("/{id:\\d+}")
+    public ResponseEntity<ConferenceProceedings> getOne(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getById(id));
     }
 
-    @PostMapping("/{id}/submit")
+    @PutMapping("/{id:\\d+}")
+    public ResponseEntity<ConferenceProceedings> update(
+            @PathVariable Long id,
+            @Valid @RequestBody ConferenceProceedings dto,
+            @RequestHeader("X-Username") String username
+    ) {
+        dto.setId(id);
+        ConferenceProceedings saved = service.createOrUpdate(dto, username);
+        return ResponseEntity.ok(saved);
+    }
+
+    @PatchMapping("/{id:\\d+}/status")
+    public ResponseEntity<ConferenceProceedings> transitionStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ProceedingsStatusUpdateRequest request,
+            @RequestHeader("X-Username") String username
+    ) {
+        ConferenceProceedings updated = service.transitionStatus(id, request.getStatus(), username);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{id:\\d+}/submit")
     public ResponseEntity<ConferenceProceedings> submitForReview(
             @PathVariable Long id,
             @RequestBody(required = false) ProceedingsDecisionRequest request,
@@ -116,7 +134,7 @@ public class ConferenceProceedingsController {
         return ResponseEntity.ok(updated);
     }
 
-    @PostMapping("/{id}/approve")
+    @PostMapping("/{id:\\d+}/approve")
     public ResponseEntity<ConferenceProceedings> approve(
             @PathVariable Long id,
             @RequestBody(required = false) ProceedingsDecisionRequest request,
@@ -126,7 +144,7 @@ public class ConferenceProceedingsController {
         return ResponseEntity.ok(updated);
     }
 
-    @PostMapping("/{id}/reject")
+    @PostMapping("/{id:\\d+}/reject")
     public ResponseEntity<ConferenceProceedings> reject(
             @PathVariable Long id,
             @RequestBody(required = false) ProceedingsDecisionRequest request,
@@ -136,7 +154,7 @@ public class ConferenceProceedingsController {
         return ResponseEntity.ok(updated);
     }
 
-    @PostMapping("/{id}/accept-dhet")
+    @PostMapping("/{id:\\d+}/accept-dhet")
     public ResponseEntity<ConferenceProceedings> acceptByDhet(
             @PathVariable Long id,
             @RequestBody(required = false) ProceedingsDecisionRequest request,
@@ -146,12 +164,12 @@ public class ConferenceProceedingsController {
         return ResponseEntity.ok(updated);
     }
 
-    @GetMapping("/{id}/timeline")
+    @GetMapping("/{id:\\d+}/timeline")
     public ResponseEntity<List<SubmissionLog>> getTimeline(@PathVariable Long id) {
         return ResponseEntity.ok(service.getTimeline(id));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();

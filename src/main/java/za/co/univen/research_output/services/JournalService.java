@@ -172,6 +172,11 @@ public class JournalService {
             return journal;
         }
 
+        if (currentUserService.hasAnyRole(currentUser, "ADMIN")) {
+            journal.setStatus(newStatus);
+            return repository.save(journal);
+        }
+
         List<JournalStatus> allowed = ALLOWED_TRANSITIONS.getOrDefault(current, List.of());
         if (!allowed.contains(newStatus)) {
             throw new IllegalStateException("Invalid status transition from " + current + " to " + newStatus);

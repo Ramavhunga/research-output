@@ -733,8 +733,6 @@
                 <div class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white mt-4">
                   <button type="button" class="btn btn-outline-secondary" [disabled]="currentStep === 1" (click)="prevStep()">Previous</button>
                   <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>
-                  <button *ngIf="canShowReviewDecisionActions()" type="button" class="btn btn-outline-danger" (click)="declineFromReview()">Decline</button>
-                  <button *ngIf="canShowReviewDecisionActions()" type="button" class="btn btn-success" (click)="approveFromReview()">Approve</button>
                   <button *ngIf="currentStep < totalSteps" type="button" class="btn btn-outline-primary" (click)="goToNextStep()">Next</button>
                   <button *ngIf="!isReadOnlyView && currentStep === totalSteps" type="submit" class="btn btn-primary">Submit Final</button>
                 </div>

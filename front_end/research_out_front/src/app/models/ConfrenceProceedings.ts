@@ -13,10 +13,12 @@ export interface ConferenceProceedings {
   typeOfEvidence?: string;
   yearOfPublication: number;
   titleOfConferenceProceedings: string;
+  titleOfProceeding?: string;
   titleOfContribution: string;
   editors?: string;
   publisher: string;
   isbn: string;
+  issn?: string;
   fieldOfResearch: string;
   funders?: string;
   maxUnitsForPublication?: number;

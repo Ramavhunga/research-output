@@ -14,7 +14,9 @@ import za.co.univen.research_output.repositories.BookRepository;
 import za.co.univen.research_output.repositories.SubmissionLogRepository;
 
 import java.time.LocalDateTime;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class BookService {
@@ -22,6 +24,19 @@ public class BookService {
     private final BookRepository repository;
     private final CurrentUserService currentUserService;
     private final SubmissionLogRepository submissionLogRepository;
+
+    private static final Map<BookStatus, List<BookStatus>> ALLOWED_TRANSITIONS = new EnumMap<>(BookStatus.class);
+
+    static {
+        ALLOWED_TRANSITIONS.put(BookStatus.DRAFT, List.of(BookStatus.SUBMITTED));
+        ALLOWED_TRANSITIONS.put(BookStatus.SUBMITTED, List.of(BookStatus.UNDER_REVIEW_L1));
+        ALLOWED_TRANSITIONS.put(BookStatus.UNDER_REVIEW_L1, List.of(BookStatus.UNDER_REVIEW_L2, BookStatus.REJECTED_L1));
+        ALLOWED_TRANSITIONS.put(BookStatus.UNDER_REVIEW_L2, List.of(BookStatus.READY_FOR_POSTING, BookStatus.REJECTED_L2));
+        ALLOWED_TRANSITIONS.put(BookStatus.REJECTED_L1, List.of(BookStatus.UNDER_REVIEW_L1));
+        ALLOWED_TRANSITIONS.put(BookStatus.REJECTED_L2, List.of(BookStatus.UNDER_REVIEW_L1));
+        ALLOWED_TRANSITIONS.put(BookStatus.READY_FOR_POSTING, List.of(BookStatus.ACCEPTED_BY_DHET));
+        ALLOWED_TRANSITIONS.put(BookStatus.ACCEPTED_BY_DHET, List.of());
+    }
 
     public BookService(
             BookRepository repository,
@@ -36,6 +51,11 @@ public class BookService {
     @Transactional(readOnly = true)
     public List<Book> findAll() {
         return repository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Book> findAll(BookStatus status) {
+        return repository.search(status);
     }
 
     @Transactional(readOnly = true)
@@ -166,6 +186,42 @@ public class BookService {
         Book saved = repository.save(book);
         addSubmissionLog(saved, currentUser.getUsername(), "ACCEPTED_BY_DHET", previous, saved.getStatus(), normalizedComments);
         return saved;
+    }
+
+    @Transactional
+    public Book transitionStatus(Long id, BookStatus newStatus, String username) {
+        Book book = getById(id);
+        User currentUser = currentUserService.getOrCreateUserByUsername(username);
+        BookStatus current = book.getStatus();
+
+        if (current == newStatus) {
+            return book;
+        }
+
+        if (currentUserService.hasAnyRole(currentUser, "ADMIN")) {
+            book.setStatus(newStatus);
+            return repository.save(book);
+        }
+
+        List<BookStatus> allowed = ALLOWED_TRANSITIONS.getOrDefault(current, List.of());
+        if (!allowed.contains(newStatus)) {
+            throw new IllegalStateException("Invalid status transition from " + current + " to " + newStatus);
+        }
+
+        if ((newStatus == BookStatus.UNDER_REVIEW_L2 || newStatus == BookStatus.REJECTED_L1)
+                && !currentUserService.hasAnyRole(currentUser, "REVIEWER_LEVEL_1")) {
+            throw new SecurityException("Only REVIEWER_LEVEL_1 can set status to " + newStatus);
+        }
+
+        if ((newStatus == BookStatus.READY_FOR_POSTING
+                || newStatus == BookStatus.REJECTED_L2
+                || newStatus == BookStatus.ACCEPTED_BY_DHET)
+                && !currentUserService.hasAnyRole(currentUser, "REVIEWER_LEVEL_2")) {
+            throw new SecurityException("Only REVIEWER_LEVEL_2 can set status to " + newStatus);
+        }
+
+        book.setStatus(newStatus);
+        return repository.save(book);
     }
 
     @Transactional

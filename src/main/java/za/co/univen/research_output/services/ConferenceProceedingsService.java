@@ -183,6 +183,11 @@ public class ConferenceProceedingsService {
             return proceedings;
         }
 
+        if (currentUserService.hasAnyRole(currentUser, "ADMIN")) {
+            proceedings.setStatus(newStatus);
+            return repository.save(proceedings);
+        }
+
         List<ProceedingsStatus> allowed = ALLOWED_TRANSITIONS.getOrDefault(current, List.of());
         if (!allowed.contains(newStatus)) {
             throw new IllegalStateException("Invalid status transition from " + current + " to " + newStatus);

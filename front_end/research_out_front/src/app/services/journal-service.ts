@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import {HttpClient, HttpHeaders} from '@angular/common/http';
+import {HttpClient, HttpHeaders, HttpResponse} from '@angular/common/http';
 import {catchError, map, Observable, of, switchMap} from 'rxjs';
 import {environment} from '../../environment/environment-url';
 import {Journal} from '../models/journal.model';
@@ -103,6 +103,13 @@ export class JournalService {
     });
   }
 
+  exportReadyForPostingJournals(): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.baseurl}journal/export`, {
+      observe: 'response',
+      responseType: 'blob'
+    });
+  }
+
   submitForReview(id: number, username?: string, comments?: string): Observable<Journal> {
     const headers = this.buildUsernameHeaders(username);
     return this.http.post<Journal>(`${this.baseurl}journal/${id}/submit`, { comments: comments ?? '' }, { headers });
@@ -116,6 +123,11 @@ export class JournalService {
   reject(id: number, username?: string, comments?: string): Observable<Journal> {
     const headers = this.buildUsernameHeaders(username);
     return this.http.post<Journal>(`${this.baseurl}journal/${id}/reject`, { comments: comments ?? '' }, { headers });
+  }
+
+  transitionStatus(id: number, status: string, username?: string): Observable<Journal> {
+    const headers = this.buildUsernameHeaders(username);
+    return this.http.patch<Journal>(`${this.baseurl}journal/${id}/status`, { status }, { headers });
   }
 
   markAsPostedToDhet(id: number, username?: string): Observable<Journal> {

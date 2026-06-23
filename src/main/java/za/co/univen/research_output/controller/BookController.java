@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,12 +12,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import za.co.univen.research_output.entities.Book;
+import za.co.univen.research_output.entities.BookStatus;
 import za.co.univen.research_output.entities.SubmissionLog;
+import za.co.univen.research_output.dto.BookStatusUpdateRequest;
 import za.co.univen.research_output.dto.ProceedingsDecisionRequest;
 import za.co.univen.research_output.services.BookService;
+import za.co.univen.research_output.services.BookExcelExportService;
 import za.co.univen.research_output.services.CurrentUserService;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
 
 @RestController
@@ -25,10 +32,12 @@ public class BookController {
 
     private final BookService service;
     private final CurrentUserService currentUserService;
+    private final BookExcelExportService excelExportService;
 
-    public BookController(BookService service, CurrentUserService currentUserService) {
+    public BookController(BookService service, CurrentUserService currentUserService, BookExcelExportService excelExportService) {
         this.service = service;
         this.currentUserService = currentUserService;
+        this.excelExportService = excelExportService;
     }
 
     @GetMapping
@@ -50,7 +59,18 @@ public class BookController {
         return ResponseEntity.ok(service.findAll());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportExcel() {
+        List<Book> books = service.findAll(BookStatus.READY_FOR_POSTING);
+        ByteArrayInputStream in = excelExportService.exportToExcel(books);
+        byte[] bytes = in.readAllBytes();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=dhet-books.xlsx")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(bytes);
+    }
+
+    @GetMapping("/{id:\\d+}")
     public ResponseEntity<Book> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
@@ -64,7 +84,7 @@ public class BookController {
         return ResponseEntity.ok(service.createOrUpdate(dto, username));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{id:\\d+}")
     public ResponseEntity<Book> update(
             @PathVariable Long id,
             @RequestBody Book dto,
@@ -74,7 +94,17 @@ public class BookController {
         return ResponseEntity.ok(service.createOrUpdate(dto, username));
     }
 
-    @PostMapping("/{id}/submit")
+    @PatchMapping("/{id:\\d+}/status")
+    public ResponseEntity<Book> transitionStatus(
+            @PathVariable Long id,
+            @RequestBody BookStatusUpdateRequest request,
+            @RequestHeader("X-Username") String username
+    ) {
+        Book updated = service.transitionStatus(id, request.getStatus(), username);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping("/{id:\\d+}/submit")
     public ResponseEntity<Book> submitForReview(
             @PathVariable Long id,
             @RequestBody(required = false) ProceedingsDecisionRequest request,
@@ -84,7 +114,7 @@ public class BookController {
         return ResponseEntity.ok(updated);
     }
 
-    @PostMapping("/{id}/approve")
+    @PostMapping("/{id:\\d+}/approve")
     public ResponseEntity<Book> approve(
             @PathVariable Long id,
             @RequestBody(required = false) ProceedingsDecisionRequest request,
@@ -94,7 +124,7 @@ public class BookController {
         return ResponseEntity.ok(updated);
     }
 
-    @PostMapping("/{id}/reject")
+    @PostMapping("/{id:\\d+}/reject")
     public ResponseEntity<Book> reject(
             @PathVariable Long id,
             @RequestBody(required = false) ProceedingsDecisionRequest request,
@@ -104,7 +134,7 @@ public class BookController {
         return ResponseEntity.ok(updated);
     }
 
-    @PostMapping("/{id}/accept-dhet")
+    @PostMapping("/{id:\\d+}/accept-dhet")
     public ResponseEntity<Book> acceptByDhet(
             @PathVariable Long id,
             @RequestBody(required = false) ProceedingsDecisionRequest request,
@@ -114,12 +144,12 @@ public class BookController {
         return ResponseEntity.ok(updated);
     }
 
-    @GetMapping("/{id}/timeline")
+    @GetMapping("/{id:\\d+}/timeline")
     public ResponseEntity<List<SubmissionLog>> getTimeline(@PathVariable Long id) {
         return ResponseEntity.ok(service.getTimeline(id));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();

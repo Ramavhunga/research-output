@@ -111,6 +111,15 @@ public class Book {
     @Column(length = 2000, name = "additional_comments")
     private String additionalComments;
 
+    @Column(name = "dhet_accepted")
+    private Boolean dhetAccepted;
+
+    @Column(name = "dhet_units_awarded")
+    private Double dhetUnitsAwarded;
+
+    @Column(length = 2000, name = "dhet_comments")
+    private String dhetComments;
+
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
     @Valid
     @JsonManagedReference("book-authors")

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import {HttpClient, HttpHeaders} from '@angular/common/http';
-import {Observable} from 'rxjs';
+import {HttpClient, HttpHeaders, HttpResponse} from '@angular/common/http';
+import {catchError, Observable} from 'rxjs';
 import {environment} from '../../environment/environment-url';
 import {Chapter} from '../models/Chapter';
 import {Department, Faculty} from '../models/common.model';
@@ -91,6 +91,19 @@ export class ChapterService {
     return this.http.get<Chapter[]>(this.baseurl + 'chapters');
   }
 
+  exportReadyForPostingChapters(): Observable<HttpResponse<Blob>> {
+    // Prefer canonical backend path; keep singular alias as fallback for compatibility.
+    return this.http.get(`${this.baseurl}chapters/export`, {
+      observe: 'response',
+      responseType: 'blob'
+    }).pipe(
+      catchError(() => this.http.get(`${this.baseurl}chapter/export`, {
+        observe: 'response',
+        responseType: 'blob'
+      }))
+    );
+  }
+
   exists(title: string, isbn: string, id?: number): Observable<boolean> {
     let params = `title=${title}&isbn=${isbn}`;
     if (id) {
@@ -112,6 +125,11 @@ export class ChapterService {
   reject(id: number, username?: string, comments?: string): Observable<Chapter> {
     const headers = this.buildRequiredUsernameHeaders(username);
     return this.http.post<Chapter>(`${this.baseurl}chapters/${id}/reject`, { comments: comments ?? '' }, { headers });
+  }
+
+     transitionStatus(id: number, status: string, username?: string): Observable<Chapter> {
+    const headers = this.buildRequiredUsernameHeaders(username);
+    return this.http.patch<Chapter>(`${this.baseurl}chapters/${id}/status`, { status }, { headers });
   }
 
   acceptByDhet(id: number, username?: string, comments?: string): Observable<Chapter> {

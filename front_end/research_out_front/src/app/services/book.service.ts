@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
+import { catchError, Observable } from 'rxjs';
 import { environment } from '../../environment/environment-url';
 import { Book } from '../models/Book';
 import { Department, Faculty } from '../models/common.model';
@@ -96,6 +96,19 @@ export class BookService {
     return this.http.get<Book[]>(this.baseurl + 'books');
   }
 
+  exportReadyForPostingBooks(): Observable<HttpResponse<Blob>> {
+    // Prefer canonical backend path; keep singular alias as fallback for compatibility.
+    return this.http.get(`${this.baseurl}books/export`, {
+      observe: 'response',
+      responseType: 'blob'
+    }).pipe(
+      catchError(() => this.http.get(`${this.baseurl}book/export`, {
+        observe: 'response',
+        responseType: 'blob'
+      }))
+    );
+  }
+
   exists(title: string, isbn: string, id?: number): Observable<boolean> {
     let params = `title=${title}&isbn=${isbn}`;
     if (id) {
@@ -119,6 +132,11 @@ export class BookService {
     return this.http.post<Book>(`${this.baseurl}books/${id}/reject`, { comments: comments ?? '' }, { headers });
   }
 
+  transitionStatus(id: number, status: string, username?: string): Observable<Book> {
+    const headers = this.buildRequiredUsernameHeaders(username);
+    return this.http.patch<Book>(`${this.baseurl}books/${id}/status`, { status }, { headers });
+  }
+
   acceptByDhet(id: number, username?: string, comments?: string): Observable<Book> {
     const headers = this.buildRequiredUsernameHeaders(username);
     return this.http.post<Book>(`${this.baseurl}books/${id}/accept-dhet`, { comments: comments ?? '' }, { headers });
@@ -128,4 +146,3 @@ export class BookService {
     return this.http.get<BookSubmissionLog[]>(`${this.baseurl}books/${id}/timeline`);
   }
 }
-
