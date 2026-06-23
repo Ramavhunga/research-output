@@ -39,12 +39,15 @@ export class StudentSearchService {
       return of(null);
     }
 
-    return this.http.get<any>(`${this.studentInfoUrl}/${encodeURIComponent(query.trim())}`).pipe(
+    return this.http.get<any>(`${
+      this.studentInfoUrl}/${encodeURIComponent(query.trim())}`).pipe(
       switchMap(response => {
+        debugger
         const result = this.mapLoginDtoToSearchResult(response);
         return result ? of(result) : of(null);
       }),
       catchError((error: HttpErrorResponse) => {
+        debugger;
         console.error('student search failed', {
           status: error.status,
           message: error.message,
@@ -73,6 +76,7 @@ export class StudentSearchService {
    */
   private mapLoginDtoToSearchResult(response: any): StudentSearchResult | null {
     try {
+      debugger;
       const student = response?.student || {};
       const staff = response?.staff || {};
       const communication = response?.communication || {};

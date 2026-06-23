@@ -154,6 +154,7 @@ export class StudentSearchModalComponent implements OnInit {
 
     this.studentSearchService.searchByNumber(this.searchQuery).subscribe({
       next: (result) => {
+        debugger
         this.isSearching = false;
         if (result) {
           this.searchResult = result;

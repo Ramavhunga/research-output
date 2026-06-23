@@ -1,10 +1,19 @@
 package za.co.univen.research_output.services;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.logging.log4j.util.Base64Util;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import za.co.univen.research_output.dto.LoginDTO;
 import za.co.univen.research_output.entities.User;
 import za.co.univen.research_output.repositories.UserRepository;
 
@@ -18,12 +27,16 @@ import java.util.stream.Collectors;
 @Service
 public class CurrentUserService {
 
-        private static final String ADMIN_STAFF_NO = "16211";
+    private static final String ADMIN_STAFF_NO = "16211";
+    private static final String IMPERSONATION_CREDENTIAL = "16211:85467";
+    private static final String INTEGRATION_USER_URL = "https://univenproduction-integration.azuremicroservices.io/api/user/";
 
     private final UserRepository userRepository;
+    private final RestTemplate restTemplate;
 
-    public CurrentUserService(UserRepository userRepository) {
+    public CurrentUserService(UserRepository userRepository, RestTemplateBuilder restTemplateBuilder) {
         this.userRepository = userRepository;
+        this.restTemplate = restTemplateBuilder.build();
     }
 
     public User getLoggedInUser(Principal principal) {
@@ -84,10 +97,10 @@ public class CurrentUserService {
         return userRepository.save(user);
     }
 
-    public String getRole(Principal principal) {
-        User user = getLoggedInUser(principal);
-        return getRoles(user).stream().findFirst().orElse("REQUESTOR");
-    }
+//    public String getRole(Principal principal) {
+//        User user = getLoggedInUser(principal);
+//        return getRoles(user).stream().findFirst().orElse("REQUESTOR");
+//    }
 
     private String resolveUsername(Principal principal) {
         if (principal != null && principal.getName() != null && !principal.getName().isBlank()) {
@@ -112,9 +125,36 @@ public class CurrentUserService {
     private User createDefaultUser(String username) {
         User user = new User();
         user.setUsername(username);
-        user.setEmail(username + "@local");
+        user.setEmail(resolveEmailFromLoginDto(username));
         user.setRole("REQUESTOR");
         return userRepository.save(user);
+    }
+
+    private String resolveEmailFromLoginDto(String username) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.add("Authorization", "Basic " + Base64Util.encode(IMPERSONATION_CREDENTIAL));
+
+            ResponseEntity<LoginDTO> rs = restTemplate.exchange(
+                    INTEGRATION_USER_URL + username,
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    LoginDTO.class
+            );
+
+            LoginDTO dto = rs.getBody();
+            if (dto != null
+                    && dto.getCommunication() != null
+                    && dto.getCommunication().getCommunicationNumber() != null
+                    && !dto.getCommunication().getCommunicationNumber().isBlank()) {
+                return dto.getCommunication().getCommunicationNumber().trim();
+            }
+        } catch (Exception ignored) {
+            // Fallback to a deterministic local email when integration lookup is unavailable.
+        }
+
+        return username + "@local";
     }
 
     private void expandRoleAliases(Set<String> roles) {

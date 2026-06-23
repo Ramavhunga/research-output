@@ -239,9 +239,11 @@
                        <div class="row g-3">
                           <div class="col-md-3">
                             <label class="form-label required">Student/Employee No.</label>
-                            <input class="form-control" formControlName="studentEmployeeNo"
+                            <input class="form-control" formControlName="studentEmployeeNo" (blur)="onStudentEmployeeNoBlur(i)"
                                    [ngClass]="{'is-invalid': a.get('studentEmployeeNo')?.invalid && a.get('studentEmployeeNo')?.touched}"/>
                             <small class="text-danger" *ngIf="a.get('studentEmployeeNo')?.hasError('required') && a.get('studentEmployeeNo')?.touched">Required for affiliated authors</small>
+                            <small class="text-muted d-block" *ngIf="isAuthorLookupLoading(i)">Looking up author details...</small>
+                            <small class="text-danger d-block" *ngIf="authorLookupErrors[i]">{{ authorLookupErrors[i] }}</small>
                           </div>
                          <div class="col-md-3">
                            <label class="form-label required">First-Names</label>

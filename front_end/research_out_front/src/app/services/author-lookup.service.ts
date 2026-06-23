@@ -31,7 +31,7 @@ export class AuthorLookupService {
     authorsFA: FormArray,
     faculties: any[],
     departmentsMap: { [index: number]: Department[] },
-    cdr: ChangeDetectorRef,
+    cdr: ChangeDetectorRef | null | undefined,
     authorLookupLoading: { [index: number]: boolean },
     authorLookupErrors: { [index: number]: string }
   ): void {
@@ -85,7 +85,7 @@ export class AuthorLookupService {
                 authorFG.get('departmentId')?.setValue(departmentId);
               }
               authorLookupLoading[authorIndex] = false;
-              cdr.markForCheck();
+              cdr?.markForCheck();
             },
             error: () => {
               authorLookupLoading[authorIndex] = false;
@@ -95,7 +95,7 @@ export class AuthorLookupService {
         }
 
         authorLookupLoading[authorIndex] = false;
-        cdr.markForCheck();
+        cdr?.markForCheck();
       },
       error: () => {
         authorLookupErrors[authorIndex] = 'Could not fetch staff/student info. Check the number and try again.';
@@ -118,22 +118,26 @@ export class AuthorLookupService {
     employmentStatus: string | null;
   } | null {
     const payload = response ?? {};
-    const student = payload.student ?? payload.studentInfo ?? payload;
-    const staff = payload.staff ?? payload;
-    const communication = payload.communication ?? payload.communications ?? payload;
+    const user = payload.user ?? {};
+    const student = payload.student ?? payload.studentInfo ?? null;
+    const staff = payload.staff ?? null;
+    const communication = payload.communication ?? payload.communications ?? null;
+    const hasStudent = !!student;
 
-    const firstName = this.firstNonEmpty(student?.firstNames, student?.firstname, staff?.firstNames, staff?.firstname);
+    const firstName = this.firstNonEmpty(student?.firstNames, student?.firstname, staff?.firstname, staff?.firstNames);
     const surname = this.firstNonEmpty(student?.surname, staff?.surname);
     const initials = this.firstNonEmpty(student?.initials, staff?.initials);
     const gender = this.normalizeGender(this.firstNonEmpty(student?.gender, staff?.gender));
-    const email = this.extractEmail(communication);
+    const email = this.extractEmail(communication) ?? (this.isLikelyEmail(user?.username) ? String(user.username).trim() : null);
     const dobYear = this.extractYear(this.firstNonEmpty(student?.dateOfBirth, staff?.birthDate));
-    const facultyName = this.firstNonEmpty(student?.facultyName, student?.facultyCode, staff?.faculty);
-    const departmentName = this.firstNonEmpty(student?.departmentName, student?.departmentCode, staff?.departmentName);
-    const countryOfBirth = this.firstNonEmpty(student?.countryName, staff?.countryName);
-    const academicTitle = this.normalizeAcademicTitle(this.firstNonEmpty(staff?.title));
+    const facultyName = this.firstNonEmpty(student?.facultyName, staff?.faculty, staff?.facultyName);
+    const departmentName = this.firstNonEmpty(student?.departmentName, staff?.departmentName);
+    const countryOfBirth = this.normalizeCountryName(this.firstNonEmpty(student?.countryName, staff?.countryName));
+    const academicTitle = this.normalizeAcademicTitle(
+      this.firstNonEmpty(hasStudent ? 'STUDENT' : null, staff?.rankName, staff?.postName, staff?.title)
+    );
     const employmentStatus = this.normalizeEmploymentStatus(
-      this.firstNonEmpty(staff?.permanentOrTemp, staff?.postType, student?.studentNumber)
+      this.firstNonEmpty(hasStudent ? 'STUDENT' : null, staff?.permanentOrTemp, staff?.postType, staff?.postName)
     );
 
     const hasAnyValue = [
@@ -197,9 +201,17 @@ export class AuthorLookupService {
     if (!raw) {
       return null;
     }
-    const value = raw.toUpperCase();
-    const allowed = new Set(['MR', 'MS', 'MRS', 'MISS', 'DR', 'PROF', 'ADV', 'REV', 'PASTOR', 'IMAM', 'RABBI', 'OTHER']);
-    return allowed.has(value) ? value : null;
+
+    const value = raw.toUpperCase().replace(/[_-]/g, ' ').trim();
+    if (value.includes('ASSOCIATE') && value.includes('PROF')) return 'ASSOCIATE_PROFESSOR';
+    if (value.includes('SENIOR') && value.includes('LECTURER')) return 'SENIOR_LECTURER';
+    if (value.includes('JUNIOR') && value.includes('LECTURER')) return 'JUNIOR_LECTURER';
+    if (value.includes('LECTURER')) return 'LECTURER';
+    if (value.includes('POSTDOC')) return 'POSTDOC';
+    if (value.includes('RESEARCH') && value.includes('FELLOW')) return 'RESEARCH_FELLOW';
+    if (value.includes('PROF')) return 'PROFESSOR';
+    if (value.includes('STUDENT')) return 'STUDENT';
+    return 'OTHER';
   }
 
   private normalizeEmploymentStatus(raw: string | null): string | null {
@@ -208,10 +220,11 @@ export class AuthorLookupService {
     }
     const value = raw.toUpperCase();
     if (value.includes('STUDENT')) return 'STUDENT';
-    if (value.includes('PERMANENT') || value.includes('FULL')) return 'PERMANENT';
-    if (value.includes('TEMP') || value.includes('PART') || value.includes('CONTRACT')) return 'TEMPORARY';
+    if (value.includes('TEMP') || value.includes('PART') || value.includes('CONTRACT')) return 'CONTRACT_TEMPORARY';
+    if (value.includes('VISITING')) return 'VISITING_SCHOLAR';
     if (value.includes('RETIRED')) return 'RETIRED';
-    return null;
+    if (value.includes('PERMANENT') || value.includes('FULL') || value.includes('ADM') || value.includes('ACA')) return 'PERMANENT';
+    return 'OTHER';
   }
 
   private extractYear(rawDate: string | null): number | null {
@@ -235,18 +248,52 @@ export class AuthorLookupService {
 
     if (Array.isArray(communication)) {
       const emailItem = communication.find((item: any) =>
-        String(item?.communicationType ?? item?.type ?? '').toUpperCase().includes('EMAIL')
+        this.isLikelyEmail(item?.communicationNumber)
+        || ['EMAIL', 'ET', 'CE'].includes(String(item?.communicationType ?? item?.type ?? '').toUpperCase())
       ) ?? communication[0];
-      return this.firstNonEmpty(emailItem?.communicationNumber, emailItem?.email, emailItem?.emailAddress);
+
+      const candidate = this.firstNonEmpty(emailItem?.communicationNumber, emailItem?.email, emailItem?.emailAddress);
+      return this.isLikelyEmail(candidate) ? candidate : null;
     }
 
-    return this.firstNonEmpty(
-      communication?.email,
-      communication?.emailAddress,
-      String(communication?.communicationType ?? '').toUpperCase().includes('EMAIL')
-        ? communication?.communicationNumber
-        : null
-    );
+    const byField = this.firstNonEmpty(communication?.email, communication?.emailAddress);
+    if (this.isLikelyEmail(byField)) {
+      return byField;
+    }
+
+    const communicationNumber = this.firstNonEmpty(communication?.communicationNumber);
+    const communicationType = String(communication?.communicationType ?? '').toUpperCase();
+    if (this.isLikelyEmail(communicationNumber) || ['EMAIL', 'ET', 'CE'].includes(communicationType)) {
+      return communicationNumber;
+    }
+
+    return null;
+  }
+
+  private isLikelyEmail(value: unknown): boolean {
+    const text = String(value ?? '').trim();
+    return !!text && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text);
+  }
+
+  private normalizeCountryName(value: string | null): string | null {
+    if (!value) {
+      return null;
+    }
+
+    const normalized = value.trim().toUpperCase();
+    if (normalized === 'R.S.A' || normalized === 'RSA') {
+      return 'South Africa';
+    }
+
+    return value.trim();
+  }
+
+  private normalizeLookupText(value: unknown): string {
+    return String(value ?? '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private findFacultyId(facultyNameOrCode: string | null, faculties: any[]): number | null {
@@ -254,11 +301,15 @@ export class AuthorLookupService {
       return null;
     }
 
-    const target = facultyNameOrCode.trim().toUpperCase();
-    const matched = faculties.find(f =>
-      String(f.name ?? '').trim().toUpperCase() === target
-      || String((f as any).code ?? '').trim().toUpperCase() === target
-    );
+    const target = this.normalizeLookupText(facultyNameOrCode);
+    const matched = faculties.find(f => {
+      const name = this.normalizeLookupText(f?.name);
+      const code = this.normalizeLookupText((f as any)?.code);
+      return name === target
+        || code === target
+        || (name && (name.includes(target) || target.includes(name)))
+        || (code && (code.includes(target) || target.includes(code)));
+    });
     return matched?.id ?? null;
   }
 
@@ -267,12 +318,15 @@ export class AuthorLookupService {
       return null;
     }
 
-    const target = departmentNameOrCode.trim().toUpperCase();
-    const matched = (departments ?? []).find(d =>
-      String(d.name ?? '').trim().toUpperCase() === target
-      || String((d as any).code ?? '').trim().toUpperCase() === target
-    );
+    const target = this.normalizeLookupText(departmentNameOrCode);
+    const matched = (departments ?? []).find(d => {
+      const name = this.normalizeLookupText(d?.name);
+      const code = this.normalizeLookupText((d as any)?.code);
+      return name === target
+        || code === target
+        || (name && (name.includes(target) || target.includes(name)))
+        || (code && (code.includes(target) || target.includes(code)));
+    });
     return matched?.id ?? null;
   }
 }
-

@@ -22,6 +22,7 @@ import {CountriesService} from '../../services/countries.service';
 import Swal from 'sweetalert2';
 import {ResearchfieldService} from '../../services/researchfield.service';
 import {Publisher, PublisherService} from '../../services/publisher.service';
+import { AuthorLookupService } from '../../services/author-lookup.service';
 import {
   AUTHOR_ACADEMIC_TITLE_OPTIONS,
   AUTHOR_EMPLOYMENT_STATUS_OPTIONS,
@@ -61,6 +62,8 @@ export class ChapterDetailComponent implements OnInit {
   loadingFaculties = false;
   countryOptionsMap: { [index: number]: string[] } = {};
   countrySubs: { [index: number]: Subscription } = {};
+  authorLookupLoading: { [index: number]: boolean } = {};
+  authorLookupErrors: { [index: number]: string } = {};
   universitySearchTerms: { [rowKey: string]: string } = {};
   universityDropdownOpen: { [rowKey: string]: boolean } = {};
 
@@ -127,7 +130,8 @@ export class ChapterDetailComponent implements OnInit {
               private chapterService: ChapterService,
               private countryService: CountriesService,
               private researchFieldService: ResearchfieldService,
-              private publisherService: PublisherService ) {
+              private publisherService: PublisherService,
+              private authorLookupService: AuthorLookupService ) {
 
     this.researchFieldService.getAll().subscribe(data => {
       this.researchFields = data;
@@ -1441,6 +1445,22 @@ export class ChapterDetailComponent implements OnInit {
     ).subscribe(list => {
       this.countryOptionsMap[authorIndex] = list;
     });
+  }
+
+  isAuthorLookupLoading(index: number): boolean {
+    return this.authorLookupLoading[index] === true;
+  }
+
+  onStudentEmployeeNoBlur(authorIndex: number): void {
+    this.authorLookupService.performAuthorLookup(
+      authorIndex,
+      this.authorsFA,
+      this.faculties,
+      this.departmentsMap,
+      null,
+      this.authorLookupLoading,
+      this.authorLookupErrors
+    );
   }
 
   selectResearchField(field: any) {
