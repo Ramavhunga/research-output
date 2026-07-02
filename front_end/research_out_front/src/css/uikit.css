@@ -16,12 +16,12 @@ body {
   --pc-heading-color: #060606;
   --pc-active-background: rgba(var(--bs-body-bg-rgb), 0.12);
   --pc-sidebar-background: #fff;
-  --pc-sidebar-color: #1c232f;
+  --pc-sidebar-color: #154175;
   --pc-sidebar-color-rgb: 28, 35, 47;
   --pc-sidebar-icon-color: #4f5b6a;
   --pc-sidebar-submenu-border-color: #778290;
   --pc-sidebar-active-color: var(--bs-blue-500);
-  --pc-sidebar-main-active-color: #1c232f;
+  --pc-sidebar-main-active-color: #154175;
   --pc-sidebar-main-active-background: #dfe7f1;
   --pc-sidebar-hover-background: #eaeff6;
   --pc-sidebar-shadow: 0px 0px 24px rgba(27, 46, 94, 0.05);
@@ -36,11 +36,11 @@ body {
   --pc-breadcrumb-background: #fff;
   --pc-breadcrumb-shadow: 0 1px 20px 0 rgba(69, 90, 100, 0.08);
   --pc-header-submenu-background: #ffffff;
-  --pc-header-submenu-color: #1c232f;
+  --pc-header-submenu-color: #154175;
 }
 
 [data-pc-sidebar-theme=dark] {
-  --pc-sidebar-background: #1c232f;
+  --pc-sidebar-background: #154175;
   --pc-sidebar-color: #ced4dc;
   --pc-sidebar-color-rgb: 206, 212, 220;
   --pc-sidebar-submenu-border-color: var(--bs-gray-600);
@@ -57,7 +57,7 @@ body {
 }
 
 [data-pc-header-theme=dark] {
-  --pc-header-background: #1c232f;
+  --pc-header-background: #154175;
   --pc-header-color: #fff;
 }
 
@@ -123,7 +123,7 @@ section {
   padding: 100px 0 40px;
 }
 .component-page .component-live-link a {
-  color: #7267ef;
+  color:#154175;
 }
 .component-page .component-live-link a:hover {
   text-decoration: underline;

@@ -254,7 +254,7 @@
                           </div>
                           <div class="col-md-3">
                             <label class="form-label required">Faculty</label>
-                            <select class="form-select" formControlName="facultyId" (change)="onFacultyChange(i)" [ngClass]="{'is-invalid': a.get('facultyId')?.invalid && a.get('facultyId')?.touched}">
+                            <select class="form-select" formControlName="faculty" (change)="onFacultyChange(i)" [ngClass]="{'is-invalid': a.get('facultyId')?.invalid && a.get('facultyId')?.touched}">
                               <option [ngValue]="null">-- Select Faculty --</option>
                               <option *ngFor="let f of faculties" [ngValue]="f.id">{{ f.name }}</option>
                             </select>
@@ -263,9 +263,9 @@
 
                           <div class="col-md-3">
                             <label class="form-label">Department</label>
-                            <select class="form-select" formControlName="departmentId">
+                            <select class="form-select" formControlName="department">
                               <option [ngValue]="null">-- Select Department --</option>
-                              <option *ngFor="let d of departmentsMap[i] || []" [ngValue]="d.id">{{ d.name }}</option>
+                              <option *ngFor="let d of departmentsMap[i] || []" [ngValue]="d.name">{{ d.name }}</option>
                             </select>
                           </div>
                           <div class="col-md-3">

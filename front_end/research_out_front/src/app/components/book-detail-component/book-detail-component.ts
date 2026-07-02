@@ -1237,15 +1237,15 @@ export class BookDetailComponent {
      const raw = this.form.getRawValue();
 
      // Convert publisher ID to publisher name
-     const publisherName = this.getPublisherName(raw.publisher);
-
+  //   const publisherName = this.getPublisherName(raw.publisher);
+debugger;
      return {
        id: raw.id ?? 0,
        dhetNo: raw.dhetNo,
        yearOfPublication: raw.year ? Number(raw.year) : 0,
        titleOfBook: raw.titleOfBook,
        editors: raw.editors ?? undefined,
-       publisher: publisherName,
+       publisher: raw.publisher,
        isbn: raw.isbn,
        fieldOfResearch: raw.fieldofsearch ?? null,
        originalOrPhotocopy: raw.originalPhotocopy,
@@ -1395,13 +1395,13 @@ export class BookDetailComponent {
 
 
     onFacultyChange(authorIndex: number) {
-    const facultyId = this.authorsFA.at(authorIndex).get('facultyId')?.value;
+    const facultyId = this.authorsFA.at(authorIndex).get('faculty')?.value;
     if (!facultyId) return;
 
     this.bookService.getDepartmentsByFaculty(facultyId).subscribe({
       next: (deps) => {
         this.departmentsMap[authorIndex] = deps;
-        this.authorsFA.at(authorIndex).get('departmentId')?.reset();
+        this.authorsFA.at(authorIndex).get('department')?.reset();
       },
       error: (err) => {
         console.error('Failed to load departments', err)

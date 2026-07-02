@@ -93,11 +93,12 @@
 
                     <div class="col-md-4">
                       <label class="form-label required">Year of Publication</label>
-                      <input type="number" class="form-control" formControlName="year"
-                             min="1900"
-                             max="2100"
-                             placeholder="e.g., 1995"
-                             [ngClass]="{'is-invalid': form.get('year')?.invalid && (form.get('year')?.touched || form.get('year')?.dirty)}" />
+                      <select class="form-select" formControlName="year"
+                              [ngClass]="{'is-invalid': form.get('year')?.invalid && (form.get('year')?.touched || form.get('year')?.dirty)}">
+                        <option value="" disabled>Select year...</option>
+                        <option *ngFor="let yr of publicationYears" [value]="yr">{{ yr }}</option>
+                      </select>
+                      <div class="invalid-feedback">Please select a valid year of publication.</div>
                     </div>
 
                     <div class="col-md-4">
@@ -114,11 +115,10 @@
 
                     <div class="col-md-4">
                       <label class="form-label required">Publisher</label>
-                      <select class="form-select" formControlName="publisher"
-                              [ngClass]="{'is-invalid': form.get('publisher')?.invalid && (form.get('publisher')?.touched || form.get('publisher')?.dirty)}">
-                        <option [ngValue]="null" disabled>Choose...</option>
-                        <option *ngFor="let pub of publishers" [ngValue]="pub.name">{{ pub.name }}</option>
-                      </select>
+
+                      <input class="form-control" formControlName="publisher"
+                             [ngClass]="{'is-invalid': form.get('publisher')?.invalid && (form.get('publisher')?.touched || form.get('publisher')?.dirty)}"/>
+
                     </div>
 
                     <div class="col-md-4">
@@ -183,15 +183,41 @@
 
                     <div class="col-md-4 position-relative">
                       <label class="form-label required">Field of Research</label>
-                      <input type="text" class="form-control" formControlName="fieldofsearch" placeholder="Search..." autocomplete="off"
+                      <input type="text" class="form-control" formControlName="fieldofsearch" placeholder="Search or select Other..."
+                             autocomplete="off"
+                             [readonly]="isOtherFieldOfSearch"
                              (focus)="openResearchFieldDropdown()"
                              (blur)="closeResearchFieldDropdown()"
                              [ngClass]="{'is-invalid': form.get('fieldofsearch')?.invalid && (form.get('fieldofsearch')?.touched || form.get('fieldofsearch')?.dirty)}" />
-                      <div class="list-group position-absolute w-100 z-3" *ngIf="showResearchFieldDropdown && filteredResearchFields.length" style="max-height: 300px; overflow-y: auto;">
-                        <button type="button" class="list-group-item list-group-item-action" *ngFor="let rf of filteredResearchFields" (click)="selectResearchFieldOnClick(rf)" (mousedown)="$event.preventDefault()">
+                      <div class="list-group position-absolute w-100 z-3" *ngIf="showResearchFieldDropdown" style="max-height: 300px; overflow-y: auto;">
+                        <button type="button" class="list-group-item list-group-item-action"
+                                *ngFor="let rf of filteredResearchFields"
+                                (click)="selectResearchFieldOnClick(rf)"
+                                (mousedown)="$event.preventDefault()">
                           {{ rf.code }} - {{ rf.name }}
                         </button>
+                        <!-- Always-visible "Other" option -->
+                        <button type="button"
+                                class="list-group-item list-group-item-action text-secondary fst-italic"
+                                (click)="selectResearchFieldOnClick({code:'OTHER', name:'Other (specify below)'})"
+                                (mousedown)="$event.preventDefault()">
+                          ➕ Other (specify below)
+                        </button>
                       </div>
+                      <!-- "Other" clear button -->
+                      <small *ngIf="isOtherFieldOfSearch" class="text-muted d-block mt-1">
+                        <a href="javascript:void(0)" class="text-danger"
+                           (click)="selectResearchFieldOnClick({code:'', name:''})">✕ Clear Other</a>
+                      </small>
+                    </div>
+
+                    <!-- Custom "Other" specification input -->
+                    <div class="col-md-4" *ngIf="isOtherFieldOfSearch">
+                      <label class="form-label required">Specify Field of Research</label>
+                      <input type="text" class="form-control" formControlName="fieldofsearchOther"
+                             placeholder="Enter field of research..."
+                             [ngClass]="{'is-invalid': form.get('fieldofsearchOther')?.invalid && (form.get('fieldofsearchOther')?.touched || form.get('fieldofsearchOther')?.dirty)}" />
+                      <div class="invalid-feedback">Please specify the field of research.</div>
                     </div>
 
                     <div class="col-md-4">

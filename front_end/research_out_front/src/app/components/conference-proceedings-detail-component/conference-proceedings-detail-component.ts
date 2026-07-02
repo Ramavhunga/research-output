@@ -441,6 +441,10 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
       && this.canCurrentApproverDecideOnStatus(this.currentRoles, this.currentStatus);
   }
 
+  isApproverUser(): boolean {
+    return this.isApproverRole(this.currentRoles);
+  }
+
   async approveFromReview(): Promise<void> {
     if (!this.canShowReviewDecisionActions()) return;
 
@@ -461,16 +465,22 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
 
     if (!result.isConfirmed) return;
     const comments = String(result.value).trim();
+    const payload = this.buildPayload();
 
-    this.conferenceProceedingsService.approve(id, this.currentUsername, comments).subscribe({
+    this.conferenceProceedingsService.save(payload, this.currentUsername).pipe(
+      switchMap((saved) => {
+        const savedId = Number((saved as any)?.id ?? id);
+        return this.conferenceProceedingsService.approve(savedId, this.currentUsername, comments);
+      })
+    ).subscribe({
       next: (updated) => {
         this.currentStatus = this.normalizeStatus((updated as any)?.status);
-        Swal.fire('Approved', 'Proceedings moved to the next stage.', 'success').then(() => {
+        Swal.fire('Approved', 'Proceedings changes were saved and moved to the next stage.', 'success').then(() => {
           this.router.navigate(['/review-dashboard']);
         });
       },
       error: (err) => {
-        Swal.fire('Error', err?.error?.message ?? 'Approval failed.', 'error');
+        Swal.fire('Error', err?.error?.message ?? 'Could not save changes and approve proceedings.', 'error');
       }
     });
   }
@@ -495,16 +505,22 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
 
     if (!result.isConfirmed) return;
     const comments = String(result.value).trim();
+    const payload = this.buildPayload();
 
-    this.conferenceProceedingsService.reject(id, this.currentUsername, comments).subscribe({
+    this.conferenceProceedingsService.save(payload, this.currentUsername).pipe(
+      switchMap((saved) => {
+        const savedId = Number((saved as any)?.id ?? id);
+        return this.conferenceProceedingsService.reject(savedId, this.currentUsername, comments);
+      })
+    ).subscribe({
       next: (updated) => {
         this.currentStatus = this.normalizeStatus((updated as any)?.status);
-        Swal.fire('Declined', 'Proceedings have been declined.', 'success').then(() => {
+        Swal.fire('Declined', 'Proceedings changes were saved and then declined.', 'success').then(() => {
           this.router.navigate(['/review-dashboard']);
         });
       },
       error: (err) => {
-        Swal.fire('Error', err?.error?.message ?? 'Decline failed.', 'error');
+        Swal.fire('Error', err?.error?.message ?? 'Could not save changes and decline proceedings.', 'error');
       }
     });
   }
@@ -1125,7 +1141,7 @@ export class ConferenceProceedingsDetailComponent implements OnInit {
   }
 
   isStepValid(step: number): boolean {
-    if (this.isReadOnlyView) {
+    if (this.isReadOnlyView || this.isApproverRole(this.currentRoles)) {
       return true;
     }
 

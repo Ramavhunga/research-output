@@ -121,8 +121,20 @@ export class JournalDetailComponent implements OnInit {
     authorUnitCalculations: []
   };
 
+  readonly publicationYears: number[] = (() => {
+    const currentYear = new Date().getFullYear();
+    return [currentYear - 2, currentYear - 1, currentYear];
+  })();
+
   readonly otherUniversityCode = 'OTHER';
   readonly saUniversityOptions = SA_HEI_OPTIONS;
+  readonly genderOptions = AUTHOR_GENDER_OPTIONS;
+  readonly populationGroupOptions = AUTHOR_POPULATION_GROUP_OPTIONS;
+  readonly saResidencyOptions = AUTHOR_SA_RESIDENCY_OPTIONS;
+  readonly employmentStatusOptions = AUTHOR_EMPLOYMENT_STATUS_OPTIONS;
+  readonly academicTitleOptions = AUTHOR_ACADEMIC_TITLE_OPTIONS;
+  readonly highestQualificationOptions = AUTHOR_HIGHEST_QUALIFICATION_OPTIONS;
+  readonly countryOptions = ISO_3166_COUNTRY_OPTIONS;
   readonly genderOptions = AUTHOR_GENDER_OPTIONS;
   readonly populationGroupOptions = AUTHOR_POPULATION_GROUP_OPTIONS;
   readonly saResidencyOptions = AUTHOR_SA_RESIDENCY_OPTIONS;
@@ -200,7 +212,18 @@ export class JournalDetailComponent implements OnInit {
       openaccess: [journal?.openaccess ?? null],
 
       /** Research */
-      fieldofsearch: [journal?.fieldofsearch ?? '', Validators.required],
+      fieldofsearch: [
+        journal?.fieldofsearch?.includes(':')
+          ? journal.fieldofsearch.split(':')[0].trim()
+          : (journal?.fieldofsearch ?? ''),
+        Validators.required
+      ],
+      fieldofsearchSpecification: [
+        journal?.fieldofsearch?.includes(':')
+          ? journal.fieldofsearch.split(':').slice(1).join(':').trim()
+          : '',
+        []
+      ],
 
       /** Fees */
       publicationfeedescription: [journal?.publicationfeedescription ?? null],
@@ -1605,7 +1628,9 @@ export class JournalDetailComponent implements OnInit {
       openaccess: raw.openaccess ?? false,
 
       /** Research */
-      fieldofsearch: raw.fieldofsearch ?? null,
+      fieldofsearch: raw.fieldofsearch === 'OTHER'
+        ? `OTHER: ${(raw.fieldofsearchOther ?? '').trim()}`
+        : (raw.fieldofsearch ?? null),
 
       /** Fees & Funding */
       publicationfeedescription: raw.publicationfeedescription ?? '',
@@ -2007,8 +2032,38 @@ export class JournalDetailComponent implements OnInit {
     });
   }
 
+  /**
+   * Getter to check if the currently selected research field requires specification
+   */
+  get selectedResearchFieldRequiresSpecification(): boolean {
+    const code = this.form.get('fieldofsearch')?.value;
+    if (!code) return false;
+
+    const selectedField = this.researchFields.find(f => f.code === code);
+    return selectedField?.requiresSpecification === true;
+  }
+
   selectResearchField(field: any) {
-    this.form.get('fieldofsearch')?.setValue(field.code); // or field.code
+    if (!field.code) {
+      // Empty code means "Clear" - reset everything
+      this.form.get('fieldofsearch')?.setValue('');
+      this.form.get('fieldofsearchSpecification')?.clearValidators();
+      this.form.get('fieldofsearchSpecification')?.setValue('');
+      this.form.get('fieldofsearchSpecification')?.updateValueAndValidity();
+    } else {
+      // Set the field code
+      this.form.get('fieldofsearch')?.setValue(field.code);
+
+      // If the field requires specification, make it required; otherwise clear it
+      if (field.requiresSpecification === true) {
+        this.form.get('fieldofsearchSpecification')?.setValidators([Validators.required]);
+        this.form.get('fieldofsearchSpecification')?.updateValueAndValidity();
+      } else {
+        this.form.get('fieldofsearchSpecification')?.clearValidators();
+        this.form.get('fieldofsearchSpecification')?.setValue('');
+        this.form.get('fieldofsearchSpecification')?.updateValueAndValidity();
+      }
+    }
     this.filteredResearchFields = [];
     this.showResearchFieldDropdown = false;
   }
@@ -2413,7 +2468,10 @@ export class JournalDetailComponent implements OnInit {
        doi: journal.doi,
        urls: journal.urls,
        openaccess: journal.openaccess,
-       fieldofsearch: journal.fieldofsearch,
+       fieldofsearch: journal.fieldofsearch?.startsWith('OTHER:') ? 'OTHER' : journal.fieldofsearch,
+       fieldofsearchOther: journal.fieldofsearch?.startsWith('OTHER:')
+         ? journal.fieldofsearch.replace(/^OTHER:\s*/, '')
+         : '',
        publicationfeedescription: journal.publicationfeedescription,
        publishercurrency: journal.publishercurrency,
        totalPublicationFeePublisherCurrency: journal.totalPublicationFeePublisherCurrency,
@@ -2456,6 +2514,12 @@ export class JournalDetailComponent implements OnInit {
      this.preloadAuthorDepartments();
      this.recalculateContributions();
      this.calculateAdvancedUnitBreakdown();
+
+     // Re-apply validators for "Other" field of search on load
+     if (journal.fieldofsearch?.startsWith('OTHER:')) {
+       this.form.get('fieldofsearchOther')?.setValidators([Validators.required]);
+       this.form.get('fieldofsearchOther')?.updateValueAndValidity();
+     }
 
      if (this.isReadOnlyView) {
        this.clearAllValidators(this.form);

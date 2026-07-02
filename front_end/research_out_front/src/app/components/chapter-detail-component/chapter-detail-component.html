@@ -109,7 +109,7 @@
                       <label class="form-label required">Publisher</label>
                       <select class="form-select" formControlName="publisher" [ngClass]="{'is-invalid': form.get('publisher')?.invalid && form.get('publisher')?.touched}">
                         <option [ngValue]="null" disabled>Choose...</option>
-                        <option *ngFor="let pub of publishers" [ngValue]="pub.id">{{ pub.name }}</option>
+                        <option *ngFor="let pub of publishers" [ngValue]="pub.name">{{ pub.name }}</option>
                       </select>
                     </div>
                     <div class="col-md-3">
@@ -285,9 +285,9 @@
 
                          <div class="col-md-3">
                            <label class="form-label">Department</label>
-                           <select class="form-select" formControlName="departmentId">
+                           <select class="form-select" formControlName="department">
                              <option [ngValue]="null">-- Select Department --</option>
-                             <option *ngFor="let d of departmentsMap[i] || []" [ngValue]="d.id">{{ d.name }}</option>
+                             <option *ngFor="let d of departmentsMap[i] || []" [ngValue]="d.name">{{ d.name }}</option>
                            </select>
                          </div>
                           <div class="col-md-3">
@@ -733,10 +733,12 @@
               </div>
 
                 <div class="sticky-actions d-flex gap-2 justify-content-center flex-wrap p-3 border-top bg-white mt-4">
-                  <button type="button" class="btn btn-outline-secondary" [disabled]="currentStep === 1" (click)="prevStep()">Previous</button>
-                  <button *ngIf="!isReadOnlyView" type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>
-                  <button *ngIf="currentStep < totalSteps" type="button" class="btn btn-outline-primary" (click)="goToNextStep()">Next</button>
-                  <button *ngIf="!isReadOnlyView && currentStep === totalSteps" type="submit" class="btn btn-primary">Submit Final</button>
+                  <button *ngIf="!shouldHideReviewStepperActions()" type="button" class="btn btn-outline-secondary" [disabled]="currentStep === 1" (click)="prevStep()">Previous</button>
+                  <button *ngIf="canShowReviewDecisionActions()" type="button" class="btn btn-outline-danger" (click)="declineFromReview()">Decline</button>
+                  <button *ngIf="canShowReviewDecisionActions()" type="button" class="btn btn-success" (click)="approveFromReview()">Approve</button>
+                  <button *ngIf="!shouldHideReviewStepperActions() && !isReadOnlyView" type="button" class="btn btn-outline-secondary" (click)="reset()">Reset</button>
+                  <button *ngIf="!shouldHideReviewStepperActions() && currentStep < totalSteps" type="button" class="btn btn-outline-primary" (click)="goToNextStep()">Next</button>
+                  <button *ngIf="!shouldHideReviewStepperActions() && !isReadOnlyView && currentStep === totalSteps" type="submit" class="btn btn-primary">Submit Final</button>
                 </div>
               </fieldset>
             </form>

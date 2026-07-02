@@ -320,6 +320,10 @@ export class ChapterDetailComponent implements OnInit {
       && this.canCurrentApproverDecideOnStatus(this.currentRoles, this.currentStatus);
   }
 
+  shouldHideReviewStepperActions(): boolean {
+    return this.isApproverRole(this.currentRoles) && !!this.currentStatus;
+  }
+
   async approveFromReview(): Promise<void> {
     if (!this.canShowReviewDecisionActions()) return;
 
@@ -340,16 +344,19 @@ export class ChapterDetailComponent implements OnInit {
 
     if (!result.isConfirmed) return;
     const comments = String(result.value).trim();
+    const payload = this.buildPayload();
 
-    this.chapterService.approve(id, this.currentUsername, comments).subscribe({
+    this.chapterService.save(payload, this.currentUsername).pipe(
+      switchMap(() => this.chapterService.approve(id, this.currentUsername, comments))
+    ).subscribe({
       next: (updated) => {
         this.currentStatus = this.normalizeStatus((updated as any)?.status);
-        Swal.fire('Approved', 'Chapter moved to the next stage.', 'success').then(() => {
+        Swal.fire('Approved', 'Chapter changes were saved and moved to the next stage.', 'success').then(() => {
           this.router.navigate(['/review-dashboard']);
         });
       },
       error: (err) => {
-        Swal.fire('Error', err?.error?.message ?? 'Approval failed.', 'error');
+        Swal.fire('Error', err?.error?.message ?? 'Could not save changes and approve the chapter.', 'error');
       }
     });
   }
@@ -374,16 +381,19 @@ export class ChapterDetailComponent implements OnInit {
 
     if (!result.isConfirmed) return;
     const comments = String(result.value).trim();
+    const payload = this.buildPayload();
 
-    this.chapterService.reject(id, this.currentUsername, comments).subscribe({
+    this.chapterService.save(payload, this.currentUsername).pipe(
+      switchMap(() => this.chapterService.reject(id, this.currentUsername, comments))
+    ).subscribe({
       next: (updated) => {
         this.currentStatus = this.normalizeStatus((updated as any)?.status);
-        Swal.fire('Declined', 'Chapter has been declined.', 'success').then(() => {
+        Swal.fire('Declined', 'Chapter changes were saved and then declined.', 'success').then(() => {
           this.router.navigate(['/review-dashboard']);
         });
       },
       error: (err) => {
-        Swal.fire('Error', err?.error?.message ?? 'Decline failed.', 'error');
+        Swal.fire('Error', err?.error?.message ?? 'Could not save changes and decline the chapter.', 'error');
       }
     });
   }

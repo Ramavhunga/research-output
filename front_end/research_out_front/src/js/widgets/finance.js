@@ -250,7 +250,7 @@ function floatchart() {
       },
       labels: ['Saving', 'Spend', 'Income'],
       series: [25, 50, 25],
-      colors: ['#1c232f', '#7267ef', '#d1cdf6']
+      colors: ['#154175', '#7267ef', '#d1cdf6']
     };
     var chart = new ApexCharts(document.querySelector('#category-donut-chart'), options);
     chart.render();

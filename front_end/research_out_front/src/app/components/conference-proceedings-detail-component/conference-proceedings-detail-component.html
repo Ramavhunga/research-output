@@ -115,7 +115,7 @@
                     <div class="col-md-3">
                       <label class="form-label">ISBN <span class="text-danger">*</span></label>
                       <input class="form-control" formControlName="isbn"
-                             [ngClass]="{'is-invalid': form.get('isbn')?.invalid && form.get('isbn')?.touched}" />
+              n                 [ngClass]="{'is-invalid': form.get('isbn')?.invalid && form.get('isbn')?.touched}" />
                     </div>
 
                     <div class="col-md-3 position-relative">
@@ -347,9 +347,9 @@
                          <!-- Row 6: Department, Academic Title -->
                          <div class="col-md-3">
                            <label class="form-label">Department</label>
-                           <select class="form-select" formControlName="departmentId">
+                           <select class="form-select" formControlName="department">
                              <option [ngValue]="null">-- Select Department --</option>
-                             <option *ngFor="let d of departmentsMap[i] || []" [ngValue]="d.id">{{ d.name }}</option>
+                             <option *ngFor="let d of departmentsMap[i] || []" [ngValue]="d.name">{{ d.name }}</option>
                            </select>
                          </div>
                           <div class="col-md-3">
@@ -818,7 +818,7 @@
 <!--                   <span *ngIf="!isSaving"><i class="fa fa-arrow-right me-2"></i>Save & Continue</span>-->
 <!--                   <span *ngIf="isSaving"><i class="fa fa-spinner fa-spin me-2"></i>Saving...</span>-->
 <!--                 </button>-->
-                 <button *ngIf="!isReadOnlyView && currentStep === totalSteps" type="submit" class="btn btn-primary">Submit</button>
+                 <button *ngIf="!isReadOnlyView && !isApproverUser() && currentStep === totalSteps" type="submit" class="btn btn-primary">Submit</button>
                </div>
             </form>
 
