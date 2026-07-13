@@ -1,10 +1,14 @@
 package za.co.univen.research_output.services;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.logging.log4j.util.Base64Util;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import za.co.univen.research_output.dto.LoginDTO;
 import za.co.univen.research_output.dto.StaffRoleView;
 import za.co.univen.research_output.dto.User;
@@ -21,7 +25,6 @@ import java.util.stream.Collectors;
 @Service
 public class UserService {
 
-    private static final String IMPERSONATION_CREDENTIAL = "16211:85467";
     private static final Set<String> REVIEWER_ROLES = Set.of("REVIEWER_LEVEL_1", "REVIEWER_LEVEL_2");
 
     private final RestTemplate restTemplate;
@@ -56,7 +59,8 @@ public class UserService {
     }
 
     public LoginDTO ImpersonateLogin(User user) throws Exception {
-        return loadLoginByStaffNo(user.getUsername());
+        // Production behavior: authenticate with the credentials provided by the user.
+        return itsLogin(user);
     }
 
     public List<UserRoleView> listUsersWithRoles() {
@@ -103,10 +107,11 @@ public class UserService {
     public LoginDTO loadStudentOrStaffByNumber(String number) throws Exception {
         String normalized = normalizeStaffNo(number);
         try {
+            HttpHeaders headers = buildLoggedInUserHeaders();
             ResponseEntity<LoginDTO> rs = restTemplate.exchange(
                     "https://univenproduction-integration.azuremicroservices.io/api/user/" + normalized,
                     HttpMethod.GET,
-                    new HttpEntity<>(buildImpersonationHeaders()),
+                    new HttpEntity<>(headers),
                     LoginDTO.class
             );
 
@@ -115,6 +120,8 @@ public class UserService {
                 throw new IllegalArgumentException("Person not found");
             }
             return loginDTO;
+        } catch (SecurityException e) {
+            throw new SecurityException("Username and password are required for ITS lookup");
         } catch (Exception e) {
             throw new IllegalArgumentException("Person not found");
         }
@@ -122,10 +129,11 @@ public class UserService {
 
     public LoginDTO loadLoginByStaffNo(String staffNo) throws Exception {
         try {
+            HttpHeaders headers = buildLoggedInUserHeaders();
             ResponseEntity<LoginDTO> rs = restTemplate.exchange(
                     "https://univenproduction-integration.azuremicroservices.io/api/user/" + staffNo,
                     HttpMethod.GET,
-                    new HttpEntity<>(buildImpersonationHeaders()),
+                    new HttpEntity<>(headers),
                     LoginDTO.class
             );
 
@@ -134,16 +142,30 @@ public class UserService {
                 throw new SecurityException("Staff member not found");
             }
             return loginDTO;
+        } catch (SecurityException e) {
+            throw e;
         } catch (Exception e) {
             throw new SecurityException("Staff member not found");
         }
     }
 
-    private HttpHeaders buildImpersonationHeaders() {
+    private HttpHeaders buildLoggedInUserHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.add("Authorization", "Basic " + Base64Util.encode(IMPERSONATION_CREDENTIAL));
+        headers.add("Authorization", resolveBasicAuthorizationHeader());
         return headers;
+    }
+
+    private String resolveBasicAuthorizationHeader() {
+        RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
+        if (attrs instanceof ServletRequestAttributes servletAttrs) {
+            HttpServletRequest req = servletAttrs.getRequest();
+            String authorization = req.getHeader("Authorization");
+            if (authorization != null && authorization.regionMatches(true, 0, "Basic ", 0, 6)) {
+                return authorization;
+            }
+        }
+        throw new SecurityException("Username and password are required for ITS lookup");
     }
 
     private String normalizeStaffNo(String staffNo) {

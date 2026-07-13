@@ -134,6 +134,14 @@
                         </button>
                       </div>
                     </div>
+                    <div class="col-md-3" *ngIf="shouldShowFieldOfSearchSpecificationInput">
+                      <label class="form-label required">Specify Field of Research</label>
+                      <input class="form-control"
+                             formControlName="fieldofsearchOther"
+                             placeholder="Enter field of research..."
+                             [ngClass]="{'is-invalid': form.get('fieldofsearchOther')?.invalid && (form.get('fieldofsearchOther')?.touched || form.get('fieldofsearchOther')?.dirty)}" />
+                      <div class="invalid-feedback">Please specify the field of research.</div>
+                    </div>
                     <div class="col-md-3">
                       <label class="form-label">Funder(s)</label>
                       <input class="form-control" formControlName="funders" placeholder="NRF (12345); SAMRC (ABC123)" />

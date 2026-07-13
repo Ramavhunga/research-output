@@ -1,17 +1,16 @@
 import { Component } from '@angular/core';
-import {Router, RouterLink, Routes} from '@angular/router';
-import {FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
-import {LoginService} from '../../services/login.service';
-import {User} from '../../interface/user';
+import { Router } from '@angular/router';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { LoginService } from '../../services/login.service';
+import { User } from '../../interface/user';
 import Swal from 'sweetalert2';
-import {catchError, of} from 'rxjs';
-import {LoginDTO} from '../../interface/login-dto';
-import {UserRoleService} from '../../services/user-role.service';
+import { catchError, of } from 'rxjs';
+import { LoginDTO } from '../../interface/login-dto';
+import { UserRoleService } from '../../services/user-role.service';
 
 @Component({
   selector: 'app-login-component',
   imports: [
-
     ReactiveFormsModule
   ],
   templateUrl: './login-component.html',
@@ -21,14 +20,14 @@ export class LoginComponent {
 
   loginForm = new FormGroup({
     username: new FormControl('', Validators.required),
-    password:new FormControl('', Validators.required),
+    password: new FormControl('', Validators.required),
     userType: new FormControl(''),
   });
 
   constructor(private fb: FormBuilder,
               private loginService: LoginService,
               private userRoleService: UserRoleService,
-              private route: Router)  {
+              private route: Router) {
 
   }
 
@@ -37,24 +36,27 @@ export class LoginComponent {
 
     this.loginService.login(user).pipe(
       catchError(error => {
-        debugger;
+        this.loginService.clearBasicAuthorization();
         Swal.fire({
-          title: "Failed to Login",
-          text: "Invalid Credentials!",
-          icon: "error"
+          title: 'Failed to Login',
+          text: 'Invalid Credentials!',
+          icon: 'error'
         });
         return of();
       })
     ).subscribe(data => {
       const login: any = data as LoginDTO;
-      console.log('Login:', login);
       if (!login) {
+        this.loginService.clearBasicAuthorization();
         Swal.fire({
-          title: "Failed to Login",
-          text: "Invalid Credentials!",
-          icon: "error"
+          title: 'Failed to Login',
+          text: 'Invalid Credentials!',
+          icon: 'error'
         });
       } else {
+        // Save Basic credentials once login succeeds so all ITS-dependent calls send Authorization.
+        this.loginService.persistBasicAuthorization(user);
+
         const username = String(login?.user?.username ?? login?.username ?? '').trim();
         this.userRoleService.listUsersWithRoles().pipe(
           catchError(() => of([]))

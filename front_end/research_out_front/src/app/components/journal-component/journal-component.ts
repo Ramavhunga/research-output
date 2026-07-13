@@ -20,8 +20,11 @@ import Swal from 'sweetalert2';
   styleUrl: './journal-component.css'
 })
 export class JournalComponent {
+  private readonly adminStaffNo = '16211';
+
   journals: Journal[] = [];
   username = '';
+  roles: string[] = [];
   loading = false;
   selectedTimelineJournalId: number | null = null;
   timeline: JournalApproval[] = [];
@@ -33,23 +36,61 @@ export class JournalComponent {
   ) {}
 
   ngOnInit(): void {
-    const login = sessionStorage.getItem("login");
-    if (!login) {
+    const loginRaw = sessionStorage.getItem('login');
+    if (!loginRaw) {
       this.router.navigate(['/login']);
       return;
     }
 
     let username = '';
+    let loginData: any = null;
     try {
-      const data = JSON.parse(login);
+      loginData = JSON.parse(loginRaw);
+      const data = loginData;
       username = (data?.user?.username ?? data?.username ?? '').toString().trim();
     } catch {
       username = '';
+      loginData = null;
     }
 
     this.username = username;
+    this.roles = this.extractRoles(loginData);
 
     this.loadJournals();
+  }
+
+  isAdmin(): boolean {
+    return this.roles.includes('ADMIN');
+  }
+
+  private extractRoles(login: any): string[] {
+    if (!login) {
+      return [];
+    }
+
+    const normalizedRoles = new Set<string>();
+    const roleSource = login?.user?.roles ?? login?.user?.userType ?? login?.userType ?? '';
+
+    if (Array.isArray(roleSource)) {
+      roleSource
+        .map((value: unknown) => String(value).toUpperCase().trim())
+        .filter(Boolean)
+        .forEach((role: string) => normalizedRoles.add(role));
+    } else {
+      String(roleSource)
+        .split(',')
+        .map(value => value.trim().toUpperCase())
+        .filter(Boolean)
+        .forEach(role => normalizedRoles.add(role));
+    }
+
+    const username = String(login?.user?.username ?? login?.username ?? '').trim();
+    const staffNo = String(login?.staff?.personNumber ?? '').trim();
+    if (username === this.adminStaffNo || staffNo === this.adminStaffNo) {
+      normalizedRoles.add('ADMIN');
+    }
+
+    return Array.from(normalizedRoles);
   }
 
   private getBackendMessage(err: any, fallback: string): string {

@@ -29,6 +29,8 @@ import {LoginService} from '../../services/login.service';
 import {StudentSearchModalComponent} from '../student-search-modal/student-search-modal.component';
 import {StudentSearchResult} from '../../services/student-search.service';
 import {AuthorLookupService} from '../../services/author-lookup.service';
+import { JournalLookupService } from '../../services/journal-lookup.service';
+import { JournalLookupResult } from '../../models/journal-lookup.model';
 import {
   AUTHOR_ACADEMIC_TITLE_OPTIONS,
   AUTHOR_EMPLOYMENT_STATUS_OPTIONS,
@@ -82,6 +84,10 @@ export class JournalDetailComponent implements OnInit {
   saveMessage: string = '';
   showSaveMessage = false;
   lastSavedJournalId: number | null = null;
+  hasJournalEligibilityCheckRun = false;
+  isJournalEligible = true;
+  isJournalEligibilityLoading = false;
+  journalEligibilityMessage = '';
   steps = [
     { id: 1, label: 'Journal Information', name: 'journalinfo' },
     { id: 2, label: 'Affiliated Authors', name: 'affiliated' },
@@ -135,13 +141,6 @@ export class JournalDetailComponent implements OnInit {
   readonly academicTitleOptions = AUTHOR_ACADEMIC_TITLE_OPTIONS;
   readonly highestQualificationOptions = AUTHOR_HIGHEST_QUALIFICATION_OPTIONS;
   readonly countryOptions = ISO_3166_COUNTRY_OPTIONS;
-  readonly genderOptions = AUTHOR_GENDER_OPTIONS;
-  readonly populationGroupOptions = AUTHOR_POPULATION_GROUP_OPTIONS;
-  readonly saResidencyOptions = AUTHOR_SA_RESIDENCY_OPTIONS;
-  readonly employmentStatusOptions = AUTHOR_EMPLOYMENT_STATUS_OPTIONS;
-  readonly academicTitleOptions = AUTHOR_ACADEMIC_TITLE_OPTIONS;
-  readonly highestQualificationOptions = AUTHOR_HIGHEST_QUALIFICATION_OPTIONS;
-  readonly countryOptions = ISO_3166_COUNTRY_OPTIONS;
 
   constructor(private fb: FormBuilder,
               private router: Router,
@@ -152,12 +151,14 @@ export class JournalDetailComponent implements OnInit {
               private publisherService: PublisherService,
               private loginService: LoginService,
               private authorLookupService: AuthorLookupService,
+              private journalLookupService: JournalLookupService,
               private cdr: ChangeDetectorRef ) {
 
 
     this.researchFieldService.getAll().subscribe(data => {
       this.researchFields = data;
       this.filteredResearchFields = data;
+      this.updateFieldOfSearchOtherValidators(this.form?.get('fieldofsearch')?.value);
     });
     this.publisherService.getAll().subscribe({
       next: (data) => {
@@ -218,7 +219,7 @@ export class JournalDetailComponent implements OnInit {
           : (journal?.fieldofsearch ?? ''),
         Validators.required
       ],
-      fieldofsearchSpecification: [
+      fieldofsearchOther: [
         journal?.fieldofsearch?.includes(':')
           ? journal.fieldofsearch.split(':').slice(1).join(':').trim()
           : '',
@@ -270,6 +271,7 @@ export class JournalDetailComponent implements OnInit {
     });
 
     this.setupFieldSearch();
+    this.updateFieldOfSearchOtherValidators(this.form.get('fieldofsearch')?.value);
     this.setupAutoCalc();
     this.normalizeAllUniversityAffiliations();
 
@@ -758,6 +760,7 @@ export class JournalDetailComponent implements OnInit {
     ).subscribe(results => {
       debugger
       this.filteredResearchFields = results;
+      this.updateFieldOfSearchOtherValidators(this.form.get('fieldofsearch')?.value);
       // Show dropdown only if there are results and dropdown is open
       if (this.showResearchFieldDropdown && results.length === 0) {
         this.showResearchFieldDropdown = false;
@@ -844,8 +847,37 @@ export class JournalDetailComponent implements OnInit {
       return this.asId((value as Record<string, unknown>)['id']);
     }
 
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return null;
+
+      // Angular can emit encoded select values like "0: 12" for option tracking.
+      const angularEncodedMatch = trimmed.match(/^\d+:\s*(.+)$/);
+      if (angularEncodedMatch) {
+        return this.asId(angularEncodedMatch[1]);
+      }
+
+      const idFromString = Number(trimmed);
+      return Number.isFinite(idFromString) ? idFromString : null;
+    }
+
     const id = Number(value);
     return Number.isFinite(id) ? id : null;
+  }
+
+  private loadDepartmentsForAuthor(authorIndex: number, facultyId: number, resetDepartment: boolean): void {
+    this.journalService.getDepartmentsByFaculty(facultyId).subscribe({
+      next: (deps) => {
+        this.departmentsMap[authorIndex] = deps ?? [];
+        if (resetDepartment) {
+          this.authorsFA.at(authorIndex).get('departmentId')?.reset();
+        }
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Failed to load departments', err);
+      }
+    });
   }
 
   /**
@@ -857,15 +889,7 @@ export class JournalDetailComponent implements OnInit {
       const facultyId = this.asId(authorFG.get('facultyId')?.value);
       if (!facultyId) return;
 
-      this.journalService.getDepartmentsByFaculty(facultyId).subscribe({
-        next: (deps) => {
-          this.departmentsMap[index] = deps ?? [];
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          console.error('Failed to preload departments', err);
-        }
-      });
+      this.loadDepartmentsForAuthor(index, facultyId, false);
     });
   }
 
@@ -1628,8 +1652,8 @@ export class JournalDetailComponent implements OnInit {
       openaccess: raw.openaccess ?? false,
 
       /** Research */
-      fieldofsearch: raw.fieldofsearch === 'OTHER'
-        ? `OTHER: ${(raw.fieldofsearchOther ?? '').trim()}`
+      fieldofsearch: this.requiresFieldSpecification(raw.fieldofsearch)
+        ? `${raw.fieldofsearch}: ${(raw.fieldofsearchOther ?? '').trim()}`
         : (raw.fieldofsearch ?? null),
 
       /** Fees & Funding */
@@ -1837,6 +1861,16 @@ export class JournalDetailComponent implements OnInit {
     if (this.isReadOnlyView || this.isApproverDecisionMode) {
       return;
     }
+
+    if (!this.hasJournalEligibilityCheckRun || !this.isJournalEligible) {
+      Swal.fire({
+        title: 'Journal Eligibility Required',
+        text: this.journalEligibilityMessage || 'Please validate ISSN/EISSN against the DHET-CREST list before submitting.',
+        icon: 'warning'
+      });
+      return;
+    }
+
     debugger;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -1998,29 +2032,33 @@ export class JournalDetailComponent implements OnInit {
     });
   }
 
-  onFacultyChange(authorIndex: number) {
-    debugger;
-    const facultyId = this.asId(this.authorsFA.at(authorIndex).get('facultyId')?.value);
-    if (!facultyId) return;
+  onFacultyChange(authorIndex: number, event?: Event) {
+    const authorFG = this.authorsFA.at(authorIndex) as FormGroup;
+    const controlFacultyId = this.asId(authorFG.get('facultyId')?.value);
+    const eventFacultyId = event?.target
+      ? this.asId((event.target as HTMLSelectElement).value)
+      : null;
 
-    this.journalService.getDepartmentsByFaculty(facultyId).subscribe({
-      next: (deps) => {
+    const facultyId = controlFacultyId ?? eventFacultyId;
+    if (facultyId) {
+      this.loadDepartmentsForAuthor(authorIndex, facultyId, true);
+      return;
+    }
 
-        this.departmentsMap[authorIndex] = deps;
-        // reset department selection
-        this.authorsFA.at(authorIndex).get('departmentId')?.reset();
-      },
-      error: (err) => {
-
-        console.error(
-          'Failed to load departments', err)
+    // If change event fires before control value settles, retry once on microtask queue.
+    Promise.resolve().then(() => {
+      const delayedFacultyId = this.asId(authorFG.get('facultyId')?.value);
+      if (delayedFacultyId) {
+        this.loadDepartmentsForAuthor(authorIndex, delayedFacultyId, true);
+      } else {
+        this.departmentsMap[authorIndex] = [];
+        authorFG.get('departmentId')?.reset();
+        this.cdr.markForCheck();
       }
     });
-
   }
 
   onCountrySearch(authorIndex: number) {
-    debugger
     const fg = this.authorsFA.at(authorIndex) as FormGroup;
     this.countrySubs[authorIndex]?.unsubscribe();
     fg.get('countryOfBirth')?.valueChanges.pipe(
@@ -2037,32 +2075,70 @@ export class JournalDetailComponent implements OnInit {
    */
   get selectedResearchFieldRequiresSpecification(): boolean {
     const code = this.form.get('fieldofsearch')?.value;
-    if (!code) return false;
+    return this.requiresFieldSpecification(code);
+  }
 
-    const selectedField = this.researchFields.find(f => f.code === code);
-    return selectedField?.requiresSpecification === true;
+  get isOtherFieldOfSearch(): boolean {
+    return this.form.get('fieldofsearch')?.value === 'OTHER';
+  }
+
+  get shouldShowFieldOfSearchSpecificationInput(): boolean {
+    return this.isOtherFieldOfSearch || this.selectedResearchFieldRequiresSpecification;
+  }
+
+  private requiresFieldSpecification(code: unknown): boolean {
+    const normalizedCode = String(code ?? '').trim();
+    if (!normalizedCode) {
+      return false;
+    }
+
+    if (normalizedCode === 'OTHER') {
+      return true;
+    }
+
+    const selectedField = this.researchFields.find(f => String(f?.code ?? '').trim() === normalizedCode);
+    const requiresSpecification = selectedField?.requiresSpecification ?? selectedField?.requires_specification;
+    return requiresSpecification === true || requiresSpecification === 1 || String(requiresSpecification).toLowerCase() === 'true';
+  }
+
+  private updateFieldOfSearchOtherValidators(code: unknown): void {
+    const requiresSpecification = this.requiresFieldSpecification(code);
+    const otherControl = this.form.get('fieldofsearchOther');
+    if (!otherControl) {
+      return;
+    }
+
+    if (requiresSpecification) {
+      otherControl.setValidators([Validators.required]);
+    } else {
+      otherControl.clearValidators();
+      otherControl.setValue('');
+    }
+    otherControl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private splitFieldOfSearchValue(rawValue: unknown): { code: string; specification: string } {
+    const value = String(rawValue ?? '').trim();
+    if (!value.includes(':')) {
+      return { code: value, specification: '' };
+    }
+
+    const [code, ...rest] = value.split(':');
+    return {
+      code: code.trim(),
+      specification: rest.join(':').trim()
+    };
   }
 
   selectResearchField(field: any) {
     if (!field.code) {
       // Empty code means "Clear" - reset everything
       this.form.get('fieldofsearch')?.setValue('');
-      this.form.get('fieldofsearchSpecification')?.clearValidators();
-      this.form.get('fieldofsearchSpecification')?.setValue('');
-      this.form.get('fieldofsearchSpecification')?.updateValueAndValidity();
+      this.updateFieldOfSearchOtherValidators('');
     } else {
       // Set the field code
       this.form.get('fieldofsearch')?.setValue(field.code);
-
-      // If the field requires specification, make it required; otherwise clear it
-      if (field.requiresSpecification === true) {
-        this.form.get('fieldofsearchSpecification')?.setValidators([Validators.required]);
-        this.form.get('fieldofsearchSpecification')?.updateValueAndValidity();
-      } else {
-        this.form.get('fieldofsearchSpecification')?.clearValidators();
-        this.form.get('fieldofsearchSpecification')?.setValue('');
-        this.form.get('fieldofsearchSpecification')?.updateValueAndValidity();
-      }
+      this.updateFieldOfSearchOtherValidators(field.code);
     }
     this.filteredResearchFields = [];
     this.showResearchFieldDropdown = false;
@@ -2202,9 +2278,97 @@ export class JournalDetailComponent implements OnInit {
 
   isJournalInfoValid(): boolean {
     const fields = ['year', 'journalTitle', 'title', 'publisher','issn' ,'fieldofsearch', 'index', 'comply'];
-    return fields.every(field => {
+    const fieldsValid = fields.every(field => {
       const control = this.form.get(field);
       return control && control.valid;
+    });
+    return fieldsValid && this.hasJournalEligibilityCheckRun && this.isJournalEligible;
+  }
+
+  onJournalIdentifierInputChange(): void {
+    this.hasJournalEligibilityCheckRun = false;
+    this.isJournalEligible = true;
+    this.journalEligibilityMessage = '';
+  }
+
+  lookupJournalEligibility(): void {
+    const issn = String(this.form.get('issn')?.value ?? '').trim();
+    const eissn = String(this.form.get('eissn')?.value ?? '').trim();
+    const currentIdRaw = this.form.get('id')?.value;
+    const currentId = Number.isFinite(Number(currentIdRaw)) ? Number(currentIdRaw) : undefined;
+
+    if (!issn && !eissn) {
+      this.hasJournalEligibilityCheckRun = false;
+      this.isJournalEligible = true;
+      this.journalEligibilityMessage = '';
+      return;
+    }
+
+    this.isJournalEligibilityLoading = true;
+    this.journalService.lookupByIssnOrEissn(issn, eissn, currentId).pipe(
+      switchMap((existingJournal) => {
+        if (existingJournal) {
+          this.applyExistingJournalReadOnly(existingJournal);
+          return of(null);
+        }
+        return this.journalLookupService.lookupByIssnOrEissn(issn, eissn);
+      })
+    ).subscribe({
+      next: (result) => {
+        this.isJournalEligibilityLoading = false;
+        if (result) {
+          this.applyJournalLookupResult(result);
+        }
+      },
+      error: () => {
+        this.isJournalEligibilityLoading = false;
+        this.hasJournalEligibilityCheckRun = true;
+        this.isJournalEligible = false;
+        this.journalEligibilityMessage = 'Could not check existing journal or validate eligibility right now. Please retry.';
+      }
+    });
+  }
+
+  private applyExistingJournalReadOnly(existingJournal: Journal): void {
+    this.populateFormWithJournal(existingJournal);
+    this.isReadOnlyView = true;
+    this.isApproverDecisionMode = false;
+    this.clearAllValidators(this.form);
+    this.form.disable({ emitEvent: false });
+    this.hasJournalEligibilityCheckRun = true;
+    this.isJournalEligible = true;
+    this.journalEligibilityMessage = 'Journal already exists in the system. The record is opened in read-only mode.';
+    this.cdr.markForCheck();
+
+    Swal.fire({
+      title: 'Journal Already Exists',
+      text: 'A journal with this ISSN/E-ISSN already exists. Full journal details are now loaded in read-only mode.',
+      icon: 'info'
+    });
+  }
+
+  private applyJournalLookupResult(result: JournalLookupResult): void {
+    this.hasJournalEligibilityCheckRun = true;
+    this.isJournalEligible = result.eligible;
+
+    if (!result.eligible) {
+      this.journalEligibilityMessage = result.reason ?? 'Journal is not eligible for DHET subsidy.';
+      return;
+    }
+
+    this.journalEligibilityMessage = '';
+
+    this.form.patchValue({
+      dhetNo: result.dhetNo ?? this.form.get('dhetNo')?.value,
+      status: result.status ?? this.form.get('status')?.value,
+      journalTitle: result.journalTitle ?? this.form.get('journalTitle')?.value,
+      publisher: result.publisher ?? this.form.get('publisher')?.value,
+      index: result.index ?? this.form.get('index')?.value,
+      comply: result.comply ?? this.form.get('comply')?.value,
+      issn: result.issn ?? this.form.get('issn')?.value,
+      eissn: result.eissn ?? this.form.get('eissn')?.value,
+      openaccess: result.openaccess ?? this.form.get('openaccess')?.value,
+      fieldofsearch: result.fieldofsearch ?? this.form.get('fieldofsearch')?.value
     });
   }
 
@@ -2451,6 +2615,8 @@ export class JournalDetailComponent implements OnInit {
     * Populate form with journal data
     */
    private populateFormWithJournal(journal: Journal) {
+     const parsedFieldOfSearch = this.splitFieldOfSearchValue(journal.fieldofsearch);
+
      this.form.patchValue({
        id: journal.id,
        dhetNo: journal.dhetNo,
@@ -2468,10 +2634,8 @@ export class JournalDetailComponent implements OnInit {
        doi: journal.doi,
        urls: journal.urls,
        openaccess: journal.openaccess,
-       fieldofsearch: journal.fieldofsearch?.startsWith('OTHER:') ? 'OTHER' : journal.fieldofsearch,
-       fieldofsearchOther: journal.fieldofsearch?.startsWith('OTHER:')
-         ? journal.fieldofsearch.replace(/^OTHER:\s*/, '')
-         : '',
+       fieldofsearch: parsedFieldOfSearch.code,
+       fieldofsearchOther: parsedFieldOfSearch.specification,
        publicationfeedescription: journal.publicationfeedescription,
        publishercurrency: journal.publishercurrency,
        totalPublicationFeePublisherCurrency: journal.totalPublicationFeePublisherCurrency,
@@ -2515,16 +2679,16 @@ export class JournalDetailComponent implements OnInit {
      this.recalculateContributions();
      this.calculateAdvancedUnitBreakdown();
 
-     // Re-apply validators for "Other" field of search on load
-     if (journal.fieldofsearch?.startsWith('OTHER:')) {
-       this.form.get('fieldofsearchOther')?.setValidators([Validators.required]);
-       this.form.get('fieldofsearchOther')?.updateValueAndValidity();
-     }
+     this.updateFieldOfSearchOtherValidators(parsedFieldOfSearch.code);
 
      if (this.isReadOnlyView) {
        this.clearAllValidators(this.form);
        this.form.disable({ emitEvent: false });
      }
+
+     this.hasJournalEligibilityCheckRun = true;
+     this.isJournalEligible = true;
+     this.journalEligibilityMessage = '';
 
      // ✅ Force change detection to refresh template immediately
      this.cdr.markForCheck();

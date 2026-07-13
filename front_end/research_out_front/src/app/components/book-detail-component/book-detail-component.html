@@ -254,7 +254,7 @@
                           </div>
                           <div class="col-md-3">
                             <label class="form-label required">Faculty</label>
-                            <select class="form-select" formControlName="faculty" (change)="onFacultyChange(i)" [ngClass]="{'is-invalid': a.get('facultyId')?.invalid && a.get('facultyId')?.touched}">
+                             <select class="form-select" formControlName="faculty" (change)="onFacultyChange(i, $event)" [ngClass]="{'is-invalid': a.get('facultyId')?.invalid && a.get('facultyId')?.touched}">
                               <option [ngValue]="null">-- Select Faculty --</option>
                               <option *ngFor="let f of faculties" [ngValue]="f.id">{{ f.name }}</option>
                             </select>

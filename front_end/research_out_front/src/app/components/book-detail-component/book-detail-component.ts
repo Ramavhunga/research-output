@@ -1394,17 +1394,59 @@ debugger;
 
 
 
-    onFacultyChange(authorIndex: number) {
-    const facultyId = this.authorsFA.at(authorIndex).get('faculty')?.value;
-    if (!facultyId) return;
+  onFacultyChange(authorIndex: number, event?: Event) {
+    const authorFG = this.authorsFA.at(authorIndex) as FormGroup;
 
-    this.bookService.getDepartmentsByFaculty(facultyId).subscribe({
-      next: (deps) => {
-        this.departmentsMap[authorIndex] = deps;
-        this.authorsFA.at(authorIndex).get('department')?.reset();
-      },
-      error: (err) => {
-        console.error('Failed to load departments', err)
+    const toId = (value: unknown): number | null => {
+      if (value === null || value === undefined || value === '') return null;
+      if (typeof value === 'object' && value !== null && 'id' in (value as Record<string, unknown>)) {
+        return toId((value as Record<string, unknown>)['id']);
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        const angularEncodedMatch = trimmed.match(/^\d+:\s*(.+)$/);
+        if (angularEncodedMatch) {
+          return toId(angularEncodedMatch[1]);
+        }
+        const parsed = Number(trimmed);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const loadDepartments = (facultyId: number): void => {
+      this.bookService.getDepartmentsByFaculty(facultyId).subscribe({
+        next: (deps) => {
+          this.departmentsMap[authorIndex] = deps ?? [];
+          authorFG.get('department')?.reset();
+        },
+        error: (err) => {
+          console.error('Failed to load departments', err);
+        }
+      });
+    };
+
+    const controlFacultyId = toId(authorFG.get('faculty')?.value);
+    const eventFacultyId = event?.target
+      ? toId((event.target as HTMLSelectElement).value)
+      : null;
+
+    const facultyId = controlFacultyId ?? eventFacultyId;
+    if (facultyId) {
+      loadDepartments(facultyId);
+      return;
+    }
+
+    // If change fires before control settles, retry once on microtask queue.
+    Promise.resolve().then(() => {
+      const delayedFacultyId = toId(authorFG.get('faculty')?.value);
+      if (delayedFacultyId) {
+        loadDepartments(delayedFacultyId);
+      } else {
+        this.departmentsMap[authorIndex] = [];
+        authorFG.get('department')?.reset();
       }
     });
   }
@@ -1553,4 +1595,3 @@ debugger;
     this.selectedFile = null;
   }
 }
-

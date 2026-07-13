@@ -30,12 +30,10 @@
 <!--              <button class="btn btn-outline-success btn-sm" type="button" (click)="exportCurrentJournalExcel()">-->
 <!--                Export Excel-->
 <!--              </button>-->
-              <button class="btn btn-outline-secondary btn-sm" type="button" (click)="preview()">
-                Preview JSON
-              </button>
-              <button class="btn btn-outline-secondary btn-sm" type="button" (click)="autoPopulateForm()">
-                Auto Populate JSON
-              </button>
+<!--              <button class="btn btn-outline-secondary btn-sm" type="button" (click)="preview()">-->
+<!--                Preview JSON-->
+<!--              </button>-->
+
             </div>
           </div>
 
@@ -82,6 +80,44 @@
               <!-- STEP 1: Journal Information -->
               <div *ngIf="currentStep === 1">
                 <h5 class="mb-4">Journal Information</h5>
+                <div class="mb-4">
+                  <div class="col-md-4">
+                    <label class="form-label">ISSN / e-ISSN</label>
+                    <input class="form-control" formControlName="issn" placeholder="1234-567X or 123456"
+                           (input)="onJournalIdentifierInputChange()"
+                           (blur)="lookupJournalEligibility()"
+                           [ngClass]="{'is-invalid': form.get('issn')?.invalid && (form.get('issn')?.touched || form.get('issn')?.dirty)}"/>
+                  </div>
+
+<!--                  <div class="col-md-4">-->
+<!--                    <label class="form-label">e-ISSN</label>-->
+<!--                    <input class="form-control" formControlName="eissn"-->
+<!--                           (input)="onJournalIdentifierInputChange()"-->
+<!--                           (blur)="lookupJournalEligibility()" />-->
+<!--                  </div>-->
+
+                </div>
+                <div class="col-12" *ngIf="isJournalEligibilityLoading">
+                  <small class="text-muted">
+                    <i class="fa fa-spinner fa-spin me-1"></i>
+                    Validating against DHET-CREST journal list...
+                  </small>
+                </div>
+
+                <div class="col-12" *ngIf="hasJournalEligibilityCheckRun && !isJournalEligible">
+                  <div class="alert alert-danger py-2 mb-0">
+                    <i class="fa fa-ban me-2"></i>
+                    {{ journalEligibilityMessage }}
+                  </div>
+                </div>
+
+                <div class="col-12" *ngIf="hasJournalEligibilityCheckRun && isJournalEligible && !isJournalEligibilityLoading">
+                  <div class="alert alert-success py-2 mb-0">
+                    <i class="fa fa-check-circle me-2"></i>
+                    Journal found in DHET-CREST and eligible for subsidy.
+                  </div>
+                </div>
+                <br/>
                 <!-- Journal Details -->
                 <div class="mb-4">
                   <h6 class="mb-3">Journal Details</h6>
@@ -150,16 +186,7 @@
                              [ngClass]="{'is-invalid': form.get('issue')?.invalid && (form.get('issue')?.touched || form.get('issue')?.dirty)}"/>
                     </div>
 
-                    <div class="col-md-4">
-                      <label class="form-label">ISSN</label>
-                      <input class="form-control" formControlName="issn" placeholder="1234-567X or 123456"
-                             [ngClass]="{'is-invalid': form.get('issn')?.invalid && (form.get('issn')?.touched || form.get('issn')?.dirty)}"/>
-                    </div>
 
-                    <div class="col-md-4">
-                      <label class="form-label">e-ISSN</label>
-                      <input class="form-control" formControlName="eissn" />
-                    </div>
 
                     <div class="col-md-4">
                       <label class="form-label">DOI</label>
@@ -185,7 +212,7 @@
                       <label class="form-label required">Field of Research</label>
                       <input type="text" class="form-control" formControlName="fieldofsearch" placeholder="Search or select Other..."
                              autocomplete="off"
-                             [readonly]="isOtherFieldOfSearch"
+                             [readonly]="form.get('fieldofsearch')?.value === 'OTHER'"
                              (focus)="openResearchFieldDropdown()"
                              (blur)="closeResearchFieldDropdown()"
                              [ngClass]="{'is-invalid': form.get('fieldofsearch')?.invalid && (form.get('fieldofsearch')?.touched || form.get('fieldofsearch')?.dirty)}" />
@@ -197,22 +224,22 @@
                           {{ rf.code }} - {{ rf.name }}
                         </button>
                         <!-- Always-visible "Other" option -->
-                        <button type="button"
-                                class="list-group-item list-group-item-action text-secondary fst-italic"
-                                (click)="selectResearchFieldOnClick({code:'OTHER', name:'Other (specify below)'})"
-                                (mousedown)="$event.preventDefault()">
-                          ➕ Other (specify below)
-                        </button>
+<!--                        <button type="button"-->
+<!--                                class="list-group-item list-group-item-action text-secondary fst-italic"-->
+<!--                                (click)="selectResearchFieldOnClick({code:'OTHER', name:'Other (specify below)'})"-->
+<!--                                (mousedown)="$event.preventDefault()">-->
+<!--                          ➕ Other (specify below)-->
+<!--                        </button>-->
                       </div>
                       <!-- "Other" clear button -->
-                      <small *ngIf="isOtherFieldOfSearch" class="text-muted d-block mt-1">
+                      <small *ngIf="form.get('fieldofsearch')?.value === 'OTHER'" class="text-muted d-block mt-1">
                         <a href="javascript:void(0)" class="text-danger"
                            (click)="selectResearchFieldOnClick({code:'', name:''})">✕ Clear Other</a>
                       </small>
                     </div>
 
-                    <!-- Custom "Other" specification input -->
-                    <div class="col-md-4" *ngIf="isOtherFieldOfSearch">
+                    <!-- Custom specification input for OTHER or any field marked requiresSpecification -->
+                    <div class="col-md-4" *ngIf="shouldShowFieldOfSearchSpecificationInput">
                       <label class="form-label required">Specify Field of Research</label>
                       <input type="text" class="form-control" formControlName="fieldofsearchOther"
                              placeholder="Enter field of research..."
@@ -391,15 +418,24 @@
                               <option *ngFor="let option of employmentStatusOptions" [ngValue]="option.value">{{ option.label }}</option>
                            </select>
                          </div>
-                          <div class="col-md-3">
-                            <label class="form-label required">Faculty</label>
-                            <select class="form-select" formControlName="facultyId" (change)="onFacultyChange(i)"
-                                    [ngClass]="{'is-invalid': a.get('facultyId')?.invalid && a.get('facultyId')?.touched}">
-                              <option [ngValue]="null">-- Select Faculty --</option>
-                              <option *ngFor="let f of faculties" [ngValue]="f.id">{{ f.name }}</option>
-                            </select>
-                            <small class="text-danger" *ngIf="a.get('facultyId')?.hasError('required') && a.get('facultyId')?.touched">Required for affiliated authors</small>
-                          </div>
+<!--                           <div class="col-md-3">-->
+<!--                             <label class="form-label required">Faculty</label>-->
+<!--                             <select class="form-select" formControlName="facultyId" (change)="onFacultyChange(i, $event)"-->
+<!--                                     [ngClass]="{'is-invalid': a.get('facultyId')?.invalid && a.get('facultyId')?.touched}">-->
+<!--                               <option [ngValue]="null">&#45;&#45; Select Faculty &#45;&#45;</option>-->
+<!--                               <option *ngFor="let f of faculties" [ngValue]="f.id">{{ f.name }}</option>-->
+<!--                             </select>-->
+<!--                             <small class="text-danger" *ngIf="a.get('facultyId')?.hasError('required') && a.get('facultyId')?.touched">Required for affiliated authors</small>-->
+<!--                           </div>-->
+                           <div class="col-md-3">
+                             <label class="form-label required">Faculty</label>
+                             <select class="form-select" formControlName="facultyId" (change)="onFacultyChange(i, $event)"
+                                     [ngClass]="{'is-invalid': a.get('facultyId')?.invalid && a.get('facultyId')?.touched}">
+                               <option [ngValue]="null">-- Select Faculty --</option>
+                               <option *ngFor="let f of faculties" [ngValue]="f.id">{{ f.name }}</option>
+                             </select>
+                             <small class="text-danger" *ngIf="a.get('facultyId')?.hasError('required') && a.get('facultyId')?.touched">Required for affiliated authors</small>
+                           </div>
 
                          <!-- Row 6: Department, Academic Title -->
                          <div class="col-md-3">
@@ -884,10 +920,13 @@
 <!--                </button>-->
 
                 <!-- Next Button (All steps except last) -->
-                <button *ngIf="currentStep < totalSteps" type="button" class="btn btn-outline-primary" [disabled]="currentStep === totalSteps" (click)="goToNextStep()">Next →</button>
+                <button *ngIf="currentStep < totalSteps" type="button" class="btn btn-outline-primary"
+                        [disabled]="currentStep === totalSteps || (currentStep === 1 && (isJournalEligibilityLoading || !hasJournalEligibilityCheckRun || !isJournalEligible))"
+                        (click)="goToNextStep()">Next →</button>
 
                 <!-- Submit Button (Only on last step) -->
-                <button *ngIf="currentStep === totalSteps" type="submit" class="btn btn-primary">
+                <button *ngIf="currentStep === totalSteps" type="submit" class="btn btn-primary"
+                        [disabled]="isJournalEligibilityLoading || !hasJournalEligibilityCheckRun || !isJournalEligible">
                   <i class="fa fa-check me-1"></i> Submit Final
                 </button>
               </div>
@@ -924,5 +963,4 @@
 
 <!-- Student Search Modal -->
 <app-student-search-modal></app-student-search-modal>
-
 

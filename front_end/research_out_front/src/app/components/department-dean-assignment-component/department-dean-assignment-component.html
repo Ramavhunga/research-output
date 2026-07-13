@@ -74,10 +74,10 @@
                   <select
                     class="form-select"
                     [(ngModel)]="selectedFacultyId"
-                    (change)="onFacultyChange()"
+                    (ngModelChange)="onFacultyChange($event)"
                     [disabled]="loadingFaculties">
-                    <option [value]="null" selected>-- Select Faculty --</option>
-                    <option *ngFor="let faculty of faculties" [value]="faculty.id">
+                    <option [ngValue]="null">-- Select Faculty --</option>
+                    <option *ngFor="let faculty of faculties" [ngValue]="faculty.id">
                       {{ faculty.name }} ({{ faculty.code }})
                     </option>
                   </select>
@@ -98,8 +98,8 @@
                     [(ngModel)]="selectedDepartmentId"
                     (change)="onDepartmentChange()"
                     [disabled]="!selectedFacultyId || loadingDepartments || departments.length === 0">
-                    <option [value]="null" selected>-- Select Department --</option>
-                    <option *ngFor="let dept of departments" [value]="dept.id">
+                    <option [ngValue]="null">-- Select Department --</option>
+                    <option *ngFor="let dept of departments" [ngValue]="dept.id">
                       {{ dept.name }} ({{ dept.code }})
                     </option>
                   </select>
@@ -329,4 +329,3 @@
     </div>
   </div>
 </div>
-

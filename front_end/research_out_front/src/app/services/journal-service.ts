@@ -225,8 +225,6 @@ export class JournalService {
     return this.http.get<Journal[]>(`${this.baseurl}journal?summary=true`);
   }
 
-
-
   exists(title: string, issn: string, id?: number): Observable<boolean> {
     let url = `${this.baseurl}journal/exists?title=${encodeURIComponent(title)}&issn=${encodeURIComponent(issn)}`;
 
@@ -237,14 +235,29 @@ export class JournalService {
     return this.http.get<boolean>(url);
   }
 
+  lookupByIssnOrEissn(issn?: string, eissn?: string, id?: number): Observable<Journal | null> {
+    const query: string[] = [];
+    const normalizedIssn = String(issn ?? '').trim();
+    const normalizedEissn = String(eissn ?? '').trim();
 
+    if (normalizedIssn) {
+      query.push(`issn=${encodeURIComponent(normalizedIssn)}`);
+    }
+    if (normalizedEissn) {
+      query.push(`eissn=${encodeURIComponent(normalizedEissn)}`);
+    }
+    if (id !== undefined && id !== null && Number.isFinite(id)) {
+      query.push(`id=${id}`);
+    }
 
+    if (query.length === 0) {
+      return of(null);
+    }
 
-
-
-
-
-
-
+    return this.http.get<Journal>(`${this.baseurl}journal/lookup?${query.join('&')}`).pipe(
+      map((journal) => journal ?? null),
+      catchError(() => of(null))
+    );
+  }
 
 }

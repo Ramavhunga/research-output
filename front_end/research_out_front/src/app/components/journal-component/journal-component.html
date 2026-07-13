@@ -34,6 +34,9 @@
                 <button type="button" class="btn btn-outline-secondary" (click)="loadJournals()" [disabled]="loading">
                   {{ loading ? 'Refreshing...' : 'Refresh' }}
                 </button>
+                <a *ngIf="isAdmin()" routerLink="/admin/journal-upload" class="btn btn-outline-primary">
+                  Upload Journal Reference
+                </a>
                 <a routerLink="/journal/details"
                    class="btn btn-primary">Add Journal</a>
               </div>

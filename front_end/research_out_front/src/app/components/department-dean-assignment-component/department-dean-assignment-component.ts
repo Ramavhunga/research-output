@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -8,6 +8,7 @@ import { StaffRoleView } from '../../models/user-role.model';
 import { FacultyDepartmentService } from '../../services/faculty-department.service';
 import { UserRoleService } from '../../services/user-role.service';
 import { DepartmentDeanService, DepartmentDeanDTO } from '../../services/department-dean.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-department-dean-assignment-component',
@@ -15,7 +16,7 @@ import { DepartmentDeanService, DepartmentDeanDTO } from '../../services/departm
   templateUrl: './department-dean-assignment-component.html',
   styleUrl: './department-dean-assignment-component.css'
 })
-export class DepartmentDeanAssignmentComponent implements OnInit {
+export class DepartmentDeanAssignmentComponent implements OnInit, OnDestroy {
   faculties: Faculty[] = [];
   departments: Department[] = [];
   selectedFacultyId: number | null = null;
@@ -34,6 +35,8 @@ export class DepartmentDeanAssignmentComponent implements OnInit {
   // List view properties
   assignedDeans: DepartmentDeanDTO[] = [];
   activeTab: 'assign' | 'list' = 'assign';
+
+  private departmentsSubscription?: Subscription;
 
   constructor(
     private facultyDepartmentService: FacultyDepartmentService,
@@ -82,17 +85,27 @@ export class DepartmentDeanAssignmentComponent implements OnInit {
     });
   }
 
-  onFacultyChange(): void {
+  ngOnDestroy(): void {
+    this.departmentsSubscription?.unsubscribe();
+  }
+
+  onFacultyChange(facultyId: number | null): void {
+    this.selectedFacultyId = facultyId;
     this.departments = [];
     this.selectedDepartmentId = null;
     this.selectedStaff = null;
+    this.loadingDepartments = false;
 
-    if (!this.selectedFacultyId) {
+    const normalizedFacultyId = Number(facultyId);
+    if (!normalizedFacultyId) {
       return;
     }
 
+    // Cancel any in-flight request so stale results do not overwrite the latest selection.
+    this.departmentsSubscription?.unsubscribe();
     this.loadingDepartments = true;
-    this.facultyDepartmentService.getDepartmentsByFaculty(this.selectedFacultyId).subscribe({
+
+    this.departmentsSubscription = this.facultyDepartmentService.getDepartmentsByFaculty(normalizedFacultyId).subscribe({
       next: (departments) => {
         this.departments = departments;
         this.loadingDepartments = false;
@@ -228,6 +241,8 @@ export class DepartmentDeanAssignmentComponent implements OnInit {
     this.searchStaffNo = '';
     this.selectedStaff = null;
     this.departments = [];
+    this.loadingDepartments = false;
+    this.departmentsSubscription?.unsubscribe();
   }
 
   switchTab(tab: 'assign' | 'list'): void {

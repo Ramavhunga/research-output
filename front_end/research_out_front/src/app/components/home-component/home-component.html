@@ -92,6 +92,14 @@
             <span class="pc-mtext" data-i18n="Department Dean Assignment">Department Dean Assignment</span>
           </a>
         </li>
+        <li *ngIf="hasAnyRole('ADMIN')" class="pc-item" routerLink="admin/journal-upload" routerLinkActive="active">
+          <a routerLink="admin/journal-upload" routerLinkActive="active" class="pc-link">
+            <span class="pc-micon">
+              <i class="ph-duotone ph-upload-simple"></i>
+            </span>
+            <span class="pc-mtext" data-i18n="Journal Reference Upload">Journal Reference Upload</span>
+          </a>
+        </li>
 
 <!--        <li class="pc-item" routerLink="manage-submissions" routerLinkActive="active" >-->
 <!--          <a routerLink="manage-submissions" routerLinkActive="active" class="pc-link">-->

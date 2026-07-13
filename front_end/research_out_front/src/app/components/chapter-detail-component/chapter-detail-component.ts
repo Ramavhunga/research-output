@@ -136,6 +136,7 @@ export class ChapterDetailComponent implements OnInit {
     this.researchFieldService.getAll().subscribe(data => {
       this.researchFields = data;
       this.filteredResearchFields = data;
+      this.updateFieldOfSearchOtherValidators(this.form?.get('fieldofsearch')?.value);
     });
     this.publisherService.getAll().subscribe({
       next: (data) => {
@@ -149,6 +150,7 @@ export class ChapterDetailComponent implements OnInit {
     this.loadFaculties();
     const navigationState = this.router.getCurrentNavigation()?.extras.state ?? history.state ?? {};
     const chapter = navigationState['chapter'] as Chapter | undefined;
+    const parsedFieldOfResearch = this.splitFieldOfResearchValue(chapter?.fieldOfResearch);
     this.isReadOnlyView = !!(navigationState['reviewMode'] || navigationState['viewMode'] || navigationState['readOnly']);
     this.currentStatus = this.normalizeStatus((chapter as any)?.status);
     this.currentRoles = this.getCurrentRoles();
@@ -169,7 +171,8 @@ export class ChapterDetailComponent implements OnInit {
         chapter?.isbn ?? '',
         [Validators.required]
       ],
-      fieldofsearch: [chapter?.fieldOfResearch ?? '', Validators.required],
+      fieldofsearch: [parsedFieldOfResearch.code, Validators.required],
+      fieldofsearchOther: [parsedFieldOfResearch.specification, []],
 
       /** Publication Details - Required Fields */
       originalPhotocopy: [this.normalizeOriginalPhotocopy(chapter?.originalOrPhotocopy), Validators.required],
@@ -210,6 +213,7 @@ export class ChapterDetailComponent implements OnInit {
       });
 
     this.setupFieldSearch();
+    this.updateFieldOfSearchOtherValidators(this.form.get('fieldofsearch')?.value);
     this.setupAutoCalc();
     this.applyChapterMaxUnitsRule();
     this.normalizeAllUniversityAffiliations();
@@ -546,7 +550,57 @@ export class ChapterDetailComponent implements OnInit {
       )
     ).subscribe(results => {
       this.filteredResearchFields = results;
+      this.updateFieldOfSearchOtherValidators(this.form.get('fieldofsearch')?.value);
     });
+  }
+
+  get shouldShowFieldOfSearchSpecificationInput(): boolean {
+    return this.requiresFieldSpecification(this.form.get('fieldofsearch')?.value);
+  }
+
+  private requiresFieldSpecification(code: unknown): boolean {
+    const normalizedCode = String(code ?? '').trim();
+    if (!normalizedCode) {
+      return false;
+    }
+
+    if (normalizedCode === 'OTHER') {
+      return true;
+    }
+
+    const selectedField = this.researchFields.find(f => String(f?.code ?? '').trim() === normalizedCode);
+    const requiresSpecification = selectedField?.requiresSpecification ?? selectedField?.requires_specification;
+    return requiresSpecification === true || requiresSpecification === 1 || String(requiresSpecification).toLowerCase() === 'true';
+  }
+
+  private updateFieldOfSearchOtherValidators(code: unknown): void {
+    const requiresSpecification = this.requiresFieldSpecification(code);
+    const otherControl = this.form.get('fieldofsearchOther');
+    if (!otherControl) {
+      return;
+    }
+
+    if (requiresSpecification) {
+      otherControl.setValidators([Validators.required]);
+    } else {
+      otherControl.clearValidators();
+      otherControl.setValue('');
+    }
+
+    otherControl.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private splitFieldOfResearchValue(rawValue: unknown): { code: string; specification: string } {
+    const value = String(rawValue ?? '').trim();
+    if (!value.includes(':')) {
+      return { code: value, specification: '' };
+    }
+
+    const [code, ...rest] = value.split(':');
+    return {
+      code: code.trim(),
+      specification: rest.join(':').trim()
+    };
   }
 
   loadFaculties() {
@@ -1280,7 +1334,9 @@ export class ChapterDetailComponent implements OnInit {
       editors: raw.editors ?? undefined,
       publisher: raw.publisher,
       isbn: raw.isbn,
-      fieldOfResearch: raw.fieldofsearch ?? null,
+      fieldOfResearch: this.requiresFieldSpecification(raw.fieldofsearch)
+        ? `${raw.fieldofsearch}: ${(raw.fieldofsearchOther ?? '').trim()}`
+        : (raw.fieldofsearch ?? null),
       originalOrPhotocopy: raw.originalPhotocopy,
       evidenceOfPeerReview: raw.peerReviewEvidence,
       typeOfEvidence: raw.typeOfEvidence ?? undefined,
@@ -1474,7 +1530,8 @@ export class ChapterDetailComponent implements OnInit {
   }
 
   selectResearchField(field: any) {
-    this.form.get('fieldofsearch')?.setValue(field.code);
+    this.form.get('fieldofsearch')?.setValue(field?.code ?? '');
+    this.updateFieldOfSearchOtherValidators(field?.code ?? '');
     this.filteredResearchFields = [];
     this.showResearchFieldDropdown = false;
   }

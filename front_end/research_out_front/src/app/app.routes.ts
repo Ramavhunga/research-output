@@ -26,6 +26,7 @@ import {
 import { ReviewDashboardComponent } from './components/review-dashboard-component/review-dashboard-component';
 import { RoleAssignmentComponent } from './components/role-assignment-component/role-assignment-component';
 import { DepartmentDeanAssignmentComponent } from './components/department-dean-assignment-component/department-dean-assignment-component';
+import { AdminJournalUploadComponent } from './components/admin-journal-upload-component/admin-journal-upload-component';
 
 
 export const routes: Routes = [
@@ -59,6 +60,12 @@ export const routes: Routes = [
            {
              path: 'admin/department-dean',
              component: DepartmentDeanAssignmentComponent,
+             canActivate: [AuthGuard],
+             data: { roles: ['ADMIN'] }
+           },
+           {
+             path: 'admin/journal-upload',
+             component: AdminJournalUploadComponent,
              canActivate: [AuthGuard],
              data: { roles: ['ADMIN'] }
            },

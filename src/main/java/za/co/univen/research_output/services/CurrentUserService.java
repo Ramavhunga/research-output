@@ -1,7 +1,6 @@
 package za.co.univen.research_output.services;
 
 import jakarta.servlet.http.HttpServletRequest;
-import org.apache.logging.log4j.util.Base64Util;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -28,7 +27,6 @@ import java.util.stream.Collectors;
 public class CurrentUserService {
 
     private static final String ADMIN_STAFF_NO = "16211";
-    private static final String IMPERSONATION_CREDENTIAL = "16211:85467";
     private static final String INTEGRATION_USER_URL = "https://univenproduction-integration.azuremicroservices.io/api/user/";
 
     private final UserRepository userRepository;
@@ -134,7 +132,7 @@ public class CurrentUserService {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.add("Authorization", "Basic " + Base64Util.encode(IMPERSONATION_CREDENTIAL));
+            headers.add("Authorization", resolveBasicAuthorizationHeader());
 
             ResponseEntity<LoginDTO> rs = restTemplate.exchange(
                     INTEGRATION_USER_URL + username,
@@ -150,11 +148,25 @@ public class CurrentUserService {
                     && !dto.getCommunication().getCommunicationNumber().isBlank()) {
                 return dto.getCommunication().getCommunicationNumber().trim();
             }
+        } catch (SecurityException e) {
+            throw new SecurityException("Username and password are required for ITS lookup");
         } catch (Exception ignored) {
             // Fallback to a deterministic local email when integration lookup is unavailable.
         }
 
         return username + "@local";
+    }
+
+    private String resolveBasicAuthorizationHeader() {
+        RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
+        if (attrs instanceof ServletRequestAttributes servletAttrs) {
+            HttpServletRequest req = servletAttrs.getRequest();
+            String authorization = req.getHeader("Authorization");
+            if (authorization != null && authorization.regionMatches(true, 0, "Basic ", 0, 6)) {
+                return authorization;
+            }
+        }
+        throw new SecurityException("Username and password are required for ITS lookup");
     }
 
     private void expandRoleAliases(Set<String> roles) {
