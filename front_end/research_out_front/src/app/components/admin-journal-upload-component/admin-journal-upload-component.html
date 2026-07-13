@@ -1,0 +1,101 @@
+<div class="pc-container">
+  <div class="pc-content">
+    <div class="page-header">
+      <div class="page-block">
+        <div class="row align-items-center g-0">
+          <div class="col-sm-auto">
+            <div class="page-header-title">
+              <h5 class="mb-0">Journal Reference Upload</h5>
+            </div>
+          </div>
+          <div class="col-sm-auto">
+            <ul class="breadcrumb">
+              <li class="breadcrumb-item"><a routerLink="/dashboard">Dashboard</a></li>
+              <li class="breadcrumb-item" aria-current="page">Admin Journal Upload</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
+        <div class="card table-card">
+          <div class="card-header">
+            <div class="d-sm-flex align-items-center justify-content-between">
+              <h5 class="mb-3 mb-sm-0">Upload Excel and Replace Existing Data</h5>
+              <button type="button" class="btn btn-outline-secondary" (click)="loadRows()" [disabled]="loading || uploading">
+                {{ loading ? 'Refreshing...' : 'Refresh' }}
+              </button>
+            </div>
+          </div>
+          <div class="card-body pt-3">
+            <div class="alert alert-info mb-3">
+              Required columns: <strong>standard journal title</strong>, <strong>issn</strong>, <strong>eissn</strong>,
+              <strong>status</strong>, <strong>qualify_for_subsidy</strong>, <strong>reason</strong>, <strong>publisher</strong>,
+              <strong>NRF journal_id</strong>.
+            </div>
+
+            <div class="row g-2 align-items-end mb-4">
+              <div class="col-md-8">
+                <label class="form-label">Excel file (.xlsx)</label>
+                <input
+                  type="file"
+                  class="form-control"
+                  accept=".xlsx,.xls"
+                  (change)="onFileSelected($event)"
+                />
+              </div>
+              <div class="col-md-4 d-grid">
+                <button type="button" class="btn btn-primary" (click)="upload()" [disabled]="uploading || !selectedFile">
+                  {{ uploading ? 'Uploading...' : 'Upload and Replace' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="mb-3" *ngIf="rowsInserted > 0">
+              <span class="badge bg-light-success text-success">
+                Last upload inserted {{ rowsInserted }} row(s)
+              </span>
+            </div>
+
+            <div *ngIf="loading" class="text-muted mb-2">Loading uploaded data...</div>
+            <div class="table-responsive" *ngIf="!loading">
+              <table class="table table-hover" id="pc-dt-admin-upload">
+                <thead>
+                <tr>
+                  <th>Standard Journal Title</th>
+                  <th>ISSN</th>
+                  <th>EISSN</th>
+                  <th>Status</th>
+                  <th>Qualify for Subsidy</th>
+                  <th>Reason</th>
+                  <th>Publisher</th>
+                  <th>NRF Journal ID</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr *ngFor="let row of uploadedRows">
+                  <td class="text-wrap" style="white-space: normal; min-width: 220px;">{{ row.standardJournalTitle || '-' }}</td>
+                  <td>{{ row.issn || '-' }}</td>
+                  <td>{{ row.eissn || '-' }}</td>
+                  <td>{{ row.status || '-' }}</td>
+                  <td>{{ row.qualifyForSubsidy || '-' }}</td>
+                  <td class="text-wrap" style="white-space: normal; min-width: 220px;">{{ row.reason || '-' }}</td>
+                  <td>{{ row.publisher || '-' }}</td>
+                  <td>{{ row.nrfJournalId || '-' }}</td>
+                </tr>
+                <tr *ngIf="uploadedRows.length === 0">
+                  <td colspan="8" class="text-center text-muted">No uploaded rows found yet.</td>
+                </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+

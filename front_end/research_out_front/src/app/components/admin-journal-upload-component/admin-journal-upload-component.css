@@ -1,0 +1,9 @@
+:host {
+  display: block;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
