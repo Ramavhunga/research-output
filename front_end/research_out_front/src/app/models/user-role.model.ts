@@ -7,6 +7,8 @@ export interface UserRoleView {
 
 export interface UserRoleAssignmentRequest {
   roles: string[];
+  itsUsername?: string;
+  itsPassword?: string;
 }
 
 export interface StaffRoleView {
